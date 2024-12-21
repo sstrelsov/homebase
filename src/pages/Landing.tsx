@@ -10,7 +10,7 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="flex flex-grow flex-col w-full h-full items-center justify-center gap-4">
+    <div className="flex flex-grow flex-col w-full items-center justify-center gap-4">
       <Image
         className="
           relative

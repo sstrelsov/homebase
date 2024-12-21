@@ -7,9 +7,9 @@ import ProjectsPage from "./pages/Projects";
 
 const App = () => {
   return (
-    <div className="h-screen flex flex-col">
+    <div className="h-dvh flex flex-col">
       <NavigationBar />
-      <div className="flex w-full h-full items-center justify-center">
+      <div className="flex w-full flex-grow items-center justify-center">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/projects" element={<ProjectsPage />} />

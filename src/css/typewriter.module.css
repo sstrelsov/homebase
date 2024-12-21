@@ -1,5 +1,5 @@
 .typewriterText {
-  white-space: nowrap;
+  white-space: prewrap;
   overflow: hidden;
   text-decoration-line: none;
   padding: 0.3px;

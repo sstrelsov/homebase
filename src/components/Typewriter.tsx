@@ -53,7 +53,9 @@ const Typewriter = ({ phrases, period = 2000 }: TypewriterProps) => {
   }, [text, isDeleting, index, phrases, period]);
 
   return (
-    <div className={`${styles.typewriterText} text-3xl leading-normal`}>
+    <div
+      className={`${styles.typewriterText} text-2xl sm:text-3xl leading-normal break-words max-w-full`}
+    >
       {text}
       <span
         className={`border-r-[2.5px] solid ml-[1.8px] ${styles.blink}`}
