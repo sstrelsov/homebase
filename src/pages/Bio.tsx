@@ -4,7 +4,7 @@ const BioPage = () => {
       <p className="text-lg">
         I'm interested in the intersection of the humanities and technology. I
         have a background in history and computer science, and I'm interested in
-        the AI's real-world applications to journalism, law, and history.
+        the AI's real-world applications to journalism and law.
       </p>
     </div>
   );

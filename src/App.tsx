@@ -1,3 +1,4 @@
+import { useTheme } from "@nextui-org/use-theme";
 import { Route, Routes } from "react-router-dom";
 import NavigationBar from "./components/navigation/NavigationBar";
 import "./css/index.css";
@@ -6,6 +7,7 @@ import LandingPage from "./pages/Landing";
 import ProjectsPage from "./pages/Projects";
 
 const App = () => {
+  useTheme();
   return (
     <div className="h-dvh flex flex-col">
       <NavigationBar />
