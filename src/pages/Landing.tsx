@@ -32,8 +32,13 @@ const LandingPage = () => {
         deletingSpeed={70}
         phrases={[
           "Hey, I'm Spencer!",
-          "I'm a PM in AI and law",
-          "I'm based out of Brooklyn",
+          "I'm a PM at Thomson Reuters",
+          "I build AI for humans",
+          "I build AI for lawyers",
+          "I build AI for journalists",
+          "I love coding + design",
+          "I love history",
+          "I love storytelling",
         ]}
       />
     </div>

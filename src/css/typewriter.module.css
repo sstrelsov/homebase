@@ -1,6 +1,5 @@
 .typewriterText {
-  white-space: prewrap;
-  overflow: hidden;
+  /* overflow: hidden; */
   text-decoration-line: none;
   padding: 0.3px;
   font-family: "Lora", "Inter UI Medium";
