@@ -3,6 +3,7 @@ import { useLinkColor } from "../../utils/ColorContext";
 
 interface NavLinkProps {
   to: string;
+  disableEffects?: boolean;
   children: React.ReactNode;
 }
 
@@ -10,6 +11,7 @@ interface NavLinkProps {
  * Custom link component that changes underline color when active
  *
  * @param to the path to navigate to
+ * @param disableEffects to have no underline or color effect
  * @param children the content of the link
  * @param props additional props to pass to the link
  * @returns
@@ -17,6 +19,7 @@ interface NavLinkProps {
 const NavLink = ({
   to,
   children,
+  disableEffects,
   ...props
 }: NavLinkProps & React.HTMLProps<HTMLAnchorElement>) => {
   const location = useLocation();
@@ -27,9 +30,9 @@ const NavLink = ({
     <RouterLink
       {...props}
       to={to}
-      className={isActive ? "underline" : "text-inherit"}
+      className={isActive && !disableEffects ? "underline" : "text-inherit"}
       style={
-        isActive
+        isActive && !disableEffects
           ? {
               textDecorationColor: activeColor,
               textUnderlineOffset: "3px",

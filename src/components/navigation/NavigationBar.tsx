@@ -15,7 +15,9 @@ const NavigationBar = () => {
   return (
     <Navbar>
       <NavbarBrand>
-        <NavLink to="/">spencer strelsov</NavLink>
+        <NavLink to="/" disableEffects>
+          spencer strelsov
+        </NavLink>
       </NavbarBrand>
       <NavbarContent className="flex gap-4" justify="center">
         <NavbarItem>
