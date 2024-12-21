@@ -9,7 +9,7 @@ const App = () => {
   return (
     <div className="h-dvh flex flex-col">
       <NavigationBar />
-      <div className="flex w-full flex-grow items-center justify-center">
+      <div className="flex w-full flex-grow items-center justify-center px-6">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/projects" element={<ProjectsPage />} />

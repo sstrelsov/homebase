@@ -23,15 +23,16 @@ const LandingPage = () => {
         "
         src="/images/strelsov-headshot.png"
         alt="Spencer Strelsov Headshot"
-        width={240}
+        width={`200 sm:240`}
         isBlurred
         onClick={handleThemeSwitch}
       />
-
       <Typewriter
+        typingSpeed={130}
+        deletingSpeed={70}
         phrases={[
           "Hey, I'm Spencer!",
-          "I'm a PM working in AI and law",
+          "I'm a PM in AI and law",
           "I'm based out of Brooklyn",
         ]}
       />
