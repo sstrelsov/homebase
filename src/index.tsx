@@ -1,8 +1,9 @@
 import { NextUIProvider } from "@nextui-org/react";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
+import { BrowserRouter } from "react-router-dom";
 import App from "./App";
-import "./index.css";
+import "./css/index.css";
 import reportWebVitals from "./reportWebVitals";
 
 // Safely get the root element from the DOM
@@ -16,9 +17,11 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <StrictMode>
-    <NextUIProvider>
-      <App />
-    </NextUIProvider>
+    <BrowserRouter>
+      <NextUIProvider>
+        <App />
+      </NextUIProvider>
+    </BrowserRouter>
   </StrictMode>
 );
 

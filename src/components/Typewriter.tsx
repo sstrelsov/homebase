@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import styles from "./typewriter.module.css";
+import styles from "../css/typewriter.module.css";
 /** Helper to generate a random color */
 function getRandomColor(): string {
   const letters = "0123456789ABCDEF";
