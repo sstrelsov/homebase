@@ -2586,6 +2586,11 @@
   resolved "https://registry.yarnpkg.com/@nextui-org/use-scroll-position/-/use-scroll-position-2.1.1.tgz#cdf257af6b9e6c5cd8f3cffe28653c44221ff9ed"
   integrity sha512-RgY1l2POZbSjnEirW51gdb8yNPuQXHqJx3TS8Ut5dk+bhaX9JD3sUdEiJNb3qoHAJInzyjN+27hxnACSlW0gzg==
 
+"@nextui-org/use-theme@^2.1.1":
+  version "2.1.1"
+  resolved "https://registry.yarnpkg.com/@nextui-org/use-theme/-/use-theme-2.1.1.tgz#a5c5a2779bf74c5778664e7b289139d0eb110c6a"
+  integrity sha512-9hoOGeu4PP/XnESGQEdDvUbb3SabBJZ1TOkllWz+xrZDu8PZ7Q1hORJQpNKBAjE9MM6w13AboKmSz8WXtrE1lg==
+
 "@nextui-org/use-update-effect@2.1.1":
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/@nextui-org/use-update-effect/-/use-update-effect-2.1.1.tgz#9102f57737876a6447b06531de870bb7c3538833"
