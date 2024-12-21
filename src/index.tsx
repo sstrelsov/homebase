@@ -5,6 +5,7 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./css/index.css";
 import reportWebVitals from "./reportWebVitals";
+import { ColorProvider } from "./utils/ColorContext";
 
 // Safely get the root element from the DOM
 const rootElement = document.getElementById("root");
@@ -18,9 +19,11 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <StrictMode>
     <BrowserRouter>
-      <NextUIProvider>
-        <App />
-      </NextUIProvider>
+      <ColorProvider>
+        <NextUIProvider>
+          <App />
+        </NextUIProvider>
+      </ColorProvider>
     </BrowserRouter>
   </StrictMode>
 );

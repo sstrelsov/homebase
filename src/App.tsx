@@ -1,5 +1,5 @@
 import { Route, Routes } from "react-router-dom";
-import NavigationBar from "./components/NavigationBar";
+import NavigationBar from "./components/navigation/NavigationBar";
 import "./css/index.css";
 import BioPage from "./pages/Bio";
 import LandingPage from "./pages/Landing";

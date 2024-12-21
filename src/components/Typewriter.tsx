@@ -1,14 +1,6 @@
 import { useEffect, useState } from "react";
 import styles from "../css/typewriter.module.css";
-/** Helper to generate a random color */
-function getRandomColor(): string {
-  const letters = "0123456789ABCDEF";
-  let color = "#";
-  for (let i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
-}
+import { useLinkColor } from "../utils/ColorContext";
 
 interface TypewriterProps {
   /** List of phrases to cycle through */
@@ -24,12 +16,8 @@ const Typewriter = ({ phrases, period = 2000 }: TypewriterProps) => {
   const [text, setText] = useState<string>(""); // The text being typed/deleted
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [index, setIndex] = useState<number>(0); // Which phrase we’re on
-  const [cursorColor, setCursorColor] = useState<string>("#00ffff");
 
-  // Generate a random cursor color on initial render
-  useEffect(() => {
-    setCursorColor(getRandomColor());
-  }, []);
+  const cursorColor = useLinkColor();
 
   useEffect(() => {
     const fullText = phrases[index % phrases.length];
