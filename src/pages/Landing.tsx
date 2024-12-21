@@ -1,6 +1,7 @@
 import { Image } from "@nextui-org/react";
 import { useTheme } from "@nextui-org/use-theme";
 import Typewriter from "../components/Typewriter";
+
 const LandingPage = () => {
   const { theme, setTheme } = useTheme();
 
@@ -11,14 +12,22 @@ const LandingPage = () => {
   return (
     <div className="flex flex-grow flex-col w-full h-full items-center justify-center gap-4">
       <Image
-        className="hover:cursor-pointer"
+        className="
+          relative
+          hover:cursor-pointer 
+          transition-transform
+          duration-300
+          ease-in-out
+          hover:scale-105
+          active:scale-95
+        "
         src="/images/strelsov-headshot.png"
         alt="Spencer Strelsov Headshot"
-        isBlurred
-        isZoomed
         width={240}
+        isBlurred
         onClick={handleThemeSwitch}
       />
+
       <Typewriter
         phrases={[
           "Hey, I'm Spencer!",
