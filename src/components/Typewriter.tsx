@@ -120,6 +120,7 @@ const Typewriter = ({
     nextPhrase,
     isLastPhrase,
     loop,
+    phrases.length,
   ]);
 
   const display = currentPhrase.slice(0, charIndex);

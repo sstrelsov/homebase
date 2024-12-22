@@ -2,18 +2,18 @@ import { Image } from "@nextui-org/react";
 import { useTheme } from "@nextui-org/use-theme";
 import Typewriter from "../components/Typewriter";
 import { useLinkColor } from "../utils/ColorContext";
-import useTailwindBreakpoint from "../utils/useBreakpointUp";
+import useAtOrAboveBreakpoint from "../utils/useAtOrAboveBreakpoint";
 
 const LandingPage = () => {
   const { theme, setTheme } = useTheme();
-  const isXL = useTailwindBreakpoint(); // Using the Tailwind breakpoint hook
+  const isHoriztonal = useAtOrAboveBreakpoint("xl");
   const { setRandomColor } = useLinkColor();
   const handleImageClick = () => {
     setRandomColor(theme === "light" ? "dark" : "light");
     setTheme(theme === "light" ? "dark" : "light");
   };
 
-  const smallerPhrases = [
+  const cyclingPhrases = [
     "Hey, I'm Spencer!",
     "I'm a PM at Thomson Reuters",
     "I build AI for lawyers",
@@ -23,7 +23,7 @@ const LandingPage = () => {
     "I love storytelling",
   ];
 
-  const largerPhrases = [
+  const accumulatingPhrases = [
     "Hey, I'm Spencer!\n\n",
     "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters.",
     "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers.",
@@ -55,11 +55,12 @@ const LandingPage = () => {
       />
       <div className="flex-1 text-left text-2xl sm:text-3xl leading-relaxed xl:max-w-[30rem] xl:max-h-[25rem] xl:content-start">
         <Typewriter
-          typingSpeed={130}
-          deletingSpeed={70}
-          phrases={isXL ? largerPhrases : smallerPhrases}
-          loop={isXL ? false : true}
-          preserveTrailingNewlines
+          typingSpeed={isHoriztonal ? 70 : 110}
+          period={isHoriztonal ? 1000 : undefined}
+          deletingSpeed={isHoriztonal ? 50 : 70}
+          phrases={isHoriztonal ? accumulatingPhrases : cyclingPhrases}
+          loop={isHoriztonal ? false : true}
+          preserveTrailingNewlines={isHoriztonal ? true : false}
         />
       </div>
     </div>
