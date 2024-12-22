@@ -9,9 +9,9 @@ import ProjectsPage from "./pages/Projects";
 const App = () => {
   useTheme("system");
   return (
-    <div className="relative h-dvh w-full overflow-hidden">
+    <div className="font-light relative h-dvh w-full overflow-hidden">
       <NavigationBar />
-      <div className="h-dvh flex flex-grow w-full items-center justify-center px-6">
+      <div className="font-sans font-normal h-dvh flex flex-grow w-full items-center justify-center px-6">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/projects" element={<ProjectsPage />} />

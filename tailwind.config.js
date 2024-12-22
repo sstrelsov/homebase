@@ -9,7 +9,9 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["Lora", "serif"],
+        sans: ["IBM Plex Sans", "sans-serif"],
+        special: "Special Elite",
+        serif: ["IBM Plex Serif", "serif"],
         inter: ["Inter", "sans-serif"],
         code: [
           "source-code-pro",
