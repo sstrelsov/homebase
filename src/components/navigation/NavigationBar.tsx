@@ -13,7 +13,10 @@ import NavLink from "./NavLink";
  */
 const NavigationBar = () => {
   return (
-    <Navbar>
+    <Navbar
+      isBlurred={false}
+      className="fixed top-0 w-full bg-transparent z-50"
+    >
       <NavbarBrand>
         <NavLink to="/" disableEffects>
           spencer strelsov

@@ -7,11 +7,11 @@ import LandingPage from "./pages/Landing";
 import ProjectsPage from "./pages/Projects";
 
 const App = () => {
-  useTheme();
+  useTheme("system");
   return (
-    <div className="h-dvh flex flex-col">
+    <div className="relative h-dvh w-full overflow-hidden">
       <NavigationBar />
-      <div className="flex w-full flex-grow items-center justify-center px-6">
+      <div className="h-dvh flex flex-grow w-full items-center justify-center px-6">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/projects" element={<ProjectsPage />} />

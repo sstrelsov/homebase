@@ -9,19 +9,8 @@ module.exports = {
   theme: {
     extend: {
       fontFamily: {
-        body: [
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
-          "Roboto",
-          "Oxygen",
-          "Ubuntu",
-          "Cantarell",
-          "Fira Sans",
-          "Droid Sans",
-          "Helvetica Neue",
-          "sans-serif",
-        ],
+        sans: ["Lora", "serif"],
+        inter: ["Inter", "sans-serif"],
         code: [
           "source-code-pro",
           "Menlo",
@@ -33,6 +22,5 @@ module.exports = {
       },
     },
   },
-  darkMode: "class", // Enable dark mode (class strategy)
   plugins: [nextui()],
 };
