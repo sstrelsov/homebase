@@ -1,71 +1,53 @@
 # Variables
-BUILD_DIR = build
-TEMP_BUILD_DIR = .temp_build
+BUILD_DIR       = build
 PUBLISHED_BRANCH = published
-CURRENT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
+WORKTREE_DIR    = ../published-branch
+CURRENT_BRANCH  = $(shell git rev-parse --abbrev-ref HEAD)
 
-# Default target: Deploy
-deploy: build copy-build reset-published push-published clean
+# Default target
+deploy: build deploy-worktree clean
 
-# Step 1: Build the app
+# 1) Build your app
 build:
-	@echo "Building the app..."
+	@echo "Running npm build..."
 	npm run build
 
-# Step 2: Copy build to a temporary location
-copy-build:
-	@echo "Copying build directory to a temporary location..."
-	@rm -rf $(TEMP_BUILD_DIR)
-	@cp -r $(BUILD_DIR) $(TEMP_BUILD_DIR)
+# 2) Deploy using a separate worktree with NO history preservation
+deploy-worktree:
+	@echo "Deploying to branch '$(PUBLISHED_BRANCH)' (force overwrite)..."
 
-# Step 3: Reset the published branch
-reset-published:
-	@echo "Resetting the $(PUBLISHED_BRANCH) branch to match the current build..."
-
-	# Check if the published branch exists and switch to it, or create it if it doesn't
-	@if git show-ref --quiet refs/heads/$(PUBLISHED_BRANCH); then \
-	  git checkout $(PUBLISHED_BRANCH); \
-	else \
-	  git checkout --orphan $(PUBLISHED_BRANCH); \
+	# If WORKTREE_DIR doesn't exist, add it as a worktree
+	@if [ ! -d "$(WORKTREE_DIR)" ]; then \
+	  echo "Worktree folder not found. Creating..."; \
+	  git worktree add $(WORKTREE_DIR) $(PUBLISHED_BRANCH) 2>/dev/null || \
+	  ( \
+	    echo "Branch '$(PUBLISHED_BRANCH)' doesn't exist. Creating orphan branch..."; \
+	    git branch $(PUBLISHED_BRANCH) || true; \
+	    git worktree add $(WORKTREE_DIR) $(PUBLISHED_BRANCH); \
+	  ); \
 	fi
 
-	# Verify we successfully switched to the published branch
-	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "$(PUBLISHED_BRANCH)" ]; then \
-	  echo "ERROR: Failed to switch to $(PUBLISHED_BRANCH) branch. Aborting."; \
-	  exit 1; \
-	fi
+	# Clear the existing files (except .git) in the worktree
+	find $(WORKTREE_DIR) -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
 
-	# Reset the published branch to a clean state
-	@git rm -rf . 2>/dev/null || true
-	@cp -r $(TEMP_BUILD_DIR)/* .
-	@git add .
-	@git commit -m "Deploy from branch $(CURRENT_BRANCH)" || echo "No changes to commit."
+	# Copy the new build artifacts
+	cp -r $(BUILD_DIR)/* $(WORKTREE_DIR)
 
-# Step 4: Push to the published branch
-push-published:
-	@echo "Pushing to the $(PUBLISHED_BRANCH) branch..."
-	@git push origin $(PUBLISHED_BRANCH)
+	# Commit and push (force) from the worktree
+	cd $(WORKTREE_DIR) && \
+	  git add . && \
+	  git commit -m "Force deploy from branch $(CURRENT_BRANCH)" || echo "No changes to commit." && \
+	  git push origin $(PUBLISHED_BRANCH) --force
 
-# Step 5: Clean up temporary files
+	@echo "Deployment complete (force overwrite)."
+
+# 3) Clean local build artifacts
 clean:
-	@echo "Cleaning up temporary files..."
-	@rm -rf $(BUILD_DIR)
-	@rm -rf $(TEMP_BUILD_DIR)
+	@echo "Cleaning up local '$(BUILD_DIR)' folder..."
+	rm -rf $(BUILD_DIR)
 
-# Rollback the last deployment on the published branch
-rollback:
-	@echo "Rolling back last commit on the $(PUBLISHED_BRANCH) branch..."
-	@git checkout $(PUBLISHED_BRANCH)
-
-	# Verify we successfully switched to the published branch
-	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "$(PUBLISHED_BRANCH)" ]; then \
-	  echo "ERROR: Failed to switch to $(PUBLISHED_BRANCH) branch. Aborting rollback."; \
-	  exit 1; \
-	fi
-
-	# Revert the last commit
-	@git revert HEAD --no-edit
-	@git push origin $(PUBLISHED_BRANCH)
-
-	# Return to the original branch
-	@git checkout $(CURRENT_BRANCH)
+# (Optional) Remove the worktree folder if you want a fresh start
+remove-worktree:
+	@echo "Removing worktree folder '$(WORKTREE_DIR)'..."
+	git worktree remove $(WORKTREE_DIR) --force || true
+	rm -rf $(WORKTREE_DIR)
