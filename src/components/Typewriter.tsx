@@ -45,9 +45,16 @@ const Typewriter = ({
 
   const { linkColor } = useLinkColor();
 
+  // Whenever phrases changes, reset the typewriter
+  useEffect(() => {
+    setPhase("typing");
+    setIndex(0);
+    setCharIndex(0);
+  }, [phrases]);
+
   const isLastPhrase = !loop && index === phrases.length - 1;
 
-  const currentPhrase = phrases[index];
+  const currentPhrase = phrases[index] ?? "";
   const nextPhrase = isLastPhrase ? "" : phrases[(index + 1) % phrases.length];
 
   let overlapLength = findPrefixOverlap(currentPhrase, nextPhrase);
@@ -96,6 +103,7 @@ const Typewriter = ({
         }, currentDeletingSpeed);
         return () => clearTimeout(timeoutId);
       } else {
+        // If looping, move on; otherwise just end
         setIndex((i) => (loop ? (i + 1) % phrases.length : i + 1));
         setPhase("typing");
       }
