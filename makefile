@@ -5,7 +5,7 @@ PUBLISHED_BRANCH = published
 CURRENT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 
 # Default target: Deploy
-deploy: build copy-build deploy-to-published clean
+deploy: build copy-build reset-published push-published clean
 
 # Step 1: Build the app
 build:
@@ -18,31 +18,23 @@ copy-build:
 	@rm -rf $(TEMP_BUILD_DIR)
 	@cp -r $(BUILD_DIR) $(TEMP_BUILD_DIR)
 
-# Step 3: Deploy the build to the published branch
-deploy-to-published:
-	@echo "Deploying to the $(PUBLISHED_BRANCH) branch..."
-
-	# Switch to the published branch or create it if it doesn't exist
+# Step 3: Reset the published branch
+reset-published:
+	@echo "Resetting the $(PUBLISHED_BRANCH) branch to match the current build..."
 	@git checkout $(PUBLISHED_BRANCH) 2>/dev/null || git checkout --orphan $(PUBLISHED_BRANCH)
 
-	# Verify we successfully switched to the published branch
-	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "$(PUBLISHED_BRANCH)" ]; then \
-	  echo "ERROR: Failed to switch to $(PUBLISHED_BRANCH) branch. Aborting."; \
-	  exit 1; \
-	fi
-
-	# Reset the branch and deploy the build folder
-	@git reset --hard
-	@rm -rf *
+	# Reset the published branch to a clean state
+	@git rm -rf . 2>/dev/null || true
 	@cp -r $(TEMP_BUILD_DIR)/* .
 	@git add .
-	@git commit -m "Deploy from branch $(CURRENT_BRANCH)"
-	@git push -u origin $(PUBLISHED_BRANCH)
+	@git commit -m "Deploy from branch $(CURRENT_BRANCH)" || echo "No changes to commit."
 
-	# Return to the original branch
-	@git checkout $(CURRENT_BRANCH)
+# Step 4: Push to the published branch
+push-published:
+	@echo "Pushing to the $(PUBLISHED_BRANCH) branch..."
+	@git push origin $(PUBLISHED_BRANCH)
 
-# Step 4: Clean up temporary files
+# Step 5: Clean up temporary files
 clean:
 	@echo "Cleaning up temporary files..."
 	@rm -rf $(BUILD_DIR)
