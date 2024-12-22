@@ -1,0 +1,20 @@
+/* The blinking cursor is handled by this class */
+.blink {
+  animation: blink 0.9s steps(44) infinite normal;
+}
+
+/* If you want a typewriter “width expand” effect, you can add it here:
+.typewriterExpand {
+  width: 0;
+  animation: typewriter 2s steps(22) 1s 1 normal both;
+}
+*/
+
+@keyframes blink {
+  from {
+    border-right-color: opaque;
+  }
+  to {
+    border-right-color: transparent;
+  }
+}
