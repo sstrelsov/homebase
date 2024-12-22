@@ -21,7 +21,19 @@ copy-build:
 # Step 3: Reset the published branch
 reset-published:
 	@echo "Resetting the $(PUBLISHED_BRANCH) branch to match the current build..."
-	@git checkout $(PUBLISHED_BRANCH) 2>/dev/null || git checkout --orphan $(PUBLISHED_BRANCH)
+
+	# Check if the published branch exists and switch to it, or create it if it doesn't
+	@if git show-ref --quiet refs/heads/$(PUBLISHED_BRANCH); then \
+	  git checkout $(PUBLISHED_BRANCH); \
+	else \
+	  git checkout --orphan $(PUBLISHED_BRANCH); \
+	fi
+
+	# Verify we successfully switched to the published branch
+	@if [ "$$(git rev-parse --abbrev-ref HEAD)" != "$(PUBLISHED_BRANCH)" ]; then \
+	  echo "ERROR: Failed to switch to $(PUBLISHED_BRANCH) branch. Aborting."; \
+	  exit 1; \
+	fi
 
 	# Reset the published branch to a clean state
 	@git rm -rf . 2>/dev/null || true
