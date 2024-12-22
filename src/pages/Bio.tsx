@@ -12,9 +12,8 @@ const BioPage = () => {
           isExternal
           href="https://techcrunch.com/2023/06/26/thomson-reuters-buys-casetext-an-ai-legal-tech-startup-for-650m-in-cash/"
         >
-          acquired Casetext
+          acquired Casetext.
         </HomebaseLink>
-        .
       </p>
       <p className="text-lg">
         At Casetext, I led the team that built the latest iteration of{" "}
@@ -22,20 +21,19 @@ const BioPage = () => {
           isExternal
           href="https://www.fastcompany.com/91033227/casetext-thomson-reuters-most-innovative-companies-2024"
         >
-          CoCounsel
-        </HomebaseLink>
-        . Prior to that, I was a fullstack engineer, working on the core
-        Casetext research product and Parallel Search, an AI semantic search
-        engine for caselaw.
+          CoCounsel.
+        </HomebaseLink>{" "}
+        Prior to that, I was a fullstack engineer, working on the core Casetext
+        research product and Parallel Search, an AI semantic search engine for
+        caselaw.
       </p>
       <p className="text-lg">
         My family immigrated from Kyiv, Ukraine in 1990, and I grew up in
         Louisville, Kentucky. I'm a first-generation college graduate, and a
         proud alumnus of Yale University, where I studied{" "}
-        <HomebaseLink isExternal href="/strelsov-senior-thesis.pdf">
-          history
+        <HomebaseLink isExternal href="/files/senior-thesis.pdf">
+          history.
         </HomebaseLink>
-        .
       </p>
     </div>
   );
