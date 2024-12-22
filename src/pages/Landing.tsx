@@ -23,11 +23,12 @@ const LandingPage = () => {
 
   const largerPhrases = [
     "Hey, I'm Spencer!\n\n",
-    "Hey, I'm Spencer! I'm a PM at Thomson Reuters.",
-    "Hey, I'm Spencer! I'm a PM at Thomson Reuters. I build AI for lawyers.",
-    "Hey, I'm Spencer! I'm a PM at Thomson Reuters. I build AI for lawyers (and sometimes journalists)",
-    "Hey, I'm Spencer! I'm a PM at Thomson Reuters. I build AI for lawyers. I love coding + design.",
-    "Hey, I'm Spencer! I'm a PM at Thomson Reuters. I build AI for lawyers. I love coding + design. I'm passionate about history, storytelling, and tech.",
+    "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters.",
+    "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers.",
+    "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers. . .and sometimes journalists :)",
+    "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers.\n\n I love coding + design.",
+    "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers.\n\n I love coding + design. I'm passionate about history, storytelling, photography and tech.\n\n",
+    "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers.\n\n I love coding + design. I'm passionate about history, storytelling, photography and tech.\n\n I'm based in Brooklyn, NY",
   ];
 
   return (
@@ -56,6 +57,7 @@ const LandingPage = () => {
           deletingSpeed={70}
           phrases={isXL ? largerPhrases : smallerPhrases}
           loop={isXL ? false : true}
+          preserveTrailingNewlines
         />
       </div>
     </div>
