@@ -10,7 +10,7 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="flex flex-grow flex-col w-full items-center justify-center gap-4">
+    <div className="xl:flex-row xl:gap-10 w-full flex flex-col justify-center items-center gap-8">
       <Image
         className="
           relative
@@ -20,27 +20,31 @@ const LandingPage = () => {
           ease-in-out
           hover:scale-105
           active:scale-95
+          xl:w-72
+          sm:w-60
+          w-52
         "
         src="/images/strelsov-headshot.png"
         alt="Spencer Strelsov Headshot"
-        width={`200 sm:240`}
+        // width={`200 sm:240`}
         isBlurred
         onClick={handleThemeSwitch}
       />
-      <Typewriter
-        typingSpeed={130}
-        deletingSpeed={70}
-        phrases={[
-          "Hey, I'm Spencer!",
-          "I'm a PM at Thomson Reuters",
-          "I build AI for humans",
-          "I build AI for lawyers",
-          "I build AI for journalists",
-          "I love coding + design",
-          "I love history",
-          "I love storytelling",
-        ]}
-      />
+      <div className="flex-1 text-left text-2xl sm:text-3xl md:text-4xl leading-relaxed xl:max-w-[25rem]">
+        <Typewriter
+          typingSpeed={130}
+          deletingSpeed={70}
+          phrases={[
+            "Hey, I'm Spencer!",
+            "I'm a PM at Thomson Reuters",
+            "I build AI for lawyers",
+            "I build AI for journalists",
+            "I love coding + design",
+            "I love history",
+            "I love storytelling",
+          ]}
+        />
+      </div>
     </div>
   );
 };

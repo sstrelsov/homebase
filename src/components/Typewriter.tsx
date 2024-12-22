@@ -100,9 +100,7 @@ const Typewriter = ({
   }, [display]);
 
   return (
-    <div
-      className={`${styles.typewriterText} text-2xl sm:text-3xl max-w-full leading-relaxed`}
-    >
+    <div>
       {text}
       <span
         className={`border-r-[2.5px] solid ml-[1.8px] ${styles.blink}`}
