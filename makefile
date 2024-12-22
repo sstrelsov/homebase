@@ -1,17 +1,24 @@
 # Variables
 BUILD_DIR = build
+TEMP_BUILD_DIR = .temp_build
 PUBLISHED_BRANCH = published
 CURRENT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 
 # Default target: Deploy
-deploy: build deploy-to-published clean
+deploy: build copy-build deploy-to-published clean
 
 # Step 1: Build the app
 build:
 	@echo "Building the app..."
 	npm run build
 
-# Step 2: Deploy the build to the published branch
+# Step 2: Copy build to a temporary location
+copy-build:
+	@echo "Copying build directory to a temporary location..."
+	@rm -rf $(TEMP_BUILD_DIR)
+	@cp -r $(BUILD_DIR) $(TEMP_BUILD_DIR)
+
+# Step 3: Deploy the build to the published branch
 deploy-to-published:
 	@echo "Deploying to the $(PUBLISHED_BRANCH) branch..."
 
@@ -27,7 +34,7 @@ deploy-to-published:
 	# Reset the branch and deploy the build folder
 	@git reset --hard
 	@rm -rf *
-	@cp -r $(BUILD_DIR)/* .
+	@cp -r $(TEMP_BUILD_DIR)/* .
 	@git add .
 	@git commit -m "Deploy from branch $(CURRENT_BRANCH)"
 	@git push -u origin $(PUBLISHED_BRANCH)
@@ -35,10 +42,11 @@ deploy-to-published:
 	# Return to the original branch
 	@git checkout $(CURRENT_BRANCH)
 
-# Step 3: Clean up the build folder
+# Step 4: Clean up temporary files
 clean:
-	@echo "Cleaning build folder..."
+	@echo "Cleaning up temporary files..."
 	@rm -rf $(BUILD_DIR)
+	@rm -rf $(TEMP_BUILD_DIR)
 
 # Rollback the last deployment on the published branch
 rollback:
