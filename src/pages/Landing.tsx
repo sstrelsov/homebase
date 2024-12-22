@@ -1,13 +1,15 @@
 import { Image } from "@nextui-org/react";
 import { useTheme } from "@nextui-org/use-theme";
 import Typewriter from "../components/Typewriter";
+import { useLinkColor } from "../utils/ColorContext";
 import useTailwindBreakpoint from "../utils/useBreakpointUp";
 
 const LandingPage = () => {
   const { theme, setTheme } = useTheme();
   const isXL = useTailwindBreakpoint(); // Using the Tailwind breakpoint hook
-
+  const { setRandomColor } = useLinkColor();
   const handleImageClick = () => {
+    setRandomColor(theme === "light" ? "dark" : "light");
     setTheme(theme === "light" ? "dark" : "light");
   };
 
@@ -25,7 +27,7 @@ const LandingPage = () => {
     "Hey, I'm Spencer!\n\n",
     "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters.",
     "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers.",
-    "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers. . .and sometimes journalists :)",
+    "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers...and sometimes journalists :)",
     "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers.\n\n I love coding + design.",
     "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers.\n\n I love coding + design. I'm passionate about history, storytelling, photography and tech.\n\n",
     "Hey, I'm Spencer!\n\n I'm a PM at Thomson Reuters. I build AI for lawyers.\n\n I love coding + design. I'm passionate about history, storytelling, photography and tech.\n\n I'm based in Brooklyn, NY",

@@ -24,8 +24,8 @@ const NavLink = ({
 }: NavLinkProps & React.HTMLProps<HTMLAnchorElement>) => {
   const location = useLocation();
   const isActive = location.pathname === to;
-  const activeColor = useLinkColor();
-
+  const { linkColor } = useLinkColor();
+  console.log("linkColor", linkColor);
   return (
     <RouterLink
       {...props}
@@ -34,7 +34,7 @@ const NavLink = ({
       style={
         isActive && !disableEffects
           ? {
-              textDecorationColor: activeColor,
+              textDecorationColor: linkColor,
               textUnderlineOffset: "3px",
             }
           : undefined
