@@ -8,10 +8,7 @@ import Earth from "./Earth";
 
 export default function Globe() {
   return (
-    <Canvas
-      camera={{ position: [0, 0, 900], fov: 40 }}
-      style={{ background: "#000000" }} // black background
-    >
+    <Canvas camera={{ position: [0, 0, 900], fov: 40 }}>
       {/* Smooth camera orbit */}
       <OrbitControls enablePan={false} minDistance={400} maxDistance={1500} />
 
@@ -39,14 +36,14 @@ function RotatingGroup() {
   useFrame((state, delta) => {
     if (groupRef.current) {
       // Slowly rotate the group
-      groupRef.current.rotation.y += 0.02 * delta;
+      groupRef.current.rotation.y += -0.06 * delta;
     }
   });
 
   return (
     <group ref={groupRef}>
       {/* Earth with smaller radius so dots are visible slightly above the surface */}
-      <Earth radius={299} />
+      <Earth radius={149} />
 
       {/* Points for continents */}
       <ContinentDots jsonUrl="/landDots.json" pointSize={2} />

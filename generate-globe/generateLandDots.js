@@ -4,7 +4,7 @@ const turf = require("@turf/turf");
 
 // CONFIG
 const DOT_COUNT = 60000; // tweak as you like
-const RADIUS = 300;
+const RADIUS = 150;
 const LOG_INTERVAL = 5000; // log progress every 5k points
 
 /**
@@ -134,7 +134,7 @@ async function main() {
   );
 
   // 4) Write output to JSON
-  const outFile = "landDots.json";
+  const outFile = "public/landDots.json";
   fs.writeFileSync(outFile, JSON.stringify(landPoints, null, 2));
   console.log(`Wrote ${landCount} land points to "${outFile}".`);
   console.log("Done!");
