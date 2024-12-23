@@ -3,21 +3,22 @@ import * as THREE from "three";
 
 interface AtmosphereProps {
   earthRadius: number;
+  color: string;
+  opacity: number;
 }
 
-export default function Atmosphere({ earthRadius }: AtmosphereProps) {
+export default function Atmosphere({
+  earthRadius,
+  color,
+  opacity,
+}: AtmosphereProps) {
   return (
     <mesh>
-      {/*
-        A sphere slightly bigger than Earth
-        side=THREE.BackSide makes the inside faces render outward.
-      */}
       <sphereGeometry args={[earthRadius * 1.02, 64, 64]} />
       <meshBasicMaterial
-        color="#55ccff"
+        color={color}
         side={THREE.BackSide}
-        transparent
-        opacity={0.2}
+        opacity={opacity} // super low so it’s not overwhelming
       />
     </mesh>
   );

@@ -14,19 +14,28 @@ interface DotInfo {
 interface ContinentDotsProps {
   jsonUrl: string;
   pointSize?: number;
-  onCountrySelect?: (iso: string) => void; // callback for country selection
+  onCountrySelect?: (iso: string) => void;
+  /**
+   * Hex color for all dots, e.g. "#ff0000". Default = "#ffffff"
+   */
+  dotColor?: string;
 }
 
 export default function ContinentDots({
   jsonUrl,
   pointSize = 3,
   onCountrySelect,
+  dotColor = "#ffffff",
 }: ContinentDotsProps) {
   const [dots, setDots] = useState<DotInfo[]>([]);
   const highlightRef = useRef<string | null>(null);
-
-  // We'll keep an "animation" timer to fade out highlights
   const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Pre-convert the hex into an RGB triple
+  const [baseR, baseG, baseB] = useMemo(() => {
+    const c = new THREE.Color(dotColor);
+    return [c.r, c.g, c.b]; // each is 0-1 float
+  }, [dotColor]);
 
   useEffect(() => {
     async function fetchDots() {
@@ -42,7 +51,7 @@ export default function ContinentDots({
     fetchDots();
   }, [jsonUrl]);
 
-  // Convert array to Float32Array
+  // Positions
   const positions = useMemo(() => {
     if (!dots.length) return new Float32Array([]);
     const arr: number[] = [];
@@ -52,18 +61,17 @@ export default function ContinentDots({
     return new Float32Array(arr);
   }, [dots]);
 
-  // Color array, each vertex is [r,g,b], default white
+  // Colors
   const colors = useMemo(() => {
     if (!dots.length) return new Float32Array([]);
     const arr: number[] = [];
-    for (const dot of dots) {
-      // default white
-      arr.push(1, 1, 1);
+    for (let i = 0; i < dots.length; i++) {
+      // Use the user-specified base color for each dot
+      arr.push(baseR, baseG, baseB);
     }
     return new Float32Array(arr);
-  }, [dots]);
+  }, [dots, baseR, baseG, baseB]);
 
-  // Store a reference to the color buffer
   const colorAttrRef = useRef<THREE.BufferAttribute>(null);
 
   // Handle pointer down
@@ -82,7 +90,6 @@ export default function ContinentDots({
         `Clicked dot #${idx}. Country = ${dot.countryName}, ISO = ${dot.isoA3}`
       );
 
-      // If parent wants to handle selecting the entire country:
       if (onCountrySelect) onCountrySelect(dot.isoA3);
 
       // Cancel any old highlight fade
@@ -90,7 +97,7 @@ export default function ContinentDots({
         clearTimeout(highlightTimerRef.current);
       }
 
-      // Set highlightRef so we know which country is selected
+      // Set highlightRef
       highlightRef.current = dot.isoA3;
 
       // After 2s, revert
@@ -111,16 +118,17 @@ export default function ContinentDots({
     for (let i = 0; i < dots.length; i++) {
       const dot = dots[i];
       const offset = i * 3;
+
       if (highlightRef.current && dot.isoA3 === highlightRef.current) {
         // highlight color = bright yellow
         colorArray[offset + 0] = 1;
         colorArray[offset + 1] = 1;
         colorArray[offset + 2] = 0;
       } else {
-        // default white
-        colorArray[offset + 0] = 1;
-        colorArray[offset + 1] = 1;
-        colorArray[offset + 2] = 1;
+        // revert to base color
+        colorArray[offset + 0] = baseR;
+        colorArray[offset + 1] = baseG;
+        colorArray[offset + 2] = baseB;
       }
     }
     colorAttrRef.current.needsUpdate = true;
