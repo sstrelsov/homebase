@@ -2,7 +2,7 @@ import HomebaseLink from "../components/HomebaseLink";
 
 const BioPage = () => {
   return (
-    <div className="flex flex-col gap-4 max-w-sm sm:max-w-lg h-full justify-center">
+    <div className="flex flex-col gap-4 max-w-sm sm:max-w-lg h-full justify-center px-4">
       <p className="text-lg">
         I'm a Sr. Product Manager at Thomson Reuters, where I lead the R&D Team
         for CoCounsel—the world's first AI assistant for law. I also build
