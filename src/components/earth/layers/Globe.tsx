@@ -61,10 +61,8 @@ export default function Globe({
     }
 
     // 2) If dots are loaded, lerp from 0 => targetScale
-    if (dotsLoaded && currentScale < targetScale) {
-      const scaleSpeed = 2.0; // adjust as you like
-      setCurrentScale((prev) => lerp(prev, targetScale, delta * scaleSpeed));
-    }
+    const scaleSpeed = 2.0;
+    setCurrentScale((prev) => lerp(prev, targetScale, delta * scaleSpeed));
   });
 
   return (
