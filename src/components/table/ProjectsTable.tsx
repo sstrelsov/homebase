@@ -24,22 +24,16 @@ const ProjectsTable = () => {
       selectionMode="single"
       fullWidth
       aria-label="Projects and writings"
+      onRowAction={(slug) => {
+        navigate(`/projects/${slug}`);
+      }}
     >
       <TableHeader columns={columns}>
         {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
       </TableHeader>
       <TableBody items={projects}>
         {(item) => (
-          <TableRow
-            key={item.key}
-            // Make the row look clickable via CSS if you want:
-            className="cursor-pointer"
-            // Navigate on row click:
-            onClick={() => {
-              // Navigate to /projects/<the project key>
-              navigate(`/projects/${item.slug}`);
-            }}
-          >
+          <TableRow key={item.slug} className="cursor-pointer">
             {(columnKey) => (
               <TableCell>{getKeyValue(item, columnKey)}</TableCell>
             )}
