@@ -19,12 +19,14 @@ interface ContinentDotsProps {
    * Hex color for all dots, e.g. "#ff0000". Default = "#ffffff"
    */
   dotColor?: string;
+  onLoaded: (loaded: boolean) => void;
 }
 
 export default function ContinentDots({
   jsonUrl,
   pointSize = 3,
   onCountrySelect,
+  onLoaded,
   dotColor = "#ffffff",
 }: ContinentDotsProps) {
   const [dots, setDots] = useState<DotInfo[]>([]);
@@ -44,12 +46,13 @@ export default function ContinentDots({
         const data = await res.json();
         console.log("Loaded landDots.json:", data);
         setDots(data);
+        onLoaded(true);
       } catch (err) {
         console.error("Failed to load landDots.json:", err);
       }
     }
     fetchDots();
-  }, [jsonUrl]);
+  }, [jsonUrl, onLoaded]);
 
   // Positions
   const positions = useMemo(() => {

@@ -1,3 +1,4 @@
+// Globe.tsx
 import { useFrame } from "@react-three/fiber";
 import { useRef, useState } from "react";
 import * as THREE from "three";
@@ -6,54 +7,64 @@ import Atmosphere from "./Atmosphere";
 import BaseSphere from "./BaseSphere";
 import ContinentDots from "./ContinentDots";
 
+function lerp(start: number, end: number, alpha: number) {
+  return start + (end - start) * alpha;
+}
+
 interface GlobeProps {
   radius: number;
   dotSize: number;
   dotColor: string;
   rotationSpeed: number;
-  // Atmosphere
   atmosphereColor: string;
   atmosphereOpacity: number;
 }
 
-const Globe = ({
+export default function Globe({
   radius,
   dotSize,
   dotColor,
   rotationSpeed,
   atmosphereColor,
   atmosphereOpacity,
-}: GlobeProps) => {
-  const globeRef = useRef<THREE.Group>(null!);
+}: GlobeProps) {
+  const globeRef = useRef<THREE.Group>(null);
+
+  // Breakpoints for final scale
   const isMdUp = useAtOrAboveBreakpoint("md");
   const isSmUp = useAtOrAboveBreakpoint("sm");
   const isXSUp = useAtOrAboveBreakpoint("xs");
-  // Decide on scale factor
-  let scaleFactor = 1.0;
+  let targetScale = 1.0;
   if (isMdUp) {
-    scaleFactor = 1.0;
+    targetScale = 1.0;
   } else if (isSmUp) {
-    scaleFactor = 0.8;
+    targetScale = 0.8;
   } else if (isXSUp) {
-    scaleFactor = 0.7;
+    targetScale = 0.7;
   } else {
-    scaleFactor = 0.6; // Default scale factor for smaller breakpoints
+    targetScale = 0.6;
   }
-  const [selectedISO, setSelectedISO] = useState<string | null>(null);
 
-  useFrame(() => {
-    if (globeRef.current) {
-      globeRef.current.rotation.y += rotationSpeed;
+  // We start invisible (scale = 0) until the dots are fully loaded
+  const [currentScale, setCurrentScale] = useState(0.55);
+  const [dotsLoaded, setDotsLoaded] = useState(false);
+
+  // Each frame, rotate + if dots are loaded, scale up
+  useFrame((_, delta) => {
+    if (!globeRef.current) return;
+
+    // Rotate the globe
+    globeRef.current.rotation.y += rotationSpeed;
+
+    // If dots are loaded, lerp from 0 => targetScale
+    if (dotsLoaded && currentScale < targetScale) {
+      const scaleSpeed = 2.0; // adjust as you like
+      setCurrentScale((prev) => lerp(prev, targetScale, delta * scaleSpeed));
     }
   });
-  // Callback from ContinentDots
-  const handleCountrySelect = (iso: string) => {
-    setSelectedISO(iso);
-  };
 
-  console.log("Selected country:", selectedISO);
   return (
-    <group ref={globeRef} scale={scaleFactor}>
+    <group visible={dotsLoaded} ref={globeRef} scale={currentScale}>
       <BaseSphere radius={radius} />
       <Atmosphere
         earthRadius={radius - 1}
@@ -64,10 +75,8 @@ const Globe = ({
         jsonUrl="/landDots.json"
         dotColor={dotColor}
         pointSize={dotSize}
-        onCountrySelect={handleCountrySelect}
+        onLoaded={(isLoaded) => setDotsLoaded(isLoaded)}
       />
     </group>
   );
-};
-
-export default Globe;
+}
