@@ -65,7 +65,7 @@ const Earth = () => {
       <Suspense fallback={null}>
         <Globe
           isInteracting={isInteracting}
-          rotationSpeed={-0.01}
+          rotationSpeed={-0.006}
           radius={149}
           dotSize={3}
           dotColor="#ac431d"
