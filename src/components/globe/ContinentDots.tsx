@@ -1,3 +1,4 @@
+// ContinentDots.tsx
 import { useFrame } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -13,20 +14,20 @@ interface DotInfo {
 interface ContinentDotsProps {
   jsonUrl: string;
   pointSize?: number;
+  onCountrySelect?: (iso: string) => void; // callback for country selection
 }
 
 export default function ContinentDots({
   jsonUrl,
   pointSize = 3,
+  onCountrySelect,
 }: ContinentDotsProps) {
   const [dots, setDots] = useState<DotInfo[]>([]);
-  const [highlightIso, setHighlightIso] = useState<string | null>(null);
   const highlightRef = useRef<string | null>(null);
 
   // We'll keep an "animation" timer to fade out highlights
   const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 1) Fetch the data on mount
   useEffect(() => {
     async function fetchDots() {
       try {
@@ -41,7 +42,7 @@ export default function ContinentDots({
     fetchDots();
   }, [jsonUrl]);
 
-  // 2) Build positions array
+  // Convert array to Float32Array
   const positions = useMemo(() => {
     if (!dots.length) return new Float32Array([]);
     const arr: number[] = [];
@@ -51,30 +52,28 @@ export default function ContinentDots({
     return new Float32Array(arr);
   }, [dots]);
 
-  // 3) Build a color array: each vertex is [r,g,b], all default white
+  // Color array, each vertex is [r,g,b], default white
   const colors = useMemo(() => {
     if (!dots.length) return new Float32Array([]);
     const arr: number[] = [];
     for (const dot of dots) {
-      // Default color = white
+      // default white
       arr.push(1, 1, 1);
     }
     return new Float32Array(arr);
   }, [dots]);
 
-  // 4) We'll store a reference to the color BufferAttribute
+  // Store a reference to the color buffer
   const colorAttrRef = useRef<THREE.BufferAttribute>(null);
 
-  // 5) On pointer down, find *all intersections*
+  // Handle pointer down
   const handlePointerDown = useCallback(
     (event: any) => {
       if (!dots.length) return;
 
-      // If we want the "closest" intersection:
       const intersection = event.intersections[0];
       if (!intersection) return;
 
-      // Get the dot index
       const idx = intersection.index;
       if (idx == null || !dots[idx]) return;
 
@@ -83,43 +82,40 @@ export default function ContinentDots({
         `Clicked dot #${idx}. Country = ${dot.countryName}, ISO = ${dot.isoA3}`
       );
 
-      // We'll highlight ALL dots with this isoA3
-      const iso = dot.isoA3;
+      // If parent wants to handle selecting the entire country:
+      if (onCountrySelect) onCountrySelect(dot.isoA3);
 
       // Cancel any old highlight fade
       if (highlightTimerRef.current) {
         clearTimeout(highlightTimerRef.current);
       }
 
-      // Set highlightIso in state
-      setHighlightIso(iso);
-      highlightRef.current = iso;
+      // Set highlightRef so we know which country is selected
+      highlightRef.current = dot.isoA3;
 
-      // After 2 seconds, fade out
+      // After 2s, revert
       highlightTimerRef.current = setTimeout(() => {
-        setHighlightIso(null);
         highlightRef.current = null;
       }, 2000);
 
       event.stopPropagation();
     },
-    [dots]
+    [dots, onCountrySelect]
   );
 
-  // 6) UseFrame (or useEffect) to update the color buffer each frame based on highlightIso
+  // Animate the dot colors each frame
   useFrame(() => {
-    if (!colorAttrRef.current) return;
+    if (!colorAttrRef.current || !dots.length) return;
     const colorArray = colorAttrRef.current.array as Float32Array;
 
-    if (!dots.length) return;
     for (let i = 0; i < dots.length; i++) {
       const dot = dots[i];
-      const offset = i * 3; // r,g,b
+      const offset = i * 3;
       if (highlightRef.current && dot.isoA3 === highlightRef.current) {
-        // Highlight color = bright yellow
-        colorArray[offset + 0] = 1; // R
-        colorArray[offset + 1] = 1; // G
-        colorArray[offset + 2] = 0; // B
+        // highlight color = bright yellow
+        colorArray[offset + 0] = 1;
+        colorArray[offset + 1] = 1;
+        colorArray[offset + 2] = 0;
       } else {
         // default white
         colorArray[offset + 0] = 1;
@@ -127,7 +123,6 @@ export default function ContinentDots({
         colorArray[offset + 2] = 1;
       }
     }
-    // Mark attribute as needing update so Three.js re-renders
     colorAttrRef.current.needsUpdate = true;
   });
 
@@ -136,14 +131,12 @@ export default function ContinentDots({
   return (
     <points onPointerDown={handlePointerDown}>
       <bufferGeometry>
-        {/* Position attribute */}
         <bufferAttribute
           attach="attributes-position"
           args={[positions, 3]}
           count={positions.length / 3}
           itemSize={3}
         />
-        {/* Color attribute */}
         <bufferAttribute
           ref={colorAttrRef}
           attach="attributes-color"
@@ -153,7 +146,6 @@ export default function ContinentDots({
         />
       </bufferGeometry>
       <pointsMaterial
-        // Enable vertexColors so each vertex can have its own color
         vertexColors
         size={pointSize}
         sizeAttenuation

@@ -6,7 +6,7 @@ interface EarthProps {
   radius?: number;
 }
 
-const Earth: React.FC<EarthProps> = ({ radius = 600 }) => {
+const Earth: React.FC<EarthProps> = ({ radius = 299 }) => {
   const earthRef = useRef<THREE.Mesh>(null!);
 
   return (
@@ -15,10 +15,10 @@ const Earth: React.FC<EarthProps> = ({ radius = 600 }) => {
       <meshStandardMaterial
         color="#0E3775" // deep ocean color
         emissive="#000000"
-        metalness={0.1} // slight metal effect for a modern sheen
-        roughness={0.8} // adjust roughness for glossier or matte
+        metalness={0.1} // slight metal effect for modern sheen
+        roughness={0.8} // adjust for glossier/matte
         transparent={true}
-        opacity={0.9} // a bit of transparency to see the dots inside
+        opacity={0.9} // see-through a bit
       />
     </mesh>
   );

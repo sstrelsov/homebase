@@ -3,7 +3,7 @@ const fs = require("fs");
 const turf = require("@turf/turf");
 
 // CONFIG
-const DOT_COUNT = 60000; // tweak as you like
+const DOT_COUNT = 40000; // tweak as you like
 const RADIUS = 150;
 const LOG_INTERVAL = 5000; // log progress every 5k points
 

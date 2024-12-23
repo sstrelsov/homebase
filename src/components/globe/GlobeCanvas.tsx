@@ -1,52 +1,58 @@
-// Globe.tsx
+// EarthScene.tsx (or Globe.tsx)
 import { OrbitControls } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { useRef } from "react";
-import * as THREE from "three";
+import { Canvas } from "@react-three/fiber";
+import { useEffect, useState } from "react";
+
+import Atmosphere from "./Atmosphere";
 import ContinentDots from "./ContinentDots";
 import Earth from "./Earth";
+// For demonstration, assume we do an import of local geojson
+// or fetch it, whichever you prefer
 
-export default function Globe() {
+export default function EarthScene() {
+  const [selectedISO, setSelectedISO] = useState<string | null>(null);
+  const [geoFeatures, setGeoFeatures] = useState<any[]>([]);
+
+  // Load geojson (or do fetch).
+  // If you have a large file, use fetch instead.
+  useEffect(() => {
+    // If you're doing fetch:
+    (async () => {
+      await fetch("input.geojson")
+        .then((res) => res.json())
+        .then((data) => setGeoFeatures(data.features));
+      // Or local import:
+      // setGeoFeatures(worldGeoJSON.features || []);
+    })();
+  }, []);
+
+  // Callback from ContinentDots
+  const handleCountrySelect = (iso: string) => {
+    setSelectedISO(iso);
+
+    // Optionally, auto-clear after 2s
+    // setTimeout(() => setSelectedISO(null), 2000);
+  };
+
   return (
     <Canvas camera={{ position: [0, 0, 900], fov: 40 }}>
-      {/* Smooth camera orbit */}
       <OrbitControls enablePan={false} minDistance={400} maxDistance={1500} />
 
-      {/* Subtle ambient light for fill */}
-      <ambientLight intensity={0.2} color="#ffffff" />
+      {/* Some lighting */}
+      <ambientLight intensity={0.3} />
+      <directionalLight intensity={1} position={[10, 10, 10]} />
 
-      {/* Directional key light coming from upper-right */}
-      <directionalLight
-        intensity={1.5}
-        color="#ffffff"
-        position={[10, 10, 10]}
-      />
-
-      {/* Optionally, a second directional or point light for more contrast */}
-      <pointLight intensity={0.8} color="#ffffff" position={[-10, -10, -10]} />
-
-      <RotatingGroup />
-    </Canvas>
-  );
-}
-
-function RotatingGroup() {
-  const groupRef = useRef<THREE.Group>(null!);
-
-  useFrame((state, delta) => {
-    if (groupRef.current) {
-      // Slowly rotate the group
-      groupRef.current.rotation.y += -0.06 * delta;
-    }
-  });
-
-  return (
-    <group ref={groupRef}>
-      {/* Earth with smaller radius so dots are visible slightly above the surface */}
+      {/* Earth & Atmosphere */}
       <Earth radius={149} />
+      <Atmosphere earthRadius={149} />
 
-      {/* Points for continents */}
-      <ContinentDots jsonUrl="/landDots.json" pointSize={2} />
-    </group>
+      {/* Points for all land. 
+          onCountrySelect => highlight the outline */}
+      <ContinentDots
+        jsonUrl="/landDots.json"
+        pointSize={2}
+        onCountrySelect={handleCountrySelect}
+      />
+    </Canvas>
   );
 }
