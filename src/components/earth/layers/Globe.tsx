@@ -1,4 +1,3 @@
-// Globe.tsx
 import { useFrame } from "@react-three/fiber";
 import { useRef, useState } from "react";
 import * as THREE from "three";
@@ -18,6 +17,8 @@ interface GlobeProps {
   rotationSpeed: number;
   atmosphereColor: string;
   atmosphereOpacity: number;
+  // Add this:
+  isInteracting: boolean;
 }
 
 export default function Globe({
@@ -27,6 +28,7 @@ export default function Globe({
   rotationSpeed,
   atmosphereColor,
   atmosphereOpacity,
+  isInteracting, // <— new
 }: GlobeProps) {
   const globeRef = useRef<THREE.Group>(null);
 
@@ -34,6 +36,7 @@ export default function Globe({
   const isMdUp = useAtOrAboveBreakpoint("md");
   const isSmUp = useAtOrAboveBreakpoint("sm");
   const isXSUp = useAtOrAboveBreakpoint("xs");
+
   let targetScale = 1.0;
   if (isMdUp) {
     targetScale = 1.0;
@@ -49,14 +52,15 @@ export default function Globe({
   const [currentScale, setCurrentScale] = useState(0.55);
   const [dotsLoaded, setDotsLoaded] = useState(false);
 
-  // Each frame, rotate + if dots are loaded, scale up
   useFrame((_, delta) => {
     if (!globeRef.current) return;
 
-    // Rotate the globe
-    globeRef.current.rotation.y += rotationSpeed;
+    // 1) Only rotate if not interacting
+    if (!isInteracting) {
+      globeRef.current.rotation.y += rotationSpeed;
+    }
 
-    // If dots are loaded, lerp from 0 => targetScale
+    // 2) If dots are loaded, lerp from 0 => targetScale
     if (dotsLoaded && currentScale < targetScale) {
       const scaleSpeed = 2.0; // adjust as you like
       setCurrentScale((prev) => lerp(prev, targetScale, delta * scaleSpeed));
