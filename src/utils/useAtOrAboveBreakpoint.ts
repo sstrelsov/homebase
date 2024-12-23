@@ -17,23 +17,27 @@ type TailwindBreakpoint = keyof typeof BREAKPOINTS;
  *   const isLargeUp = useTailwindBreakpoint("lg");
  *   // returns true if window width >= 1024
  */
-export default function useAtOrAboveBreakpoint(breakpoint: TailwindBreakpoint) {
+const useAtOrAboveBreakpoint = (breakpoint: TailwindBreakpoint) => {
   const [matches, setMatches] = useState(false);
 
   useEffect(() => {
-    const updateMatch = () => {
-      const currentWidth = window.innerWidth;
-      // Check if current width is at or above the requested breakpoint
-      setMatches(currentWidth >= BREAKPOINTS[breakpoint]);
-    };
+    function handleResize() {
+      const newMatches = window.innerWidth >= BREAKPOINTS[breakpoint];
+      // Only update state if the value actually changed
+      setMatches((old) => {
+        if (old !== newMatches) {
+          return newMatches;
+        }
+        return old;
+      });
+    }
 
-    // Check once on mount
-    updateMatch();
-
-    // Add event listener to handle subsequent resizes
-    window.addEventListener("resize", updateMatch);
-    return () => window.removeEventListener("resize", updateMatch);
+    window.addEventListener("resize", handleResize);
+    handleResize();
+    return () => window.removeEventListener("resize", handleResize);
   }, [breakpoint]);
 
   return matches;
-}
+};
+
+export default useAtOrAboveBreakpoint;

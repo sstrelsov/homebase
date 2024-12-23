@@ -52,7 +52,8 @@ export default function ContinentDots({
       }
     }
     fetchDots();
-  }, [jsonUrl, onLoaded]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jsonUrl]);
 
   // Positions
   const positions = useMemo(() => {
