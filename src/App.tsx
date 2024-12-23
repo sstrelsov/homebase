@@ -1,5 +1,6 @@
 import { useTheme } from "@nextui-org/use-theme";
 import { Route, Routes } from "react-router-dom";
+import GlobeCanvas from "./components/globe/GlobeCanvas";
 import NavigationBar from "./components/navigation/NavigationBar";
 import "./css/index.css";
 import BioPage from "./pages/Bio";
@@ -16,6 +17,7 @@ const App = () => {
           <Route path="/" element={<LandingPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
           <Route path="/bio" element={<BioPage />} />
+          <Route path="/globe" element={<GlobeCanvas />} />
         </Routes>
       </div>
     </div>
