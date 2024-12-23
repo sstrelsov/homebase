@@ -65,7 +65,7 @@ export default function Globe({
 
   return (
     <group
-      rotation={[0.5, 0.2, 0.5]}
+      rotation={[0.8, -0.5, 0.5]}
       visible={dotsLoaded}
       ref={globeRef}
       scale={currentScale}

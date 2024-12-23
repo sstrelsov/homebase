@@ -6,7 +6,6 @@ import { Perf } from "r3f-perf";
 import { Suspense, useEffect } from "react";
 import Globe from "./layers/Globe";
 import ManualBloom from "./ManualBlooms";
-
 const Earth = () => {
   // Temp fix: Theme must be set to dark to render the globe, canvas is black (known issue)
   const { theme, setTheme } = useTheme();
@@ -24,7 +23,12 @@ const Earth = () => {
       camera={{ position: [0, 0, 600], fov: 40 }}
     >
       <Perf position="bottom-right" />
-      <OrbitControls enablePan={false} minDistance={400} maxDistance={1500} />
+      <OrbitControls
+        enableZoom={false}
+        enablePan={false}
+        minDistance={400}
+        maxDistance={1500}
+      />
       {/* Subtle ambient light */}
       <ambientLight intensity={0.5} />
       {/* Main directional light (like the sun). Make it 1 for more */}
