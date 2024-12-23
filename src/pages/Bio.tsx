@@ -2,8 +2,8 @@ import HomebaseLink from "../components/HomebaseLink";
 
 const BioPage = () => {
   return (
-    <div className="flex flex-col gap-4 max-w-sm sm:max-w-lg h-full justify-center px-4">
-      <p className="text-lg">
+    <div className="flex flex-col gap-4 max-w-sm sm:max-w-lg h-full px-4 justify-center">
+      <p className="text-md sm:text-lg">
         I'm a Sr. Product Manager at Thomson Reuters, where I lead the R&D Team
         for CoCounsel—the world's first AI assistant for law. I also build
         AI-powered prototypes for Reuters journalists. I joined in 2022, when
@@ -15,7 +15,7 @@ const BioPage = () => {
           acquired Casetext.
         </HomebaseLink>
       </p>
-      <p className="text-lg">
+      <p className="text-md sm:text-lg">
         At Casetext, I led the team that built the latest iteration of{" "}
         <HomebaseLink
           isExternal
@@ -27,7 +27,7 @@ const BioPage = () => {
         research product and Parallel Search, an AI semantic search engine for
         caselaw.
       </p>
-      <p className="text-lg">
+      <p className="text-md sm:text-lg">
         My family immigrated from Kyiv, Ukraine in 1990, and I grew up in
         Louisville, Kentucky. I'm a first-generation college graduate, and a
         proud alumnus of Yale University, where I studied{" "}

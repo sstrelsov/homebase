@@ -40,45 +40,47 @@ const Earth = () => {
   }
 
   return (
-    <Canvas
-      gl={{ alpha: true }}
-      style={{ background: "transparent" }}
-      camera={{ position: [0, 0, MAX_ZOOMED_OUT], fov: 40 }}
-    >
-      <Perf position="bottom-right" />
+    <div className="h-full w-full">
+      <Canvas
+        gl={{ alpha: true }}
+        style={{ background: "transparent" }}
+        camera={{ position: [0, 0, MAX_ZOOMED_OUT], fov: 40 }}
+      >
+        <Perf position="bottom-right" />
 
-      <OrbitControls
-        minDistance={300}
-        enablePan={false}
-        maxDistance={MAX_ZOOMED_OUT}
-        // Listen to orbit control events
-        onStart={handleInteractionStart}
-        onEnd={handleInteractionEnd}
-      />
-
-      {/* Subtle ambient light */}
-      <ambientLight intensity={0.5} />
-      {/* Main directional light (like the sun). Make it 1 for more */}
-      <directionalLight intensity={0.5} position={[20, 10, 10]} />
-      <hemisphereLight intensity={0.6} position={[0, 50, 0]} />
-
-      <Suspense fallback={null}>
-        <Globe
-          isInteracting={isInteracting}
-          rotationSpeed={-0.006}
-          radius={149}
-          dotSize={3}
-          dotColor="#ac431d"
-          atmosphereColor="#00aaff"
-          atmosphereOpacity={0.03}
+        <OrbitControls
+          minDistance={300}
+          enablePan={false}
+          maxDistance={MAX_ZOOMED_OUT}
+          // Listen to orbit control events
+          onStart={handleInteractionStart}
+          onEnd={handleInteractionEnd}
         />
-        <ManualBloom
-          bloomStrength={0.3}
-          bloomRadius={0.4}
-          bloomThreshold={0.1}
-        />
-      </Suspense>
-    </Canvas>
+
+        {/* Subtle ambient light */}
+        <ambientLight intensity={0.5} />
+        {/* Main directional light (like the sun). Make it 1 for more */}
+        <directionalLight intensity={0.5} position={[20, 10, 10]} />
+        <hemisphereLight intensity={0.6} position={[0, 50, 0]} />
+
+        <Suspense fallback={null}>
+          <Globe
+            isInteracting={isInteracting}
+            rotationSpeed={-0.006}
+            radius={149}
+            dotSize={3}
+            dotColor="#ac431d"
+            atmosphereColor="#00aaff"
+            atmosphereOpacity={0.03}
+          />
+          <ManualBloom
+            bloomStrength={0.3}
+            bloomRadius={0.4}
+            bloomThreshold={0.1}
+          />
+        </Suspense>
+      </Canvas>
+    </div>
   );
 };
 
