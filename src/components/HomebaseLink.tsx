@@ -1,7 +1,7 @@
 import { Link, LinkProps } from "@nextui-org/link";
 import { useLinkColor } from "../utils/ColorContext";
 
-const HomebaseLink = ({ ...props }: LinkProps) => {
+const HomebaseLink = (props: LinkProps) => {
   const { linkColor } = useLinkColor();
 
   return (
@@ -10,7 +10,7 @@ const HomebaseLink = ({ ...props }: LinkProps) => {
       style={{ textDecorationColor: linkColor }}
       underline="always"
       size="lg"
-      {...props}
+      {...(props as any)}
     />
   );
 };
