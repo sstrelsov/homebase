@@ -64,7 +64,12 @@ export default function Globe({
   });
 
   return (
-    <group visible={dotsLoaded} ref={globeRef} scale={currentScale}>
+    <group
+      rotation={[0.5, 0.2, 0.5]}
+      visible={dotsLoaded}
+      ref={globeRef}
+      scale={currentScale}
+    >
       <BaseSphere radius={radius} />
       <Atmosphere
         earthRadius={radius - 1}
