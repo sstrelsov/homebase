@@ -36,7 +36,7 @@ const Earth = () => {
       <hemisphereLight intensity={0.6} position={[0, 50, 0]} />
       <Suspense fallback={null}>
         <Globe
-          rotationSpeed={-0.002}
+          rotationSpeed={-0.01}
           // Base Sphere
           radius={149}
           // Continents
