@@ -13,7 +13,7 @@ const App = () => {
   return (
     <div className="font-light relative h-dvh w-full overflow-hidden">
       <NavigationBar />
-      <div className="font-sans font-normal h-dvh flex flex-grow w-full items-center justify-center px-6">
+      <div className="font-sans font-normal h-dvh flex flex-grow w-full items-center justify-center">
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/projects" element={<ProjectsPage />} />

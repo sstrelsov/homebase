@@ -34,7 +34,7 @@ const LandingPage = () => {
   ];
 
   return (
-    <div className="xl:font-light xl:flex-row xl:gap-10 w-full flex flex-col justify-center items-center gap-8 xl:items-start">
+    <div className="xl:font-light xl:flex-row xl:gap-10 w-full flex flex-col justify-center items-center gap-8 xl:items-start px-6">
       <Image
         className="
           relative
