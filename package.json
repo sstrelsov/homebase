@@ -18,6 +18,7 @@
     "d3-geo": "^3.1.1",
     "framer-motion": "^11.15.0",
     "gh-pages": "^6.2.0",
+    "r3f-perf": "^7.2.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.1.0",
@@ -30,6 +31,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "local-ip": "node -e \"const os=require('os');Object.values(os.networkInterfaces()).flat().filter(a=>a.family==='IPv4'&&!a.internal).forEach(a=>console.log('http://'+a.address+':3000'));\"",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
