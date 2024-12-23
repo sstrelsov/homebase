@@ -9,7 +9,11 @@ const Earth = () => {
   const { linkColor } = useLinkColor();
 
   return (
-    <Canvas camera={{ position: [0, 0, 600], fov: 40 }}>
+    <Canvas
+      gl={{ alpha: true }}
+      style={{ background: "transparent" }}
+      camera={{ position: [0, 0, 600], fov: 40 }}
+    >
       <OrbitControls enablePan={false} minDistance={400} maxDistance={1500} />
       {/* Subtle ambient light */}
       <ambientLight intensity={0.5} />
