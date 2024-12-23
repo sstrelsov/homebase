@@ -1,11 +1,12 @@
+// src/App.jsx
 import { useTheme } from "@nextui-org/use-theme";
 import { Route, Routes } from "react-router-dom";
-import Earth from "./components/earth/Earth";
 import NavigationBar from "./components/navigation/NavigationBar";
 import "./css/index.css";
 import BioPage from "./pages/Bio";
 import LandingPage from "./pages/Landing";
 import ProjectsPage from "./pages/Projects";
+import ProjectDetail from "./pages/poject-details/ProjectDetails";
 
 const App = () => {
   useTheme("system");
@@ -16,8 +17,10 @@ const App = () => {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/projects" element={<ProjectsPage />} />
+          {/* Dynamic route for any project key */}
+          <Route path="/projects/:projectSlug" element={<ProjectDetail />} />
+
           <Route path="/bio" element={<BioPage />} />
-          <Route path="/earth" element={<Earth />} />
         </Routes>
       </div>
     </div>

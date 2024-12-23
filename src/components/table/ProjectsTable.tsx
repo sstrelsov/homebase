@@ -1,3 +1,4 @@
+// src/components/ProjectsTable.jsx
 import {
   Table,
   TableBody,
@@ -7,13 +8,16 @@ import {
   TableRow,
   getKeyValue,
 } from "@nextui-org/react";
+import { useNavigate } from "react-router-dom";
 import { columns, projects } from "../../data/projects-table";
 
 const ProjectsTable = () => {
+  const navigate = useNavigate();
+
   return (
     <Table
       classNames={{
-        base: "justify-center h-full flex flex-grow flex-col w-full",
+        base: "justify-center flex flex-col w-full",
       }}
       hideHeader
       removeWrapper
@@ -26,7 +30,16 @@ const ProjectsTable = () => {
       </TableHeader>
       <TableBody items={projects}>
         {(item) => (
-          <TableRow key={item.key}>
+          <TableRow
+            key={item.key}
+            // Make the row look clickable via CSS if you want:
+            className="cursor-pointer"
+            // Navigate on row click:
+            onClick={() => {
+              // Navigate to /projects/<the project key>
+              navigate(`/projects/${item.slug}`);
+            }}
+          >
             {(columnKey) => (
               <TableCell>{getKeyValue(item, columnKey)}</TableCell>
             )}
