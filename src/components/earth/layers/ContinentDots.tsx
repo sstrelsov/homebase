@@ -81,13 +81,22 @@ export default function ContinentDots({
   // Handle pointer down
   const handlePointerDown = useCallback(
     (event: any) => {
-      if (!dots.length) return;
+      if (!dots.length) {
+        console.warn("No dots loaded yet.");
+        return;
+      }
 
       const intersection = event.intersections[0];
-      if (!intersection) return;
+      if (!intersection) {
+        console.warn("No intersection found.");
+        return;
+      }
 
       const idx = intersection.index;
-      if (idx == null || !dots[idx]) return;
+      if (idx == null || !dots[idx]) {
+        console.warn("No valid index found.");
+        return;
+      }
 
       const dot = dots[idx];
       console.log(
@@ -116,7 +125,10 @@ export default function ContinentDots({
 
   // Animate the dot colors each frame
   useFrame(() => {
-    if (!colorAttrRef.current || !dots.length) return;
+    if (!colorAttrRef.current || !dots.length) {
+      console.warn("No colorAttrRef or dots yet.");
+      return;
+    }
     const colorArray = colorAttrRef.current.array as Float32Array;
 
     for (let i = 0; i < dots.length; i++) {
