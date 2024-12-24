@@ -2,6 +2,8 @@ import { useFrame } from "@react-three/fiber";
 import { useRef, useState } from "react";
 import * as THREE from "three";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
+import { flightPaths } from "../utils/routes";
+import Arc from "./Arc";
 import Atmosphere from "./Atmosphere";
 import BaseSphere from "./BaseSphere";
 import ContinentDots from "./ContinentDots";
@@ -20,6 +22,18 @@ interface GlobeProps {
   // Add this:
   isInteracting: boolean;
 }
+
+// const flightPaths = [
+//   {
+//     start: { lat: 40.7128, lon: -74.006 }, // NYC
+//     end: { lat: 51.5074, lon: -0.1278 }, // London
+//   },
+//   {
+//     start: { lat: 34.0522, lon: -118.2437 }, // LA
+//     end: { lat: 35.6762, lon: 139.6503 }, // Tokyo
+//   },
+//   // etc ...
+// ];
 
 export default function Globe({
   radius,
@@ -84,6 +98,17 @@ export default function Globe({
         pointSize={dotSize}
         onLoaded={(isLoaded) => setDotsLoaded(isLoaded)}
       />
+      {flightPaths.map((flight, i) => (
+        <Arc
+          key={i}
+          startLat={flight.start.lat}
+          startLon={flight.start.lon}
+          endLat={flight.end.lat}
+          endLon={flight.end.lon}
+          radius={radius}
+          animationDuration={3000}
+        />
+      ))}
     </group>
   );
 }
