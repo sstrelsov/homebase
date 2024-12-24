@@ -44,7 +44,7 @@ const Earth = () => {
       <Canvas
         gl={{ alpha: true }}
         style={{ background: "transparent" }}
-        camera={{ position: [0, 0, MAX_ZOOMED_OUT], fov: 30 }}
+        camera={{ position: [0, 0, MAX_ZOOMED_OUT], fov: 35 }}
       >
         <Perf position="bottom-right" />
 
@@ -69,15 +69,15 @@ const Earth = () => {
             isInteracting={isInteracting}
             rotationSpeed={-0.001}
             radius={149}
-            dotSize={3.15}
+            dotSize={2.9}
             dotColor="#c437dd"
             atmosphereColor="#00aaff"
             atmosphereOpacity={0.03}
           />
           <ManualBloom
-            bloomStrength={1.2}
-            bloomRadius={0.6}
-            bloomThreshold={0.05}
+            bloomStrength={0.9}
+            bloomRadius={0.5}
+            bloomThreshold={0.1}
           />
         </Suspense>
       </Canvas>
