@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AllArcsStaticMesh from "./AllArcsStaticMesh";
 import ArcLight from "./Arc";
 
 interface Coordinates {
@@ -96,6 +97,8 @@ const ArcGroup = ({
     Array(locationArray.length).fill(false)
   );
 
+  const [showFinalArcs, setShowFinalArcs] = useState(false);
+
   /**
    * Reset everything if the user chooses "reset" after the final arc,
    * or if we mount fresh.
@@ -130,8 +133,9 @@ const ArcGroup = ({
           }, 500);
           break;
         case "persist":
+          setShowFinalArcs(true);
+          break;
         default:
-          // do nothing
           break;
       }
     }
@@ -139,48 +143,57 @@ const ArcGroup = ({
 
   return (
     <>
-      {locationArray.map((flight, i) => {
-        // If we are in sequential mode, skip arcs beyond currentArcIndex
-        if (sequential && i > currentArcIndex) {
-          return null;
-        }
+      {!showFinalArcs &&
+        locationArray.map((flight, i) => {
+          // If we are in sequential mode, skip arcs beyond currentArcIndex
+          if (sequential && i > currentArcIndex) {
+            return null;
+          }
 
-        // If arc i is done & onProgressPersist is false => hide it
-        if (arcsCompleted[i] && !onProgressPersist) {
-          return null;
-        }
+          // If arc i is done & onProgressPersist is false => hide it
+          if (arcsCompleted[i] && !onProgressPersist) {
+            return null;
+          }
 
-        return (
-          <ArcLight
-            key={i}
-            color={color}
-            startLat={flight.start.lat}
-            startLon={flight.start.lon}
-            endLat={flight.end.lat}
-            endLon={flight.end.lon}
-            radius={radius + 2}
-            onProgressPersist={onProgressPersist}
-            animationDuration={animationDuration}
-            onDone={() => {
-              setArcsCompleted((prev) => {
-                const copy = [...prev];
-                copy[i] = true;
-                return copy;
-              });
+          return (
+            <ArcLight
+              key={i}
+              color={color}
+              startLat={flight.start.lat}
+              startLon={flight.start.lon}
+              endLat={flight.end.lat}
+              endLon={flight.end.lon}
+              radius={radius + 2}
+              onProgressPersist={onProgressPersist}
+              animationDuration={animationDuration}
+              onDone={() => {
+                setArcsCompleted((prev) => {
+                  const copy = [...prev];
+                  copy[i] = true;
+                  return copy;
+                });
 
-              // Increase arcsDoneCount
-              setArcsDoneCount((prev) => prev + 1);
+                // Increase arcsDoneCount
+                setArcsDoneCount((prev) => prev + 1);
 
-              // If sequential, move to the next arc in line
-              if (sequential && i === currentArcIndex) {
-                setTimeout(() => {
-                  setCurrentArcIndex((prev) => prev + 1);
-                }, 500);
-              }
-            }}
-          />
-        );
-      })}
+                // If sequential, move to the next arc in line
+                if (sequential && i === currentArcIndex) {
+                  setTimeout(() => {
+                    setCurrentArcIndex((prev) => prev + 1);
+                  }, 500);
+                }
+              }}
+            />
+          );
+        })}
+      {/* If showFinalArcs == true, we draw all arcs in a "completed" shape */}
+      {showFinalArcs && (
+        <AllArcsStaticMesh
+          flights={locationArray}
+          color={color}
+          radius={radius + 2}
+        />
+      )}
     </>
   );
 };
