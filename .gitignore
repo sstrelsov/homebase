@@ -24,3 +24,5 @@ yarn-error.log*
 
 .vscode
 .temp_build/
+
+homebase.code-workspace
