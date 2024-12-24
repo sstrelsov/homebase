@@ -87,7 +87,7 @@ const LandingEffect = ({
           transparent
           opacity={ringOpacity}
           side={THREE.DoubleSide}
-          depthTest={false}
+          depthTest={true}
         />
       </mesh>
     </group>
