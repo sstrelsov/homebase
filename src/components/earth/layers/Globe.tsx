@@ -4,7 +4,7 @@ import * as THREE from "three";
 import { lerp } from "three/src/math/MathUtils";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
 import { flightPaths } from "../utils/flightPaths";
-import ArcGroup from "./ArcGroup";
+import ArcGroup from "./arcs/ArcGroup";
 import Atmosphere from "./Atmosphere";
 import BaseSphere from "./BaseSphere";
 import ContinentDots from "./ContinentDots";
@@ -75,7 +75,6 @@ const Globe = ({
   // We start invisible (scale = 0) until the dots are fully loaded
   const [currentScale, setCurrentScale] = useState(0.55);
   const [dotsLoaded, setDotsLoaded] = useState(false);
-  const [currentArcIndex, setCurrentArcIndex] = useState(0);
 
   useFrame((_, delta) => {
     if (!globeRef.current) return;
@@ -116,7 +115,7 @@ const Globe = ({
         radius={radius}
         animationDuration={1500}
         onAllArcsDone="persist"
-        onProgressPersist={true}
+        onProgressPersist={false}
       />
     </group>
   );

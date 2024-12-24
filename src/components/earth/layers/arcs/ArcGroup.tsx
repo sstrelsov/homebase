@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import ArcLight from "./ArcLight";
+import ArcLight from "./Arc";
 
 interface Coordinates {
   lat: number;
@@ -137,15 +137,6 @@ const ArcGroup = ({
     }
   }, [arcsDoneCount, locationArray.length, onAllArcsDone]);
 
-  /**
-   * Render arcs
-   *
-   * - If sequential, only arcs 0..currentArcIndex are allowed to appear.
-   * - If parallel, all arcs are allowed to appear from the start.
-   *
-   * For each arc:
-   *   - If it's completed AND `onProgressPersist===false`, we skip rendering it.
-   */
   return (
     <>
       {locationArray.map((flight, i) => {
@@ -167,11 +158,10 @@ const ArcGroup = ({
             startLon={flight.start.lon}
             endLat={flight.end.lat}
             endLon={flight.end.lon}
-            radius={radius}
+            radius={radius + 2}
             onProgressPersist={onProgressPersist}
             animationDuration={animationDuration}
             onDone={() => {
-              // Mark arc i as done
               setArcsCompleted((prev) => {
                 const copy = [...prev];
                 copy[i] = true;

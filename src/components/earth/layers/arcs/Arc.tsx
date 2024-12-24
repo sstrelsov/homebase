@@ -1,7 +1,8 @@
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { latLongToVector3 } from "../utils/latLongToVector3";
+import { latLongToVector3 } from "../../utils/latLongToVector3";
+import LandingEffect from "./LandingEffect";
 
 interface ArcProps {
   color: string;
@@ -37,7 +38,7 @@ class PartialCurve extends THREE.Curve<THREE.Vector3> {
   }
 }
 
-const ArcLight = ({
+const Arc = ({
   color,
   startLat,
   startLon,
@@ -52,6 +53,7 @@ const ArcLight = ({
   const geometryRef = useRef<THREE.TubeGeometry>(null!);
   const [done, setDone] = useState(false);
   const [startTime] = useState(() => performance.now());
+  const [showLandingEffect, setShowLandingEffect] = useState(false);
 
   // Convert lat/lon → 3D vectors on the sphere
   const startVec = useMemo(
@@ -78,19 +80,19 @@ const ArcLight = ({
     return new THREE.CubicBezierCurve3(startVec, control1, control2, endVec);
   }, [startVec, endVec]);
 
-  // Create a (full) TubeGeometry once, which we can partially draw for persist arcs
+  // Create a (full) TubeGeometry once
   const tubeGeometry = useMemo(() => {
     return new THREE.TubeGeometry(fullCurve, 64, 0.5, 8, false);
   }, [fullCurve]);
 
-  // We’ll store that geometry in geometryRef so we can .setDrawRange() on it
-  // for the persist arcs. For the non-persist arcs, we’ll dynamically rebuild geometry.
+  // Store that geometry in geometryRef so we can .setDrawRange() on it
   useMemo(() => {
     geometryRef.current = tubeGeometry;
   }, [tubeGeometry]);
 
   useFrame(() => {
     if (done) return;
+
     const elapsed = performance.now() - startTime;
     let t = elapsed / animationDuration;
     if (t > 1) t = 1;
@@ -100,22 +102,21 @@ const ArcLight = ({
       const indexCount = geometryRef.current.index
         ? geometryRef.current.index.count
         : geometryRef.current.attributes.position.count;
-
       const drawCount = Math.floor(indexCount * t);
       geometryRef.current.setDrawRange(0, drawCount);
 
-      // Once done, we can optionally keep it drawn or hide it
+      // Optional: show the effect at t=1 in persist mode
       if (t >= 1) {
-        // We might choose to keep the entire arc visible:
         geometryRef.current.setDrawRange(0, indexCount);
+        // If you want the landing effect as soon as we fully reach the end:
+        if (!showLandingEffect) {
+          setShowLandingEffect(true);
+        }
         setDone(true);
         onDone?.();
       }
     } else {
-      // Non-persist: two-phase with partial geometry to avoid flicker
-      //  - 0..0.5 => extend
-      //  - 0.5..1 => retract
-      // We'll replace meshRef.current.geometry each frame
+      // Two-phase: 0..0.5 => extend, 0.5..1 => retract
       if (!meshRef.current) return;
 
       let extendP = 0;
@@ -129,6 +130,11 @@ const ArcLight = ({
         // retracting
         extendP = 1;
         retractP = (t - 0.5) / 0.5; // 0..1
+
+        // As soon as the arc hits the end (t >= 0.5) show landing effect
+        if (!showLandingEffect) {
+          setShowLandingEffect(true);
+        }
       }
 
       const startParam = retractP; // grows 0..1 in second half
@@ -158,19 +164,25 @@ const ArcLight = ({
   });
 
   return (
-    <mesh ref={meshRef}>
-      {/**
-       * Note: for persist arcs, we use geometryRef (attached to tubeGeometry).
-       * For non-persist arcs, we dynamically replace the mesh geometry in the useFrame.
-       */}
-      {onProgressPersist ? (
-        // For persist arcs, we pass in the stable geometryRef
-        <primitive object={tubeGeometry} attach="geometry" />
-      ) : null}
+    <>
+      <mesh ref={meshRef}>
+        {/* For persist arcs, we pass in the stable geometryRef */}
+        {onProgressPersist ? (
+          <primitive object={tubeGeometry} attach="geometry" />
+        ) : null}
+        <meshBasicMaterial color={color} transparent opacity={0.9} />
+      </mesh>
 
-      <meshBasicMaterial color={color} transparent opacity={0.9} />
-    </mesh>
+      {/* Show landing effect when showLandingEffect = true */}
+      {showLandingEffect && (
+        <LandingEffect
+          position={endVec}
+          color="#ffcd53"
+          onDone={() => setShowLandingEffect(false)}
+        />
+      )}
+    </>
   );
 };
 
-export default ArcLight;
+export default Arc;
