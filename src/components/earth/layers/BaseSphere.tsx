@@ -17,12 +17,9 @@ const BaseSphere = ({ radius = 299 }: BaseSphereProps) => {
     <mesh ref={earthRef}>
       <sphereGeometry args={[radius, 64, 64]} />
       <meshStandardMaterial
-        color="#0E3775"
-        emissive="#081c3c" // faint emissive for a subtle glow
+        color="#0b2a57"
+        emissive="#081c3c"
         emissiveIntensity={0.3}
-        // roughness={0.8} // decreased for more gloss
-        // transparent={true}
-        // opacity={0.9}
         roughness={0.45}
       />
     </mesh>

@@ -52,32 +52,28 @@ const Earth = () => {
           minDistance={300}
           enablePan={false}
           maxDistance={MAX_ZOOMED_OUT}
-          // Listen to orbit control events
           onStart={handleInteractionStart}
           onEnd={handleInteractionEnd}
         />
 
-        {/* Subtle ambient light */}
-        <ambientLight intensity={0.5} />
-        {/* Main directional light (like the sun). Make it 1 for more */}
-        {/* <directionalLight intensity={0.2} position={[-400, 10, -500]} /> */}
-        <hemisphereLight intensity={0.4} position={[0, 50, 0]} />
+        {/* Subtle ambient and hemispheral light */}
+        <ambientLight intensity={1} />
+        <hemisphereLight intensity={0.2} position={[0, 50, 0]} />
 
-        <ambientLight intensity={0.1} />
         <Suspense fallback={null}>
           <Globe
             isInteracting={isInteracting}
             rotationSpeed={-0.001}
             radius={149}
-            dotSize={2.9}
-            dotColor="#c437dd"
+            dotSize={3}
+            dotColor="#a22eb6"
             atmosphereColor="#00aaff"
             atmosphereOpacity={0.03}
           />
           <ManualBloom
-            bloomStrength={0.9}
-            bloomRadius={0.5}
-            bloomThreshold={0.1}
+            bloomStrength={1.2}
+            bloomRadius={1}
+            bloomThreshold={0.3}
           />
         </Suspense>
       </Canvas>

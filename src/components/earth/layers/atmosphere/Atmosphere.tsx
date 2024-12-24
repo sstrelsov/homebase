@@ -18,7 +18,7 @@ export default function Atmosphere({
 
   return (
     <mesh ref={meshRef}>
-      <sphereGeometry args={[earthRadius * 1.02, 64, 64]} />
+      <sphereGeometry args={[earthRadius * 1.015, 64, 64]} />
       <shaderMaterial
         side={THREE.BackSide}
         transparent={true}
@@ -32,6 +32,7 @@ export default function Atmosphere({
         }}
         vertexShader={AtmosphereShader.vertexShader}
         fragmentShader={AtmosphereShader.fragmentShader}
+        opacity={opacity}
       />
     </mesh>
   );
