@@ -2,9 +2,9 @@ import { useFrame } from "@react-three/fiber";
 import { useRef, useState } from "react";
 import * as THREE from "three";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
-import { flightPaths } from "../utils/routes";
+import { flightPaths } from "../utils/flightPaths";
 import Arc from "./Arc";
-import Atmosphere from "./Atmosphere";
+import Atmosphere from "./atmosphere/Atmosphere";
 import BaseSphere from "./BaseSphere";
 import ContinentDots from "./ContinentDots";
 
@@ -22,18 +22,6 @@ interface GlobeProps {
   // Add this:
   isInteracting: boolean;
 }
-
-// const flightPaths = [
-//   {
-//     start: { lat: 40.7128, lon: -74.006 }, // NYC
-//     end: { lat: 51.5074, lon: -0.1278 }, // London
-//   },
-//   {
-//     start: { lat: 34.0522, lon: -118.2437 }, // LA
-//     end: { lat: 35.6762, lon: 139.6503 }, // Tokyo
-//   },
-//   // etc ...
-// ];
 
 export default function Globe({
   radius,
@@ -65,6 +53,7 @@ export default function Globe({
   // We start invisible (scale = 0) until the dots are fully loaded
   const [currentScale, setCurrentScale] = useState(0.55);
   const [dotsLoaded, setDotsLoaded] = useState(false);
+  const [currentArcIndex, setCurrentArcIndex] = useState(0);
 
   useFrame((_, delta) => {
     if (!globeRef.current) return;
@@ -98,17 +87,29 @@ export default function Globe({
         pointSize={dotSize}
         onLoaded={(isLoaded) => setDotsLoaded(isLoaded)}
       />
-      {flightPaths.map((flight, i) => (
-        <Arc
-          key={i}
-          startLat={flight.start.lat}
-          startLon={flight.start.lon}
-          endLat={flight.end.lat}
-          endLon={flight.end.lon}
-          radius={radius}
-          animationDuration={3000}
-        />
-      ))}
+      {flightPaths.map((flight, i) => {
+        // Only render arcs up to currentArcIndex.
+        // That way, arc i doesn't appear until arcs 0..(i-1) have finished.
+        if (i > currentArcIndex) return null;
+
+        return (
+          <Arc
+            key={i}
+            startLat={flight.start.lat}
+            startLon={flight.start.lon}
+            endLat={flight.end.lat}
+            endLon={flight.end.lon}
+            radius={radius}
+            animationDuration={1000}
+            onDone={() => {
+              // When arc i finishes, move on to the next
+              setTimeout(() => {
+                setCurrentArcIndex((prev) => prev + 1);
+              }, 500);
+            }}
+          />
+        );
+      })}
     </group>
   );
 }

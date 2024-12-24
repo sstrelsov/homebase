@@ -1,17 +1,13 @@
 export const flightPaths = [
   //
-  // Roundtrip: NYC -> Dallas -> Louisville -> NYC
+  // Roundtrip: NYC -> Dallas -> NYC
   //
   {
     start: { lat: 40.7128, lon: -74.006 }, // NYC
     end: { lat: 32.7767, lon: -96.797 }, // Dallas
   },
   {
-    start: { lat: 32.7767, lon: -96.797 },
-    end: { lat: 38.2527, lon: -85.7585 }, // Louisville
-  },
-  {
-    start: { lat: 38.2527, lon: -85.7585 },
+    start: { lat: 32.7767, lon: -96.797 }, // Dallas
     end: { lat: 40.7128, lon: -74.006 }, // Back to NYC
   },
 
@@ -84,8 +80,7 @@ export const flightPaths = [
   },
 
   //
-  // Roundtrip: NYC -> San Jose -> NYC
-  // (Assuming San Jose, California)
+  // Roundtrip: NYC -> San Jose, CA -> NYC
   //
   {
     start: { lat: 40.7128, lon: -74.006 }, // NYC
@@ -149,8 +144,7 @@ export const flightPaths = [
   },
 
   //
-  // Roundtrip: NYC -> Lousville -> NYC
-  // (Assuming "Lousville" is just a typo for Louisville)
+  // Roundtrip: NYC -> Louisville -> NYC
   //
   {
     start: { lat: 40.7128, lon: -74.006 }, // NYC

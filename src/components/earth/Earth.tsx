@@ -44,7 +44,7 @@ const Earth = () => {
       <Canvas
         gl={{ alpha: true }}
         style={{ background: "transparent" }}
-        camera={{ position: [0, 0, MAX_ZOOMED_OUT], fov: 40 }}
+        camera={{ position: [0, 0, MAX_ZOOMED_OUT], fov: 30 }}
       >
         <Perf position="bottom-right" />
 
@@ -60,23 +60,24 @@ const Earth = () => {
         {/* Subtle ambient light */}
         <ambientLight intensity={0.5} />
         {/* Main directional light (like the sun). Make it 1 for more */}
-        <directionalLight intensity={0.5} position={[20, 10, 10]} />
-        <hemisphereLight intensity={0.6} position={[0, 50, 0]} />
+        {/* <directionalLight intensity={0.2} position={[-400, 10, -500]} /> */}
+        <hemisphereLight intensity={0.4} position={[0, 50, 0]} />
 
+        <ambientLight intensity={0.1} />
         <Suspense fallback={null}>
           <Globe
             isInteracting={isInteracting}
-            rotationSpeed={-0.006}
+            rotationSpeed={-0.001}
             radius={149}
-            dotSize={3}
-            dotColor="#ac431d"
+            dotSize={3.15}
+            dotColor="#c437dd"
             atmosphereColor="#00aaff"
             atmosphereOpacity={0.03}
           />
           <ManualBloom
-            bloomStrength={0.3}
-            bloomRadius={0.4}
-            bloomThreshold={0.1}
+            bloomStrength={1.2}
+            bloomRadius={0.6}
+            bloomThreshold={0.05}
           />
         </Suspense>
       </Canvas>

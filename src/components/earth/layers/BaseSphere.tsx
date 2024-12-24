@@ -19,10 +19,11 @@ const BaseSphere = ({ radius = 299 }: BaseSphereProps) => {
       <meshStandardMaterial
         color="#0E3775"
         emissive="#081c3c" // faint emissive for a subtle glow
-        metalness={0.1}
+        emissiveIntensity={0.3}
         // roughness={0.8} // decreased for more gloss
         // transparent={true}
-        opacity={0.9}
+        // opacity={0.9}
+        roughness={0.45}
       />
     </mesh>
   );

@@ -174,7 +174,7 @@ export default function ContinentDots({
         size={pointSize}
         sizeAttenuation
         transparent
-        opacity={0.8}
+        opacity={1}
       />
     </points>
   );

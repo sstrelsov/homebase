@@ -1,3 +1,4 @@
+// Arc.tsx
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
@@ -10,23 +11,23 @@ interface ArcProps {
   endLon: number;
   radius?: number;
   animationDuration?: number;
+  onDone?: () => void; // ← new callback
 }
 
-function Arc({
+export default function Arc({
   startLat,
   startLon,
   endLat,
   endLon,
   radius = 149,
   animationDuration = 2500,
+  onDone,
 }: ArcProps) {
   const meshRef = useRef<THREE.Mesh>(null!);
   const geometryRef = useRef<THREE.TubeGeometry>(null!);
-
-  // Used to skip further updates once we're done
   const doneRef = useRef(false);
 
-  // Record when we started so we can animate over time
+  // Record start time for animation
   const [startTime] = useState(() => performance.now());
 
   // Convert lat/lon → 3D vectors on the sphere
@@ -39,49 +40,45 @@ function Arc({
     [endLat, endLon, radius]
   );
 
-  // Create a CubicBezierCurve3 that “bows” outward above the surface
+  // CubicBezierCurve3 that “bows” outward above the surface
   const curve = useMemo(() => {
     // midpoint on the surface
     const midPoint = new THREE.Vector3()
       .addVectors(startVec, endVec)
       .multiplyScalar(0.5);
     const distance = startVec.distanceTo(endVec);
-
-    // Arc “height” (pick your own factor)
     const arcHeight = distance * 1.5;
     midPoint.setLength(midPoint.length() + arcHeight);
 
-    // two control points for the cubic bezier
+    // control points
     const control1 = new THREE.Vector3().lerpVectors(startVec, midPoint, 0.25);
     const control2 = new THREE.Vector3().lerpVectors(startVec, midPoint, 0.75);
 
     return new THREE.CubicBezierCurve3(startVec, control1, control2, endVec);
   }, [startVec, endVec]);
 
-  // Create Tube geometry from the curve
+  // Tube geometry
   const tubeGeometry = useMemo(() => {
     return new THREE.TubeGeometry(curve, 64, 0.5, 8);
   }, [curve]);
 
-  // Animate the drawRange
+  // Animate drawRange
   useFrame(() => {
-    // If we've finished drawing, skip
+    // If already done, skip
     if (doneRef.current || !geometryRef.current) return;
 
     const elapsed = performance.now() - startTime;
     const progress = Math.min(elapsed / animationDuration, 1);
 
-    // If the geometry has an index, use its count:
     const indexCount = geometryRef.current.index
       ? geometryRef.current.index.count
       : geometryRef.current.attributes.position.count;
-
-    // Multiply by progress
     geometryRef.current.setDrawRange(0, indexCount * progress);
 
-    // If we've hit 100%, mark as done
+    // If finished, notify and mark done
     if (progress >= 1) {
       doneRef.current = true;
+      onDone?.();
     }
   });
 
@@ -92,5 +89,3 @@ function Arc({
     </mesh>
   );
 }
-
-export default Arc;
