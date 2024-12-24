@@ -168,6 +168,7 @@ const ArcGroup = ({
             endLat={flight.end.lat}
             endLon={flight.end.lon}
             radius={radius}
+            onProgressPersist={onProgressPersist}
             animationDuration={animationDuration}
             onDone={() => {
               // Mark arc i as done

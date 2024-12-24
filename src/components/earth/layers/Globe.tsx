@@ -112,9 +112,9 @@ const Globe = ({
       <ArcGroup
         locationArray={flightPaths}
         sequential
-        color={"#ffcd53"}
+        color={"#edb119"}
         radius={radius}
-        animationDuration={500}
+        animationDuration={1500}
         onAllArcsDone="persist"
         onProgressPersist={true}
       />
