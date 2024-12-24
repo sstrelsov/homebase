@@ -1,16 +1,13 @@
 import { useFrame } from "@react-three/fiber";
 import { useRef, useState } from "react";
 import * as THREE from "three";
+import { lerp } from "three/src/math/MathUtils";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
 import { flightPaths } from "../utils/flightPaths";
-import Arc from "./Arc";
-import Atmosphere from "./atmosphere/Atmosphere";
+import ArcGroup from "./ArcGroup";
+import Atmosphere from "./Atmosphere";
 import BaseSphere from "./BaseSphere";
 import ContinentDots from "./ContinentDots";
-
-function lerp(start: number, end: number, alpha: number) {
-  return start + (end - start) * alpha;
-}
 
 interface GlobeProps {
   radius: number;
@@ -19,19 +16,44 @@ interface GlobeProps {
   rotationSpeed: number;
   atmosphereColor: string;
   atmosphereOpacity: number;
-  // Add this:
   isInteracting: boolean;
 }
 
-export default function Globe({
+/**
+ * A container for the 3D globe that:
+ * - Has Earth's sphere, atmosphere, continent dots, and arc lights.
+ * - Handles rotation
+ * - Animates scale-in after data loads
+ * - Conditionally renders flight arcs in sequence
+ *
+ * @param {GlobeProps} props
+ *   @prop {number} radius - Radius of the globe.
+ *   @prop {number} dotSize - Size of continent dots.
+ *   @prop {string} dotColor - Base color for continent dots (hex).
+ *   @prop {number} rotationSpeed - Y-axis rotation speed (radians per frame).
+ *   @prop {string} atmosphereColor - Color of atmospheric glow (hex).
+ *   @prop {number} atmosphereOpacity - Transparency for the atmosphere effect.
+ *   @prop {boolean} isInteracting - Whether the user is currently interacting (pauses rotation).
+ *
+ * Uses useFrame to:
+ * - Rotate the globe if `isInteracting` is false.
+ * - Smoothly interpolate scale from 0 to final size once continent dots are loaded.
+ *
+ * Child components:
+ * - BaseSphere
+ * - Atmosphere
+ * - ContinentDots
+ * - Arc (for flight paths)
+ */
+const Globe = ({
   radius,
   dotSize,
   dotColor,
   rotationSpeed,
   atmosphereColor,
   atmosphereOpacity,
-  isInteracting, // <— new
-}: GlobeProps) {
+  isInteracting,
+}: GlobeProps) => {
   const globeRef = useRef<THREE.Group>(null);
 
   // Breakpoints for final scale
@@ -87,29 +109,17 @@ export default function Globe({
         pointSize={dotSize}
         onLoaded={(isLoaded) => setDotsLoaded(isLoaded)}
       />
-      {flightPaths.map((flight, i) => {
-        // Only render arcs up to currentArcIndex.
-        // That way, arc i doesn't appear until arcs 0..(i-1) have finished.
-        if (i > currentArcIndex) return null;
-
-        return (
-          <Arc
-            key={i}
-            startLat={flight.start.lat}
-            startLon={flight.start.lon}
-            endLat={flight.end.lat}
-            endLon={flight.end.lon}
-            radius={radius}
-            animationDuration={1000}
-            onDone={() => {
-              // When arc i finishes, move on to the next
-              setTimeout(() => {
-                setCurrentArcIndex((prev) => prev + 1);
-              }, 500);
-            }}
-          />
-        );
-      })}
+      <ArcGroup
+        locationArray={flightPaths}
+        sequential
+        color={"#ffcd53"}
+        radius={radius}
+        animationDuration={500}
+        onAllArcsDone="persist"
+        onProgressPersist={true}
+      />
     </group>
   );
-}
+};
+
+export default Globe;

@@ -1,19 +1,21 @@
-// Earth.tsx
 import { useRef } from "react";
 import * as THREE from "three";
 
 interface BaseSphereProps {
-  radius?: number;
+  radius: number;
 }
 
-const BaseSphere = ({ radius = 299 }: BaseSphereProps) => {
+/**
+ * The main Earth sphere mesh, without any atmosphere or land dots.
+ *
+ * @param {BaseSphereProps} props
+ *   @prop {number} radius - Radius of the sphere geometry.
+ *
+ * Uses a meshStandardMaterial for basic shading, plus a slight emissive glow.
+ */
+const BaseSphere = ({ radius }: BaseSphereProps) => {
   const earthRef = useRef<THREE.Mesh>(null!);
-
   return (
-    /**
-     * Convert degrees to radians.
-     * Negative X rotation so north hemisphere tilts forward (toward camera).
-     */
     <mesh ref={earthRef}>
       <sphereGeometry args={[radius, 64, 64]} />
       <meshStandardMaterial

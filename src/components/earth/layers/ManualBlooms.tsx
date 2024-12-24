@@ -1,4 +1,3 @@
-// ManualBloom.tsx
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
@@ -6,27 +5,31 @@ import { EffectComposer } from "three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from "three/examples/jsm/postprocessing/RenderPass";
 import { UnrealBloomPass } from "three/examples/jsm/postprocessing/UnrealBloomPass";
 
-/**
- * 	•	strength (sometimes referred to as intensity)
-- Higher value → brighter glow. Typical range might be 0.1 - 2.0.
-	•	radius (sometimes called “blur size”)
-- Higher value → more diffuse glow spreading outward from bright areas.
-	•	threshold
-- Higher value → only very bright parts of the scene glow. Setting 0.0 means anything above black can bloom; setting 0.9 means only extremely bright highlights bloom.
-
- */
-
 interface ManualBloomProps {
   bloomStrength?: number;
   bloomRadius?: number;
   bloomThreshold?: number;
 }
-
-export default function ManualBloom({
+/**
+ * A custom post-processing bloom effect that uses:
+ * - `EffectComposer` to chain multiple post-processing passes.
+ * - `RenderPass` for the base scene rendering.
+ * - `UnrealBloomPass` for the bloom effect.
+ *
+ * @param {ManualBloomProps} props
+ * @prop {number} [bloomStrength=0.7] - Controls brightness of bloom highlights.
+ * @prop {number} [bloomRadius=0.5] - Determines how large or soft the bloom edges appear.
+ * @prop {number} [bloomThreshold=0.0] - Threshold above which areas start to bloom.
+ *
+ * Rendering order (the second arg in `useFrame`) is set to 1 so the bloom
+ * pass happens after the scene renders. Returns null since all rendering
+ * is handled via EffectComposer.
+ */
+const ManualBloom = ({
   bloomStrength = 0.7,
   bloomRadius = 0.5,
   bloomThreshold = 0.0,
-}: ManualBloomProps) {
+}: ManualBloomProps) => {
   const composer = useRef<EffectComposer | null>(null);
   const { gl, scene, camera, size } = useThree();
 
@@ -57,4 +60,6 @@ export default function ManualBloom({
   }, 1);
 
   return null;
-}
+};
+
+export default ManualBloom;

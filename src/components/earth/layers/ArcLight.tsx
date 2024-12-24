@@ -1,28 +1,30 @@
-// Arc.tsx
+// ArcLight.tsx
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { latLongToVector3 } from "../utils/latLongToVector3";
 
 interface ArcProps {
+  color: string;
   startLat: number;
   startLon: number;
   endLat: number;
   endLon: number;
-  radius?: number;
+  radius: number;
   animationDuration?: number;
-  onDone?: () => void; // ← new callback
+  onDone?: () => void;
 }
 
-export default function Arc({
+const ArcLight = ({
+  color,
   startLat,
   startLon,
   endLat,
   endLon,
-  radius = 149,
+  radius,
   animationDuration = 2500,
   onDone,
-}: ArcProps) {
+}: ArcProps) => {
   const meshRef = useRef<THREE.Mesh>(null!);
   const geometryRef = useRef<THREE.TubeGeometry>(null!);
   const doneRef = useRef(false);
@@ -85,7 +87,9 @@ export default function Arc({
   return (
     <mesh ref={meshRef}>
       <primitive ref={geometryRef} object={tubeGeometry} />
-      <meshBasicMaterial color="#ffcd53" transparent opacity={0.9} />
+      <meshBasicMaterial color={color} transparent opacity={0.9} />
     </mesh>
   );
-}
+};
+
+export default ArcLight;

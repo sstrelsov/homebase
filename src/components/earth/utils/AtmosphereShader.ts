@@ -3,7 +3,7 @@ import * as THREE from "three";
 
 export const AtmosphereShader = {
   uniforms: {
-    uColor: { value: new THREE.Color("#00aaff") }, // atmosphere color
+    uColor: { value: new THREE.Color("#00aaff") },
     uIntensity: { value: 1.0 }, // how strong the glow is
     uPower: { value: 2.0 }, // how quickly it falls off
   },

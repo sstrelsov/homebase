@@ -13,22 +13,34 @@ interface DotInfo {
 
 interface ContinentDotsProps {
   jsonUrl: string;
-  pointSize?: number;
+  pointSize: number;
   onCountrySelect?: (iso: string) => void;
-  /**
-   * Hex color for all dots, e.g. "#ff0000". Default = "#ffffff"
-   */
-  dotColor?: string;
+  dotColor: string;
   onLoaded: (loaded: boolean) => void;
 }
 
-export default function ContinentDots({
+/**
+ * A point cloud representing countries on the globe.
+ * Fetches dot coordinates (x,y,z) from a JSON file, then displays them as points.
+ * Allows clicking a point to highlight it briefly and optionally call onCountrySelect.
+ *
+ * @param {ContinentDotsProps} props
+ *   @prop {string} jsonUrl - URL of the JSON data containing dot positions & country info.
+ *   @prop {number} pointSize - Visual size of each point.
+ *   @prop {(iso: string) => void} [onCountrySelect] - Callback invoked on country dot click.
+ *   @prop {string} dotColor - Base color (hex) for the dots.
+ *   @prop {(loaded: boolean) => void} onLoaded - Informs the parent when data is finished loading.
+ *
+ * Internally uses a BufferGeometry with position and color attributes.
+ * On click, changes color to bright yellow for 2 seconds (highlight).
+ */
+const ContinentDots = ({
   jsonUrl,
-  pointSize = 3,
+  pointSize,
   onCountrySelect,
   onLoaded,
-  dotColor = "#ffffff",
-}: ContinentDotsProps) {
+  dotColor,
+}: ContinentDotsProps) => {
   const [dots, setDots] = useState<DotInfo[]>([]);
   const highlightRef = useRef<string | null>(null);
   const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -40,7 +52,7 @@ export default function ContinentDots({
   }, [dotColor]);
 
   useEffect(() => {
-    async function fetchDots() {
+    const fetchDots = async () => {
       try {
         const res = await fetch(jsonUrl);
         const data = await res.json();
@@ -50,7 +62,7 @@ export default function ContinentDots({
       } catch (err) {
         console.error("Failed to load landDots.json:", err);
       }
-    }
+    };
     fetchDots();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jsonUrl]);
@@ -178,4 +190,6 @@ export default function ContinentDots({
       />
     </points>
   );
-}
+};
+
+export default ContinentDots;

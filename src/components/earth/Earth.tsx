@@ -4,40 +4,43 @@ import { Canvas } from "@react-three/fiber";
 import { Perf } from "r3f-perf";
 import { Suspense, useEffect, useRef, useState } from "react";
 import Globe from "./layers/Globe";
-import ManualBloom from "./ManualBlooms";
+import ManualBloom from "./layers/ManualBlooms";
 
 const MAX_ZOOMED_OUT = 600;
 
+/**
+ * A top-level 3D Earth component that:
+ * - Sets up a Three.js Canvas with OrbitControls and performance stats.
+ * - Renders the `Globe` component and optional post-processing (ManualBloom).
+ */
 const Earth = () => {
   // Temp fix: Theme must be set to dark to render the globe, canvas is black (known issue)
   const { theme, setTheme } = useTheme();
+
   useEffect(() => {
     if (theme !== "dark") {
       setTheme("dark");
     }
   }, [theme, setTheme]);
 
-  // Track whether the user is currently interacting
   const [isInteracting, setIsInteracting] = useState(false);
-
-  // We'll also track a 2-second timer for after the user stops interacting
   const resumeRotationTimeout = useRef<NodeJS.Timeout | null>(null);
 
-  function handleInteractionStart() {
+  const handleInteractionStart = () => {
     // Clear any existing timeouts
     if (resumeRotationTimeout.current) {
       clearTimeout(resumeRotationTimeout.current);
       resumeRotationTimeout.current = null;
     }
     setIsInteracting(true);
-  }
+  };
 
-  function handleInteractionEnd() {
+  const handleInteractionEnd = () => {
     // Wait 2 seconds before resuming rotation
     resumeRotationTimeout.current = setTimeout(() => {
       setIsInteracting(false);
     }, 2000);
-  }
+  };
 
   return (
     <div className="h-full w-full">
