@@ -3,7 +3,7 @@ import { useRef } from "react";
 import * as THREE from "three";
 import { AtmosphereShader } from "../utils/AtmosphereShader";
 
-interface AtmosphereProps {
+export interface AtmosphereProps {
   earthRadius: number;
   color: string;
   opacity: number;

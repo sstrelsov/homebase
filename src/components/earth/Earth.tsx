@@ -5,8 +5,10 @@ import { Perf } from "r3f-perf";
 import { Suspense, useEffect, useRef, useState } from "react";
 import Globe from "./layers/Globe";
 import ManualBloom from "./layers/ManualBlooms";
+import { flightPaths } from "./utils/flightPaths";
 
 const MAX_ZOOMED_OUT = 600;
+const EARTH_RADIUS = 150;
 
 /**
  * A top-level 3D Earth component that:
@@ -66,12 +68,30 @@ const Earth = () => {
         <Suspense fallback={null}>
           <Globe
             isInteracting={isInteracting}
+            rotationCoords={[0.68, -0.3, 0.28]}
             rotationSpeed={-0.001}
-            radius={149}
-            dotSize={3}
-            dotColor="#a22eb6"
-            atmosphereColor="#00aaff"
-            atmosphereOpacity={0.03}
+            radius={EARTH_RADIUS}
+            dots={{
+              dotColor: "#a22eb6",
+              pointSize: 3,
+              jsonUrl: "/landDots.json",
+            }}
+            // Atmosphere
+            atmosphere={{
+              color: "#00aaff",
+              opacity: 0.03,
+              earthRadius: EARTH_RADIUS,
+            }}
+            // Arcs
+            arcs={{
+              color: "#edb119",
+              radius: EARTH_RADIUS,
+              animationDuration: 1500,
+              onProgressPersist: false,
+              sequential: false,
+              locationArray: flightPaths,
+              onAllArcsDone: "persist",
+            }}
           />
           <ManualBloom
             bloomStrength={1.2}

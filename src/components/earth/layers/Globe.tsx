@@ -3,20 +3,22 @@ import { useRef, useState } from "react";
 import * as THREE from "three";
 import { lerp } from "three/src/math/MathUtils";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
-import { flightPaths } from "../utils/flightPaths";
-import ArcGroup from "./arcs/ArcGroup";
-import Atmosphere from "./Atmosphere";
+import ArcGroup, { ArcGroupProps } from "./arcs/ArcGroup";
+import Atmosphere, { AtmosphereProps } from "./Atmosphere";
 import BaseSphere from "./BaseSphere";
-import ContinentDots from "./ContinentDots";
+import ContinentDots, { ContinentDotsProps } from "./ContinentDots";
 
 interface GlobeProps {
   radius: number;
-  dotSize: number;
-  dotColor: string;
   rotationSpeed: number;
-  atmosphereColor: string;
-  atmosphereOpacity: number;
+  rotationCoords: [number, number, number];
   isInteracting: boolean;
+  // Dots
+  dots?: ContinentDotsProps;
+  // Atmosphere
+  atmosphere?: AtmosphereProps;
+  // Arcs
+  arcs?: ArcGroupProps;
 }
 
 /**
@@ -33,6 +35,8 @@ interface GlobeProps {
  *   @prop {number} rotationSpeed - Y-axis rotation speed (radians per frame).
  *   @prop {string} atmosphereColor - Color of atmospheric glow (hex).
  *   @prop {number} atmosphereOpacity - Transparency for the atmosphere effect.
+ *   @prop {string} arcColor - The color of the flight arcs (hex).
+ *   @prop {number} arcAnimationSpeed - Duration of arc animations in milliseconds.
  *   @prop {boolean} isInteracting - Whether the user is currently interacting (pauses rotation).
  *
  * Uses useFrame to:
@@ -47,11 +51,11 @@ interface GlobeProps {
  */
 const Globe = ({
   radius,
-  dotSize,
-  dotColor,
   rotationSpeed,
-  atmosphereColor,
-  atmosphereOpacity,
+  rotationCoords,
+  arcs,
+  atmosphere,
+  dots,
   isInteracting,
 }: GlobeProps) => {
   const globeRef = useRef<THREE.Group>(null);
@@ -72,7 +76,6 @@ const Globe = ({
     targetScale = 0.6;
   }
 
-  // We start invisible (scale = 0) until the dots are fully loaded
   const [currentScale, setCurrentScale] = useState(0.55);
   const [dotsLoaded, setDotsLoaded] = useState(false);
 
@@ -91,32 +94,38 @@ const Globe = ({
 
   return (
     <group
-      rotation={[0.68, -0.3, 0.28]}
+      rotation={rotationCoords}
       visible={dotsLoaded}
       ref={globeRef}
       scale={currentScale}
     >
-      <BaseSphere radius={radius} />
-      <Atmosphere
-        earthRadius={radius - 1}
-        color={atmosphereColor}
-        opacity={atmosphereOpacity}
-      />
-      <ContinentDots
-        jsonUrl="/landDots.json"
-        dotColor={dotColor}
-        pointSize={dotSize}
-        onLoaded={(isLoaded) => setDotsLoaded(isLoaded)}
-      />
-      <ArcGroup
-        locationArray={flightPaths}
-        sequential
-        color={"#edb119"}
-        radius={radius}
-        animationDuration={1500}
-        onAllArcsDone="persist"
-        onProgressPersist={false}
-      />
+      <BaseSphere radius={radius - 1} />
+      {!!atmosphere && (
+        <Atmosphere
+          earthRadius={radius - 2}
+          color={atmosphere.color}
+          opacity={atmosphere.opacity}
+        />
+      )}
+      {!!dots && (
+        <ContinentDots
+          jsonUrl={dots.jsonUrl}
+          dotColor={dots.dotColor}
+          pointSize={dots.pointSize}
+          onLoaded={(isLoaded) => setDotsLoaded(isLoaded)}
+        />
+      )}
+      {!!arcs && (
+        <ArcGroup
+          animationDuration={arcs.animationDuration}
+          color={arcs.color}
+          locationArray={arcs.locationArray}
+          onAllArcsDone={arcs.onAllArcsDone}
+          onProgressPersist={arcs.onProgressPersist}
+          radius={arcs.radius}
+          sequential={arcs.sequential}
+        />
+      )}
     </group>
   );
 };

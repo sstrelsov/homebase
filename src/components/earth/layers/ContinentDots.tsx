@@ -11,12 +11,12 @@ interface DotInfo {
   isoA3: string;
 }
 
-interface ContinentDotsProps {
+export interface ContinentDotsProps {
   jsonUrl: string;
   pointSize: number;
   onCountrySelect?: (iso: string) => void;
   dotColor: string;
-  onLoaded: (loaded: boolean) => void;
+  onLoaded?: (loaded: boolean) => void;
 }
 
 /**
@@ -58,7 +58,7 @@ const ContinentDots = ({
         const data = await res.json();
         console.log("Loaded landDots.json:", data);
         setDots(data);
-        onLoaded(true);
+        !!onLoaded && onLoaded(true);
       } catch (err) {
         console.error("Failed to load landDots.json:", err);
       }

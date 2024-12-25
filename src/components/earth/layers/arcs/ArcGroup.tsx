@@ -14,7 +14,7 @@ interface ArcLocation {
 
 export type OnAllArcsDoneBehavior = "persist" | "remove" | "reset";
 
-interface ArcGroupProps {
+export interface ArcGroupProps {
   /**
    * Array of start/end lat/lon coords for each arc.
    */
@@ -161,7 +161,7 @@ const ArcGroup = ({
               startLon={flight.start.lon}
               endLat={flight.end.lat}
               endLon={flight.end.lon}
-              radius={radius + 2}
+              radius={radius + 0.1}
               onProgressPersist={onProgressPersist}
               animationDuration={animationDuration}
               onDone={() => {
@@ -188,7 +188,7 @@ const ArcGroup = ({
         <AllArcsStaticMesh
           flights={locationArray}
           color={color}
-          radius={radius + 2}
+          radius={radius + 0.1}
           smoothOn
         />
       )}
