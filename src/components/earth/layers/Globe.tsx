@@ -7,6 +7,7 @@ import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
 import ArcGroup, { ArcGroupProps } from "./arcs/ArcGroup";
 import Atmosphere, { AtmosphereProps } from "./Atmosphere";
 import BaseSphere from "./BaseSphere";
+import CityMarkers, { CityMarkersProps } from "./CityMarkerGroup";
 import ContinentDots, { ContinentDotsProps } from "./ContinentDots";
 
 interface GlobeProps {
@@ -17,6 +18,7 @@ interface GlobeProps {
   dots?: ContinentDotsProps;
   atmosphere?: AtmosphereProps;
   arcs?: ArcGroupProps & { persistArcBehavior: AllArcsBehavior };
+  cityMarkers?: CityMarkersProps;
 }
 
 /**
@@ -41,6 +43,7 @@ const Globe = ({
   arcs,
   atmosphere,
   dots,
+  cityMarkers,
   isInteracting,
 }: GlobeProps) => {
   const globeRef = useRef<THREE.Group>(null);
@@ -98,6 +101,15 @@ const Globe = ({
           dotColor={dots.dotColor}
           pointSize={dots.pointSize}
           onLoaded={(isLoaded) => setDotsLoaded(isLoaded)}
+        />
+      )}
+
+      {!!cityMarkers && (
+        <CityMarkers
+          cities={cityMarkers.cities}
+          radius={cityMarkers.radius}
+          color={cityMarkers.color}
+          markerSize={cityMarkers.markerSize}
         />
       )}
       {!!arcs && (

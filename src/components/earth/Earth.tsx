@@ -7,7 +7,10 @@ import ManualBloom from "./layers/ManualBlooms";
 import { flightPaths } from "./utils/flightPaths";
 
 const MAX_ZOOMED_OUT = 600;
+const ROTATION_START_ATLANTIC = [0.68, -0.3, 0.28];
 const EARTH_RADIUS = 150;
+const EARTH_TILT = 23.4 * (Math.PI / 180); // ~0.41
+const STARTING_Y = -1;
 
 /**
  * A top-level 3D Earth component that:
@@ -48,7 +51,7 @@ const Earth = () => {
       <Canvas
         gl={{ alpha: true }}
         style={{ background: "transparent" }}
-        camera={{ position: [0, 0, MAX_ZOOMED_OUT], fov: 35 }}
+        camera={{ position: [0, -100, MAX_ZOOMED_OUT], fov: 35 }}
         onCreated={(state) => {
           // Increase the threshold so clicks are less “exact”.
           // Adjust the number until it feels right.
@@ -60,6 +63,8 @@ const Earth = () => {
         <OrbitControls
           enableDamping={true}
           minDistance={300}
+          minPolarAngle={0.3} // ~17 degrees
+          maxPolarAngle={Math.PI - 0.3} // ~163 degrees
           enablePan={false}
           maxDistance={MAX_ZOOMED_OUT}
           onStart={handleInteractionStart}
@@ -72,9 +77,9 @@ const Earth = () => {
 
         <Suspense fallback={null}>
           <Globe
-            isInteracting={isInteracting}
-            rotationCoords={[0.68, -0.3, 0.28]}
-            rotationSpeed={-0.001}
+            isInteracting={false}
+            rotationCoords={[EARTH_TILT, STARTING_Y, 0]}
+            rotationSpeed={0.001}
             radius={EARTH_RADIUS}
             dots={{
               dotColor: "#00aaff",
@@ -92,11 +97,21 @@ const Earth = () => {
               locationArray: flightPaths,
               color: "#dd6ff0",
               radius: EARTH_RADIUS,
-              animationDuration: 600,
+              animationDuration: 700,
               sequential: false,
               onProgressPersist: true,
               onAllArcsDone: "persist",
               persistArcBehavior: "smooth",
+            }}
+            cityMarkers={{
+              cities: flightPaths.map((f) => ({
+                lat: f.end.lat,
+                lon: f.end.lon,
+                name: f.end.name,
+              })),
+              radius: EARTH_RADIUS,
+              color: "#dd6ff0",
+              markerSize: 1,
             }}
           />
           <ManualBloom

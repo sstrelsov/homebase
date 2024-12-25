@@ -13,11 +13,17 @@ export interface ArcLocation {
   /**
    * Start location of the arc.
    */
-  start: Coordinates;
+  start: CityLocation;
   /**
    * End location of the arc.
    */
-  end: Coordinates;
+  end: CityLocation;
+}
+
+export interface CityLocation {
+  lat: number;
+  lon: number;
+  name?: string;
 }
 
 export interface DotInfo {
