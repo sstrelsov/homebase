@@ -33,7 +33,7 @@ const AllArcsStaticMesh = ({
   behavior,
 }: AllArcsStaticMeshProps) => {
   // Single opacity state shared by all arcs
-  const [opacity, setOpacity] = useState(0);
+  const [opacity, setOpacity] = useState(!behavior ? 1 : 0);
 
   useEffect(() => {
     // If flicker is true, we do the old-timey rapid toggling.

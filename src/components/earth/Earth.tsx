@@ -107,7 +107,7 @@ const Earth = () => {
               sequential: false,
               onProgressPersist: true,
               onAllArcsDone: "persist",
-              persistArcBehavior: "smooth",
+              persistArcBehavior: undefined,
             }}
             cityMarkers={{
               cities: flightPaths.map((f) => ({
