@@ -163,14 +163,14 @@ const ContinentDots = ({
           attach="attributes-position"
           args={[positions, 3]}
           count={positions.length / 3}
-          itemSize={pointSize}
+          itemSize={3}
         />
         <bufferAttribute
           ref={colorAttrRef}
           attach="attributes-color"
           args={[colors, 3]}
           count={colors.length / 3}
-          itemSize={pointSize}
+          itemSize={3}
         />
       </bufferGeometry>
       <pointsMaterial
