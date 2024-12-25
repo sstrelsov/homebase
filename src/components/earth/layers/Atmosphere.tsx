@@ -10,7 +10,7 @@ export interface AtmosphereProps {
 }
 
 /**
- * A slightly larger, inverted sphere around the Earth for a glowing atmospheric effect.
+ * `Atmosphere` is a slightly larger, inverted sphere around the Earth for a glowing atmospheric effect.
  * Uses a custom shader from `AtmosphereShader`.
  *
  * @param {AtmosphereProps} props

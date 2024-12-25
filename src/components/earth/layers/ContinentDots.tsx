@@ -1,15 +1,7 @@
-// ContinentDots.tsx
 import { useFrame } from "@react-three/fiber";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-
-interface DotInfo {
-  x: number;
-  y: number;
-  z: number;
-  countryName: string;
-  isoA3: string;
-}
+import { DotInfo } from "../../../types/earthTypes";
 
 export interface ContinentDotsProps {
   jsonUrl: string;
@@ -171,14 +163,14 @@ const ContinentDots = ({
           attach="attributes-position"
           args={[positions, 3]}
           count={positions.length / 3}
-          itemSize={3}
+          itemSize={pointSize}
         />
         <bufferAttribute
           ref={colorAttrRef}
           attach="attributes-color"
           args={[colors, 3]}
           count={colors.length / 3}
-          itemSize={3}
+          itemSize={pointSize}
         />
       </bufferGeometry>
       <pointsMaterial

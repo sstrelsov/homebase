@@ -1,32 +1,11 @@
 import { useEffect, useState } from "react";
-import AllArcsStaticMesh, { AllArcsBehavior } from "./AllArcsStaticMesh";
+import {
+  AllArcsBehavior,
+  ArcLocation,
+  OnAllArcsDoneBehavior,
+} from "../../../../types/earthTypes";
+import AllArcsStaticMesh from "./AllArcsStaticMesh";
 import ArcLight from "./Arc";
-
-interface Coordinates {
-  /**
-   * Latitude of the point in decimal degrees.
-   */
-  lat: number;
-
-  /**
-   * Longitude of the point in decimal degrees.
-   */
-  lon: number;
-}
-
-interface ArcLocation {
-  /**
-   * Starting coordinates of the arc.
-   */
-  start: Coordinates;
-
-  /**
-   * Ending coordinates of the arc.
-   */
-  end: Coordinates;
-}
-
-export type OnAllArcsDoneBehavior = "persist" | "remove" | "reset";
 
 export interface ArcGroupProps {
   /**

@@ -1,25 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
+import { AllArcsBehavior, ArcLocation } from "../../../../types/earthTypes";
 import { buildAllArcs } from "../../utils/arcs";
 
-interface Coordinates {
-  lat: number;
-  lon: number;
-}
-
-interface ArcLocation {
-  start: Coordinates;
-  end: Coordinates;
-}
-
-export type AllArcsBehavior = "flicker" | "smooth" | undefined;
-
 export interface AllArcsStaticMeshProps {
+  /**
+   * Array of flight arc locations with start and end coordinates.
+   */
   flights: ArcLocation[];
+  /**
+   * Base color of the arcs.
+   */
   color: string;
+  /**
+   * Radius of the sphere on which the arcs are drawn.
+   */
   radius: number;
+  /**
+   * Animation behavior for the arcs.
+   */
   behavior?: AllArcsBehavior;
 }
 
+/**
+ * `AllArcsStaticMesh` renders multiple arcs as static or animated meshes.
+ * - Animates opacity based on the specified `behavior`.
+ * - Generates arc geometries dynamically for each flight in the `flights` array.
+ */
 const AllArcsStaticMesh = ({
   flights,
   color,
