@@ -22,32 +22,46 @@ interface GlobeProps {
 }
 
 /**
- * A container for the 3D globe that:
- * - Has Earth's sphere, atmosphere, continent dots, and arc lights.
- * - Handles rotation
- * - Animates scale-in after data loads
- * - Conditionally renders flight arcs in sequence
+ * A 3D interactive globe component that:
+ * - Displays Earth's sphere, atmospheric glow, continent dots, and animated flight arcs.
+ * - Manages rotation and responsive scaling.
+ * - Handles data-driven animations like arc rendering and smooth scaling after data loads.
  *
  * @param {GlobeProps} props
- *   @prop {number} radius - Radius of the globe.
- *   @prop {number} dotSize - Size of continent dots.
- *   @prop {string} dotColor - Base color for continent dots (hex).
- *   @prop {number} rotationSpeed - Y-axis rotation speed (radians per frame).
- *   @prop {string} atmosphereColor - Color of atmospheric glow (hex).
- *   @prop {number} atmosphereOpacity - Transparency for the atmosphere effect.
- *   @prop {string} arcColor - The color of the flight arcs (hex).
- *   @prop {number} arcAnimationSpeed - Duration of arc animations in milliseconds.
- *   @prop {boolean} isInteracting - Whether the user is currently interacting (pauses rotation).
+ *   @prop {number} radius - The base radius of the globe.
+ *   @prop {number} rotationSpeed - Speed of rotation along the Y-axis (radians per frame).
+ *   @prop {[number, number, number]} rotationCoords - Initial rotation of the globe (Euler angles).
+ *   @prop {boolean} isInteracting - Whether user interaction is ongoing (pauses auto-rotation if true).
+ *   @prop {ContinentDotsProps} [dots] - Configuration for rendering continent dots, including:
+ *     @prop {string} jsonUrl - Path to JSON containing dot coordinates.
+ *     @prop {string} dotColor - Base color for dots (hex).
+ *     @prop {number} pointSize - Size of the dots.
+ *     @prop {function} onLoaded - Callback for when dot data is fully loaded.
+ *   @prop {AtmosphereProps} [atmosphere] - Configuration for atmospheric effects, including:
+ *     @prop {string} color - Atmospheric glow color (hex).
+ *     @prop {number} opacity - Transparency level for the atmosphere.
+ *   @prop {ArcGroupProps} [arcs] - Configuration for animated arcs, including:
+ *     @prop {Array} locationArray - Array of arc locations (start and end coordinates).
+ *     @prop {string} color - Color of the flight arcs (hex).
+ *     @prop {number} animationDuration - Time for arc animations (ms).
+ *     @prop {function} onAllArcsDone - Callback after all arcs finish rendering.
+ *     @prop {function} onProgressPersist - Callback to track animation progress.
+ *     @prop {number} radius - Radius of the arcs' sphere.
+ *     @prop {boolean} sequential - Whether to animate arcs sequentially.
  *
- * Uses useFrame to:
+ * Uses `useFrame` to:
  * - Rotate the globe if `isInteracting` is false.
- * - Smoothly interpolate scale from 0 to final size once continent dots are loaded.
+ * - Smoothly interpolate the globe's scale from 0 to its final size once dots are loaded.
+ *
+ * Responsive scaling:
+ * - Adjusts the globe's size dynamically based on breakpoints (XS, SM, MD).
+ * - Final scale values: XS=0.7, SM=0.8, MD+=1.0.
  *
  * Child components:
- * - BaseSphere
- * - Atmosphere
- * - ContinentDots
- * - Arc (for flight paths)
+ * - `BaseSphere`: Renders the globe's core.
+ * - `Atmosphere`: Adds an atmospheric glow around the globe.
+ * - `ContinentDots`: Plots interactive dots based on continent data.
+ * - `ArcGroup`: Animates flight arcs over the globe.
  */
 const Globe = ({
   radius,
