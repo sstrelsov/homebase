@@ -1,7 +1,7 @@
 export const projects = [
   {
     key: "1",
-    name: "World Travels",
+    name: "The Globe",
     slug: "earth",
     date: "12/22/24",
   },
