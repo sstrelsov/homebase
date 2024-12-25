@@ -51,6 +51,10 @@ const ContinentDots = ({
   const highlightRef = useRef<string | null>(null);
   const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
+  const isDraggingRef = useRef(false);
+  const pointerDownDotIndexRef = useRef<number | null>(null);
+
   // Pre-convert the base color into an RGB triple
   const [baseR, baseG, baseB] = useMemo(() => {
     const c = new THREE.Color(dotColor);
@@ -102,9 +106,45 @@ const ContinentDots = ({
 
   const colorAttrRef = useRef<THREE.BufferAttribute>(null);
 
-  // Actual pointer-down handler logic
-  const handlePointerDown = useCallback(
+  // pointerDown → store initial position, reset isDragging, also store which dot (if any)
+  const handlePointerDown = useCallback((e: any) => {
+    pointerDownRef.current = { x: e.clientX, y: e.clientY };
+    isDraggingRef.current = false;
+
+    // Clear old pointerDownDotIndex
+    pointerDownDotIndexRef.current = null;
+
+    // Check if pointerDown was actually on a dot
+    if (e.intersections?.length) {
+      // Sort by distance and grab the nearest intersection
+      const firstHit = e.intersections.sort(
+        (a: any, b: any) => a.distance - b.distance
+      )[0];
+      pointerDownDotIndexRef.current = firstHit.index ?? null;
+    }
+
+    e.stopPropagation();
+  }, []);
+
+  // pointerMove → check if we moved far enough to count as a drag
+  const handlePointerMove = useCallback((e: any) => {
+    if (!pointerDownRef.current) return;
+
+    const dx = e.clientX - pointerDownRef.current.x;
+    const dy = e.clientY - pointerDownRef.current.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // If you want to be more/less sensitive, adjust this threshold
+    if (distance > 20) {
+      isDraggingRef.current = true;
+    }
+    e.stopPropagation();
+  }, []);
+
+  // pointerUp → only do the country highlight if NOT dragging
+  const handlePointerUp = useCallback(
     (event: any) => {
+      // It's a click/tap, so do the intersection picking
       if (!dots.length) {
         console.warn("No dots loaded yet.");
         return;
@@ -114,10 +154,22 @@ const ContinentDots = ({
         return;
       }
 
-      // Sort intersections by distance in case multiple dots are close.
       const intersection = event.intersections.sort(
         (a: any, b: any) => a.distance - b.distance
       )[0];
+
+      const upDotIndex = intersection.index;
+      // Compare it to the pointerDown dot index
+      if (
+        upDotIndex == null ||
+        pointerDownDotIndexRef.current === null ||
+        upDotIndex !== pointerDownDotIndexRef.current
+      ) {
+        // Not the same dot -> skip
+        pointerDownRef.current = null;
+        pointerDownDotIndexRef.current = null;
+        return;
+      }
 
       const idx = intersection.index;
       if (idx == null || !dots[idx]) {
@@ -144,6 +196,11 @@ const ContinentDots = ({
       highlightTimerRef.current = setTimeout(() => {
         highlightRef.current = null;
       }, 2000);
+
+      // Reset
+      pointerDownRef.current = null;
+      pointerDownDotIndexRef.current = null;
+      isDraggingRef.current = false;
 
       event.stopPropagation();
     },
@@ -179,7 +236,11 @@ const ContinentDots = ({
   if (!dots.length) return null;
 
   return (
-    <points onPointerDown={handlePointerDown}>
+    <points
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+    >
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"

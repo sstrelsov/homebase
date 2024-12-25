@@ -1,7 +1,6 @@
 import { useTheme } from "@nextui-org/use-theme";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { Perf } from "r3f-perf";
 import { Suspense, useEffect, useRef, useState } from "react";
 import Globe from "./layers/Globe";
 import ManualBloom from "./layers/ManualBlooms";
@@ -41,7 +40,7 @@ const Earth = () => {
     // Wait 2 seconds before resuming rotation
     resumeRotationTimeout.current = setTimeout(() => {
       setIsInteracting(false);
-    }, 2000);
+    }, 1000);
   };
 
   return (
@@ -56,9 +55,10 @@ const Earth = () => {
           state.raycaster.params.Points.threshold = 2;
         }}
       >
-        <Perf position="bottom-right" />
+        {/* <Perf position="bottom-right" /> */}
 
         <OrbitControls
+          enableDamping={true}
           minDistance={300}
           enablePan={false}
           maxDistance={MAX_ZOOMED_OUT}
@@ -90,9 +90,9 @@ const Earth = () => {
             // Arcs
             arcs={{
               locationArray: flightPaths,
-              color: "#edb119",
+              color: "white",
               radius: EARTH_RADIUS,
-              animationDuration: 1500,
+              animationDuration: 600,
               sequential: false,
               onProgressPersist: true,
               onAllArcsDone: "persist",
