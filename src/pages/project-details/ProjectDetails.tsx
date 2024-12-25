@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import Earth from "../../components/earth/Earth";
 
-const ProjectDetail = () => {
+const ProjectDetails = () => {
   const { projectSlug } = useParams();
 
   switch (projectSlug) {
@@ -12,4 +12,4 @@ const ProjectDetail = () => {
   }
 };
 
-export default ProjectDetail;
+export default ProjectDetails;

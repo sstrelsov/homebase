@@ -2,11 +2,8 @@
 import { useTheme } from "@nextui-org/use-theme";
 import { Route, Routes } from "react-router-dom";
 import NavigationBar from "./components/navigation/NavigationBar";
+import { renderRoutes, ROUTES } from "./config/Routes";
 import "./css/index.css";
-import BioPage from "./pages/Bio";
-import LandingPage from "./pages/Landing";
-import ProjectsPage from "./pages/Projects";
-import ProjectDetail from "./pages/poject-details/ProjectDetails";
 
 const App = () => {
   useTheme("system");
@@ -15,12 +12,8 @@ const App = () => {
       <NavigationBar />
       <div className="font-sans font-normal h-dvh flex flex-grow w-full items-center justify-center overflow-y-auto">
         <Routes>
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/projects" element={<ProjectsPage />} />
-          {/* Dynamic route for any project key */}
-          <Route path="/projects/:projectSlug" element={<ProjectDetail />} />
-
-          <Route path="/bio" element={<BioPage />} />
+          {renderRoutes(ROUTES)}{" "}
+          <Route path="*" element={<div>404 - Not Found :(</div>} />
         </Routes>
       </div>
     </div>

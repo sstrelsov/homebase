@@ -1,9 +1,9 @@
-import ProjectsTable from "../components/table/ProjectsTable";
+import { Outlet } from "react-router-dom";
 
 const ProjectsPage = () => {
   return (
-    <div className="flex flex-col max-w-sm sm:max-w-lg h-full justify-center text-center gap-2 px-6">
-      <ProjectsTable />
+    <div className="flex flex-col w-full h-full justify-center text-center gap-2 px-6">
+      <Outlet />
     </div>
   );
 };

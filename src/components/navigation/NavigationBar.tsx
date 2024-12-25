@@ -4,6 +4,7 @@ import {
   NavbarContent,
   NavbarItem,
 } from "@nextui-org/react";
+import { RoutePath } from "../../config/Routes";
 import NavLink from "./NavLink";
 
 /**
@@ -18,16 +19,16 @@ const NavigationBar = () => {
       className="fixed top-0 w-full bg-transparent z-50"
     >
       <NavbarBrand>
-        <NavLink to="/" disableEffects>
+        <NavLink to={RoutePath.HOME} disableEffects>
           spencer strelsov
         </NavLink>
       </NavbarBrand>
       <NavbarContent className="flex gap-4" justify="center">
         <NavbarItem>
-          <NavLink to="/bio">Bio</NavLink>
+          <NavLink to={RoutePath.BIO}>Bio</NavLink>
         </NavbarItem>
         <NavbarItem>
-          <NavLink to="/projects">Projects</NavLink>
+          <NavLink to={RoutePath.PROJECTS}>Projects</NavLink>
         </NavbarItem>
       </NavbarContent>
     </Navbar>

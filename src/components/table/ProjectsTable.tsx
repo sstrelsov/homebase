@@ -17,10 +17,11 @@ const ProjectsTable = () => {
   return (
     <Table
       classNames={{
-        base: "justify-center flex flex-col w-full",
+        wrapper: "self-center flex flex-col max-w-xs bg-transparent",
+        td: "text-center",
       }}
       hideHeader
-      removeWrapper
+      // removeWrapper
       selectionMode="single"
       fullWidth
       aria-label="Projects and writings"
