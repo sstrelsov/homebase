@@ -1,7 +1,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
-import { latLongToVector3 } from "../../utils/latLongToVector3";
+import { latLongToVector3 } from "../../utils/arcs";
 import LandingEffect from "./LandingEffect";
 
 interface ArcProps {

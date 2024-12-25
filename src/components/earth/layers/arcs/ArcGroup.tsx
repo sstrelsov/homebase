@@ -57,8 +57,6 @@ interface ArcGroupProps {
 }
 
 /**
- * ArcGroup
- *
  * Renders multiple ArcLight components in either:
  *  - Parallel mode (all arcs shown at once).
  *  - Sequential mode (arcs shown one-by-one).
@@ -186,12 +184,12 @@ const ArcGroup = ({
             />
           );
         })}
-      {/* If showFinalArcs == true, we draw all arcs in a "completed" shape */}
       {showFinalArcs && (
         <AllArcsStaticMesh
           flights={locationArray}
           color={color}
           radius={radius + 2}
+          smoothOn
         />
       )}
     </>
