@@ -25,7 +25,7 @@ const Atmosphere = ({ earthRadius, color, opacity }: AtmosphereProps) => {
 
   return (
     <mesh ref={meshRef}>
-      <sphereGeometry args={[earthRadius * 1.015, 64, 64]} />
+      <sphereGeometry args={[earthRadius * 1.018, 80, 80]} />
       <shaderMaterial
         side={THREE.BackSide}
         transparent={true}
