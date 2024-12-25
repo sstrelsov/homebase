@@ -84,13 +84,14 @@ const Earth = () => {
             }}
             // Arcs
             arcs={{
+              locationArray: flightPaths,
               color: "#edb119",
               radius: EARTH_RADIUS,
               animationDuration: 1500,
-              onProgressPersist: false,
               sequential: false,
-              locationArray: flightPaths,
+              onProgressPersist: true,
               onAllArcsDone: "persist",
+              persistArcBehavior: "smooth",
             }}
           />
           <ManualBloom

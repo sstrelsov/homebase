@@ -5,22 +5,61 @@ import { latLongToVector3 } from "../../utils/arcs";
 import LandingEffect from "./LandingEffect";
 
 interface ArcProps {
+  /**
+   * Color of the arc.
+   */
   color: string;
+  /**
+   * Starting latitude in degrees.
+   */
   startLat: number;
+  /**
+   * Starting longitude in degrees.
+   */
   startLon: number;
+  /**
+   * Ending latitude in degrees.
+   */
   endLat: number;
+  /**
+   * Ending longitude in degrees.
+   */
   endLon: number;
+  /**
+   * Radius of the sphere on which the arc is drawn.
+   */
   radius: number;
+  /**
+   * Duration of the arc animation in milliseconds.
+   * Defaults to 2500ms.
+   */
   animationDuration?: number;
+  /**
+   * Callback function triggered when the arc animation completes.
+   */
   onDone?: () => void;
+  /**
+   * Whether the arc persists after drawing or retracts in a two-phase animation.
+   * Defaults to `false`.
+   */
   onProgressPersist?: boolean;
 }
 
+/**
+ * `PartialCurve` extends a base `THREE.Curve` to only render a section (partial curve)
+ * between `minT` and `maxT`.
+ */
 class PartialCurve extends THREE.Curve<THREE.Vector3> {
   baseCurve: THREE.Curve<THREE.Vector3>;
   minT: number;
   maxT: number;
 
+  /**
+   * Constructs a `PartialCurve` from a base curve and fractional range [minT, maxT].
+   * @param baseCurve The base curve (e.g., `THREE.CubicBezierCurve3`) to extract from.
+   * @param minT Start fraction of the curve (0.0–1.0).
+   * @param maxT End fraction of the curve (0.0–1.0).
+   */
   constructor(
     baseCurve: THREE.Curve<THREE.Vector3>,
     minT: number,
@@ -32,12 +71,23 @@ class PartialCurve extends THREE.Curve<THREE.Vector3> {
     this.maxT = maxT;
   }
 
+  /**
+   * Computes a point on the partial curve given `t` (fractional position).
+   * @param t Fraction along the partial curve (0.0–1.0).
+   * @param optionalTarget Optional target vector for storing the result.
+   * @returns The computed point as a `THREE.Vector3`.
+   */
   getPoint(t: number, optionalTarget?: THREE.Vector3) {
     const u = this.minT + (this.maxT - this.minT) * t;
     return this.baseCurve.getPoint(u, optionalTarget);
   }
 }
 
+/**
+ * `Arc` renders a curved path between two geographic points on a sphere.
+ * - Animates the arc over time, optionally showing a landing effect upon completion.
+ * - Supports both persistent and retractable animations.
+ */
 const Arc = ({
   color,
   startLat,

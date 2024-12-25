@@ -3,6 +3,7 @@ import { useRef, useState } from "react";
 import * as THREE from "three";
 import { lerp } from "three/src/math/MathUtils";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
+import { AllArcsBehavior } from "./arcs/AllArcsStaticMesh";
 import ArcGroup, { ArcGroupProps } from "./arcs/ArcGroup";
 import Atmosphere, { AtmosphereProps } from "./Atmosphere";
 import BaseSphere from "./BaseSphere";
@@ -13,55 +14,25 @@ interface GlobeProps {
   rotationSpeed: number;
   rotationCoords: [number, number, number];
   isInteracting: boolean;
-  // Dots
   dots?: ContinentDotsProps;
-  // Atmosphere
   atmosphere?: AtmosphereProps;
-  // Arcs
-  arcs?: ArcGroupProps;
+  arcs?: ArcGroupProps & { persistArcBehavior: AllArcsBehavior };
 }
 
 /**
- * A 3D interactive globe component that:
- * - Displays Earth's sphere, atmospheric glow, continent dots, and animated flight arcs.
- * - Manages rotation and responsive scaling.
- * - Handles data-driven animations like arc rendering and smooth scaling after data loads.
+ * 3D Interactive Globe Component
+ * - Features: Earth's sphere, atmosphere, continent dots, and animated arcs.
+ * - Responsive Scaling: Adjusts based on breakpoints (XS, SM, MD).
+ * - Animation: Handles rotation and smooth scaling after data loads.
  *
- * @param {GlobeProps} props
- *   @prop {number} radius - The base radius of the globe.
- *   @prop {number} rotationSpeed - Speed of rotation along the Y-axis (radians per frame).
- *   @prop {[number, number, number]} rotationCoords - Initial rotation of the globe (Euler angles).
- *   @prop {boolean} isInteracting - Whether user interaction is ongoing (pauses auto-rotation if true).
- *   @prop {ContinentDotsProps} [dots] - Configuration for rendering continent dots, including:
- *     @prop {string} jsonUrl - Path to JSON containing dot coordinates.
- *     @prop {string} dotColor - Base color for dots (hex).
- *     @prop {number} pointSize - Size of the dots.
- *     @prop {function} onLoaded - Callback for when dot data is fully loaded.
- *   @prop {AtmosphereProps} [atmosphere] - Configuration for atmospheric effects, including:
- *     @prop {string} color - Atmospheric glow color (hex).
- *     @prop {number} opacity - Transparency level for the atmosphere.
- *   @prop {ArcGroupProps} [arcs] - Configuration for animated arcs, including:
- *     @prop {Array} locationArray - Array of arc locations (start and end coordinates).
- *     @prop {string} color - Color of the flight arcs (hex).
- *     @prop {number} animationDuration - Time for arc animations (ms).
- *     @prop {function} onAllArcsDone - Callback after all arcs finish rendering.
- *     @prop {function} onProgressPersist - Callback to track animation progress.
- *     @prop {number} radius - Radius of the arcs' sphere.
- *     @prop {boolean} sequential - Whether to animate arcs sequentially.
- *
- * Uses `useFrame` to:
- * - Rotate the globe if `isInteracting` is false.
- * - Smoothly interpolate the globe's scale from 0 to its final size once dots are loaded.
- *
- * Responsive scaling:
- * - Adjusts the globe's size dynamically based on breakpoints (XS, SM, MD).
- * - Final scale values: XS=0.7, SM=0.8, MD+=1.0.
- *
- * Child components:
- * - `BaseSphere`: Renders the globe's core.
- * - `Atmosphere`: Adds an atmospheric glow around the globe.
- * - `ContinentDots`: Plots interactive dots based on continent data.
- * - `ArcGroup`: Animates flight arcs over the globe.
+ * Props:
+ * - radius: Base radius of the globe.
+ * - rotationSpeed: Speed of Y-axis rotation (radians/frame).
+ * - rotationCoords: Initial rotation (Euler angles).
+ * - isInteracting: Pauses auto-rotation when true.
+ * - dots: Configuration for continent dots.
+ * - atmosphere: Atmospheric glow configuration.
+ * - arcs: Flight arc animation configuration.
  */
 const Globe = ({
   radius,
@@ -138,6 +109,7 @@ const Globe = ({
           onProgressPersist={arcs.onProgressPersist}
           radius={arcs.radius}
           sequential={arcs.sequential}
+          persistArcBehavior={arcs.persistArcBehavior}
         />
       )}
     </group>

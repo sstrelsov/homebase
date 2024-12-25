@@ -11,33 +11,27 @@ interface ArcLocation {
   end: Coordinates;
 }
 
-interface AllArcsStaticMeshProps {
+export type AllArcsBehavior = "flicker" | "smooth" | undefined;
+
+export interface AllArcsStaticMeshProps {
   flights: ArcLocation[];
   color: string;
   radius: number;
-  /**
-   * If true, rapidly flickers arcs off/on for a short duration, then stays on.
-   */
-  flicker?: boolean;
-  /**
-   * If true, arcs smoothly transition from opacity 0 to 1.
-   */
-  smoothOn?: boolean;
+  behavior?: AllArcsBehavior;
 }
 
 const AllArcsStaticMesh = ({
   flights,
   color,
   radius,
-  flicker = false,
-  smoothOn = false,
+  behavior,
 }: AllArcsStaticMeshProps) => {
   // Single opacity state shared by all arcs
   const [opacity, setOpacity] = useState(0);
 
   useEffect(() => {
     // If flicker is true, we do the old-timey rapid toggling.
-    if (flicker) {
+    if (behavior === "flicker") {
       // Flicker for 1 second (1000 ms), toggling every 100 ms
       let elapsed = 0;
       const flickerInterval = 100;
@@ -57,7 +51,7 @@ const AllArcsStaticMesh = ({
       return () => clearInterval(intervalId);
 
       // Else if smoothOn is true, do a modern fade from 0 to 1
-    } else if (smoothOn) {
+    } else if (behavior === "smooth") {
       // We'll animate from 0 to 1 over 1 second
       let frameId: number | null = null;
       const startTime = performance.now();
@@ -82,7 +76,7 @@ const AllArcsStaticMesh = ({
     } else {
       setOpacity(1);
     }
-  }, [flicker, smoothOn]);
+  }, [behavior]);
 
   // Precompute the geometries
   const arcGeometries = useMemo(() => {

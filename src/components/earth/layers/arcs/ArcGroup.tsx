@@ -1,14 +1,28 @@
 import { useEffect, useState } from "react";
-import AllArcsStaticMesh from "./AllArcsStaticMesh";
+import AllArcsStaticMesh, { AllArcsBehavior } from "./AllArcsStaticMesh";
 import ArcLight from "./Arc";
 
 interface Coordinates {
+  /**
+   * Latitude of the point in decimal degrees.
+   */
   lat: number;
+
+  /**
+   * Longitude of the point in decimal degrees.
+   */
   lon: number;
 }
 
 interface ArcLocation {
+  /**
+   * Starting coordinates of the arc.
+   */
   start: Coordinates;
+
+  /**
+   * Ending coordinates of the arc.
+   */
   end: Coordinates;
 }
 
@@ -16,65 +30,72 @@ export type OnAllArcsDoneBehavior = "persist" | "remove" | "reset";
 
 export interface ArcGroupProps {
   /**
-   * Array of start/end lat/lon coords for each arc.
+   * Array of start and end coordinates for each arc.
    */
   locationArray: ArcLocation[];
 
   /**
-   * If true, arcs animate one-by-one in sequence.
+   * If true, arcs animate sequentially one-by-one.
    * If false, all arcs animate in parallel.
    */
   sequential?: boolean;
 
   /**
-   * Color of all arcs.
+   * Color of the arcs (e.g., hex code, RGB, etc.).
    */
-  color?: string;
+  color: string;
 
   /**
-   * Earth radius used by ArcLight to project lat/lon to 3D coords.
+   * Radius of the globe used to map lat/lon to 3D coordinates.
    */
   radius: number;
 
   /**
-   * How long each arc takes to draw (in ms).
+   * Duration of each arc animation in milliseconds.
+   * Default is 2500ms.
    */
   animationDuration?: number;
 
   /**
-   * If true, arcs remain visible after finishing.
-   * If false, arcs immediately hide upon completion.
+   * If true, completed arcs remain visible after animation ends.
+   * If false, arcs disappear upon completing their animation.
    */
   onProgressPersist?: boolean;
 
   /**
-   * Determines behavior after all arcs have completed:
-   *  - "persist": Do nothing (leave arcs as they are).
-   *  - "remove": Hide all arcs as soon as the final arc completes.
-   *  - "reset": Hide all arcs and re-run the entire sequence from scratch.
+   * Behavior when all arcs finish:
+   *  - "persist": Keep arcs visible (default).
+   *  - "remove": Hide all arcs immediately after completion.
+   *  - "reset": Hide arcs and restart the animation sequence.
    */
   onAllArcsDone?: OnAllArcsDoneBehavior;
+
+  /**
+   * Determines how arcs behave after persisting in the final state.
+   */
+  persistArcBehavior: AllArcsBehavior;
 }
 
 /**
- * Renders multiple ArcLight components in either:
- *  - Parallel mode (all arcs shown at once).
- *  - Sequential mode (arcs shown one-by-one).
+ * Component for rendering a group of arcs between geographic points.
+ * Arcs can animate sequentially or in parallel based on the `sequential` prop.
  *
- * Once an arc finishes, if `onProgressPersist` is false, that arc disappears.
- * Once all arcs finish:
- *  - "persist": do nothing special (default).
- *  - "remove": hide all arcs immediately.
- *  - "reset": hide all arcs and start again from arc #0.
+ * Once an arc finishes:
+ *  - If `onProgressPersist` is false, the arc disappears.
+ *  - Otherwise, the arc remains visible until all arcs are complete.
+ *
+ * When all arcs finish:
+ *  - Behavior is determined by the `onAllArcsDone` prop.
  */
 const ArcGroup = ({
   locationArray,
   sequential = false,
-  color = "#ffcd53",
+  color,
   radius,
   animationDuration = 2500,
   onProgressPersist = true,
   onAllArcsDone = "persist",
+  persistArcBehavior,
 }: ArcGroupProps) => {
   /**
    * currentArcIndex:
@@ -137,6 +158,7 @@ const ArcGroup = ({
           break;
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arcsDoneCount, locationArray.length, onAllArcsDone]);
 
   return (
@@ -189,7 +211,7 @@ const ArcGroup = ({
           flights={locationArray}
           color={color}
           radius={radius + 0.1}
-          smoothOn
+          behavior={persistArcBehavior}
         />
       )}
     </>
