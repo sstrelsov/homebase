@@ -3,11 +3,23 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { DotInfo } from "../../../types/earthTypes";
 
+// Optional: A quick, minimal debounce helper
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+  return function (this: any, ...args: Parameters<T>) {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
+    timeoutId = setTimeout(() => fn.apply(this, args), delay);
+  } as T;
+}
+
 export interface ContinentDotsProps {
   jsonUrl: string;
   pointSize: number;
   onCountrySelect?: (iso: string) => void;
   dotColor: string;
+  highlightColor?: string;
   onLoaded?: (loaded: boolean) => void;
 }
 
@@ -21,10 +33,11 @@ export interface ContinentDotsProps {
  *   @prop {number} pointSize - Visual size of each point.
  *   @prop {(iso: string) => void} [onCountrySelect] - Callback invoked on country dot click.
  *   @prop {string} dotColor - Base color (hex) for the dots.
+ *   @prop {string} [highlightColor] - Color (hex) to highlight the clicked dot with.
  *   @prop {(loaded: boolean) => void} onLoaded - Informs the parent when data is finished loading.
  *
  * Internally uses a BufferGeometry with position and color attributes.
- * On click, changes color to bright yellow for 2 seconds (highlight).
+ * On click, changes color to highlightColor for 2 seconds, then reverts.
  */
 const ContinentDots = ({
   jsonUrl,
@@ -32,16 +45,23 @@ const ContinentDots = ({
   onCountrySelect,
   onLoaded,
   dotColor,
+  highlightColor = "#FFFF00", // fallback if not provided
 }: ContinentDotsProps) => {
   const [dots, setDots] = useState<DotInfo[]>([]);
   const highlightRef = useRef<string | null>(null);
   const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Pre-convert the hex into an RGB triple
+  // Pre-convert the base color into an RGB triple
   const [baseR, baseG, baseB] = useMemo(() => {
     const c = new THREE.Color(dotColor);
     return [c.r, c.g, c.b]; // each is 0-1 float
   }, [dotColor]);
+
+  // Pre-convert the highlight color into an RGB triple
+  const [highlightR, highlightG, highlightB] = useMemo(() => {
+    const c = new THREE.Color(highlightColor);
+    return [c.r, c.g, c.b]; // each is 0-1 float
+  }, [highlightColor]);
 
   useEffect(() => {
     const fetchDots = async () => {
@@ -82,7 +102,7 @@ const ContinentDots = ({
 
   const colorAttrRef = useRef<THREE.BufferAttribute>(null);
 
-  // Handle pointer down
+  // Actual pointer-down handler logic
   const handlePointerDown = useCallback(
     (event: any) => {
       if (!dots.length) {
@@ -90,15 +110,18 @@ const ContinentDots = ({
         return;
       }
 
-      const intersection = event.intersections[0];
-      if (!intersection) {
-        console.warn("No intersection found.");
+      if (event.intersections.length === 0) {
         return;
       }
 
+      // Sort intersections by distance in case multiple dots are close.
+      const intersection = event.intersections.sort(
+        (a: any, b: any) => a.distance - b.distance
+      )[0];
+
       const idx = intersection.index;
       if (idx == null || !dots[idx]) {
-        console.warn("No valid index found.");
+        console.warn("No valid index found for intersection.");
         return;
       }
 
@@ -130,7 +153,6 @@ const ContinentDots = ({
   // Animate the dot colors each frame
   useFrame(() => {
     if (!colorAttrRef.current || !dots.length) {
-      console.warn("No colorAttrRef or dots yet.");
       return;
     }
     const colorArray = colorAttrRef.current.array as Float32Array;
@@ -139,11 +161,11 @@ const ContinentDots = ({
       const dot = dots[i];
       const offset = i * 3;
 
-      if (highlightRef.current && dot.isoA3 === highlightRef.current) {
-        // highlight color = bright yellow
-        colorArray[offset + 0] = 1;
-        colorArray[offset + 1] = 1;
-        colorArray[offset + 2] = 0;
+      if (highlightRef.current === dot.isoA3) {
+        // highlight color
+        colorArray[offset + 0] = highlightR;
+        colorArray[offset + 1] = highlightG;
+        colorArray[offset + 2] = highlightB;
       } else {
         // revert to base color
         colorArray[offset + 0] = baseR;
@@ -163,19 +185,19 @@ const ContinentDots = ({
           attach="attributes-position"
           args={[positions, 3]}
           count={positions.length / 3}
-          itemSize={3}
+          itemSize={3} // Always 3 for XYZ
         />
         <bufferAttribute
           ref={colorAttrRef}
           attach="attributes-color"
           args={[colors, 3]}
           count={colors.length / 3}
-          itemSize={3}
+          itemSize={3} // Always 3 for RGB
         />
       </bufferGeometry>
       <pointsMaterial
         vertexColors
-        size={pointSize}
+        size={pointSize} // Visual size of each point
         sizeAttenuation
         transparent
         opacity={0.8}

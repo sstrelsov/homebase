@@ -50,6 +50,11 @@ const Earth = () => {
         gl={{ alpha: true }}
         style={{ background: "transparent" }}
         camera={{ position: [0, 0, MAX_ZOOMED_OUT], fov: 35 }}
+        onCreated={(state) => {
+          // Increase the threshold so clicks are less “exact”.
+          // Adjust the number until it feels right.
+          state.raycaster.params.Points.threshold = 2;
+        }}
       >
         <Perf position="bottom-right" />
 
