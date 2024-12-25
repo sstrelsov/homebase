@@ -77,7 +77,7 @@ const Earth = () => {
             rotationSpeed={-0.001}
             radius={EARTH_RADIUS}
             dots={{
-              dotColor: "#a22eb6",
+              dotColor: "#00aaff",
               pointSize: 3,
               jsonUrl: "/landDots.json",
             }}
@@ -90,7 +90,7 @@ const Earth = () => {
             // Arcs
             arcs={{
               locationArray: flightPaths,
-              color: "white",
+              color: "#dd6ff0",
               radius: EARTH_RADIUS,
               animationDuration: 600,
               sequential: false,
