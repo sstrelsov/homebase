@@ -53,81 +53,89 @@ const Earth = () => {
   };
 
   return (
-    <div className="h-full w-full">
-      <Canvas
-        gl={{ alpha: true }}
-        style={{ background: "transparent" }}
-        camera={{ position: [0, 140, MAX_ZOOMED_OUT], fov: 35 }}
-        onCreated={(state) => {
-          // Increase the threshold so clicks are less “exact”.
-          // Adjust the number until it feels right.
-          state.raycaster.params.Points.threshold = 2;
-        }}
-      >
-        {/* <Perf position="bottom-right" /> */}
+    <Canvas
+      gl={{ alpha: true }}
+      style={{ background: "transparent" }}
+      camera={{ position: [0, 140, MAX_ZOOMED_OUT], fov: 35 }}
+      onCreated={(state) => {
+        // Make sure the projection matrix is up to date
+        state.camera.updateProjectionMatrix();
 
-        <OrbitControls
-          enableDamping={true}
-          minDistance={300}
-          minPolarAngle={0.3} // ~17 degrees
-          maxPolarAngle={Math.PI - 0.3} // ~163 degrees
-          enablePan={false}
-          maxDistance={MAX_ZOOMED_OUT}
-          onStart={handleInteractionStart}
-          onEnd={handleInteractionEnd}
+        // How far to shift the “center” of the image.
+        // Try adjusting offsetX to something like size.width * 0.25 or 0.3, etc.
+        const offsetX = state.size.width * 0.2;
+
+        state.camera.setViewOffset(
+          /* fullWidth  */ state.size.width,
+          /* fullHeight */ state.size.height,
+          /* offsetX    */ offsetX,
+          /* offsetY    */ 0,
+          /* width      */ state.size.width,
+          /* height     */ state.size.height
+        );
+
+        state.raycaster.params.Points.threshold = 2;
+      }}
+    >
+      {/* <Perf position="bottom-right" /> */}
+
+      <OrbitControls
+        enableDamping={true}
+        minDistance={300}
+        minPolarAngle={0.3} // ~17 degrees
+        maxPolarAngle={Math.PI - 0.3} // ~163 degrees
+        enablePan={false}
+        maxDistance={MAX_ZOOMED_OUT}
+        onStart={handleInteractionStart}
+        onEnd={handleInteractionEnd}
+      />
+
+      {/* Subtle ambient and hemispheral light */}
+      <ambientLight intensity={1} />
+      <hemisphereLight intensity={0.2} position={[0, 50, 0]} />
+
+      <Suspense fallback={null}>
+        <Globe
+          isInteracting={isInteracting}
+          rotationCoords={[EARTH_TILT, STARTING_Y, 0]}
+          rotationSpeed={0.001}
+          radius={EARTH_RADIUS}
+          dots={{
+            dotColor: "#00aaff",
+            pointSize: 2.5,
+            jsonUrl,
+          }}
+          // Atmosphere
+          atmosphere={{
+            color: "#00aaff",
+            opacity: 0.03, // I fear this isn't hooked up to anything
+            earthRadius: EARTH_RADIUS,
+          }}
+          // Arcs
+          arcs={{
+            locationArray: flightPaths,
+            color: "#dd6ff0",
+            radius: EARTH_RADIUS,
+            animationDuration: 700,
+            sequential: false,
+            onProgressPersist: true,
+            onAllArcsDone: "persist",
+            persistArcBehavior: undefined,
+          }}
+          cityMarkers={{
+            cities: flightPaths.map((f) => ({
+              lat: f.end.lat,
+              lon: f.end.lon,
+              name: f.end.name,
+            })),
+            radius: EARTH_RADIUS,
+            color: "#dd6ff0",
+            markerSize: 1,
+          }}
         />
-
-        {/* Subtle ambient and hemispheral light */}
-        <ambientLight intensity={1} />
-        <hemisphereLight intensity={0.2} position={[0, 50, 0]} />
-
-        <Suspense fallback={null}>
-          <Globe
-            isInteracting={isInteracting}
-            rotationCoords={[EARTH_TILT, STARTING_Y, 0]}
-            rotationSpeed={0.001}
-            radius={EARTH_RADIUS}
-            dots={{
-              dotColor: "#00aaff",
-              pointSize: 2.5,
-              jsonUrl,
-            }}
-            // Atmosphere
-            atmosphere={{
-              color: "#00aaff",
-              opacity: 0.03, // I fear this isn't hooked up to anything
-              earthRadius: EARTH_RADIUS,
-            }}
-            // Arcs
-            arcs={{
-              locationArray: flightPaths,
-              color: "#dd6ff0",
-              radius: EARTH_RADIUS,
-              animationDuration: 700,
-              sequential: false,
-              onProgressPersist: true,
-              onAllArcsDone: "persist",
-              persistArcBehavior: undefined,
-            }}
-            cityMarkers={{
-              cities: flightPaths.map((f) => ({
-                lat: f.end.lat,
-                lon: f.end.lon,
-                name: f.end.name,
-              })),
-              radius: EARTH_RADIUS,
-              color: "#dd6ff0",
-              markerSize: 1,
-            }}
-          />
-          <ManualBloom
-            bloomStrength={1.2}
-            bloomRadius={1}
-            bloomThreshold={0.3}
-          />
-        </Suspense>
-      </Canvas>
-    </div>
+        <ManualBloom bloomStrength={1.2} bloomRadius={1} bloomThreshold={0.3} />
+      </Suspense>
+    </Canvas>
   );
 };
 

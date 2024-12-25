@@ -1,12 +1,12 @@
 import { useParams } from "react-router-dom";
-import Earth from "../../components/earth/Earth";
+import TheGlobeProject from "../../projects/TheGlobeProjects";
 
 const ProjectDetails = () => {
   const { projectSlug } = useParams();
 
   switch (projectSlug) {
     case "earth":
-      return <Earth />;
+      return <TheGlobeProject />;
     default:
       return <div>Oops! Project not found.</div>;
   }
