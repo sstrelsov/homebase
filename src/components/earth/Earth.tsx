@@ -2,6 +2,7 @@ import { useTheme } from "@nextui-org/use-theme";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useEffect, useRef, useState } from "react";
+import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
 import Globe from "./layers/Globe";
 import ManualBloom from "./layers/ManualBlooms";
 import { flightPaths } from "./utils/flightPaths";
@@ -27,6 +28,11 @@ const Earth = () => {
     }
   }, [theme, setTheme]);
 
+  const isSmallUp = useAtOrAboveBreakpoint("sm");
+  const jsonUrl = isSmallUp
+    ? "/landDots-150rad-40k.json" // more dots
+    : "/landDots-150rad-30k.json"; // fewer dots
+
   const [isInteracting, setIsInteracting] = useState(false);
   const resumeRotationTimeout = useRef<NodeJS.Timeout | null>(null);
 
@@ -51,7 +57,7 @@ const Earth = () => {
       <Canvas
         gl={{ alpha: true }}
         style={{ background: "transparent" }}
-        camera={{ position: [0, -100, MAX_ZOOMED_OUT], fov: 35 }}
+        camera={{ position: [0, 140, MAX_ZOOMED_OUT], fov: 35 }}
         onCreated={(state) => {
           // Increase the threshold so clicks are less “exact”.
           // Adjust the number until it feels right.
@@ -77,19 +83,19 @@ const Earth = () => {
 
         <Suspense fallback={null}>
           <Globe
-            isInteracting={false}
+            isInteracting={isInteracting}
             rotationCoords={[EARTH_TILT, STARTING_Y, 0]}
             rotationSpeed={0.001}
             radius={EARTH_RADIUS}
             dots={{
               dotColor: "#00aaff",
-              pointSize: 3,
-              jsonUrl: "/landDots.json",
+              pointSize: 2.5,
+              jsonUrl,
             }}
             // Atmosphere
             atmosphere={{
               color: "#00aaff",
-              opacity: 0.03,
+              opacity: 0.03, // I fear this isn't hooked up to anything
               earthRadius: EARTH_RADIUS,
             }}
             // Arcs

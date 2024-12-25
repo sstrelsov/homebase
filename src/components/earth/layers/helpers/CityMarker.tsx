@@ -38,7 +38,7 @@ const CityMarker = ({ position, color, markerSize }: CityMarkerProps) => {
       </mesh>
 
       {/* Pulsing ring effect */}
-      <PulseRing baseRadius={markerSize * 3} color={color} />
+      <PulseRing baseRadius={markerSize * 1} color={color} />
     </group>
   );
 };
@@ -63,9 +63,9 @@ function PulseRing({
    * - scale = 1 + 1 * t (grows from 1 → 2)
    * - opacity = 1 - t   (fades from 1 → 0)
    */
-  const PULSE_DURATION = 2.5; // seconds per pulse
+  const PULSE_DURATION = 2.2; // seconds per pulse
   const MIN_SCALE = 1;
-  const MAX_SCALE = 2;
+  const MAX_SCALE = 2.5;
 
   useFrame((state, delta) => {
     if (!ringRef.current) return;
@@ -98,7 +98,7 @@ function PulseRing({
   return (
     <mesh ref={ringRef}>
       {/* Slightly thin ring geometry so it looks like a halo */}
-      <ringGeometry args={[baseRadius * 0.95, baseRadius * 1.0, 64]} />
+      <ringGeometry args={[baseRadius * 1, baseRadius * 1.5, 64]} />
       <meshBasicMaterial
         color={color}
         transparent
