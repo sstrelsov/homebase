@@ -8,10 +8,7 @@ import ManualBloom from "./layers/ManualBlooms";
 import { flightPaths } from "./utils/flightPaths";
 
 const MAX_ZOOMED_OUT = 600;
-const ROTATION_START_ATLANTIC = [0.68, -0.3, 0.28];
 const EARTH_RADIUS = 150;
-const EARTH_TILT = 23.4 * (Math.PI / 180); // ~0.41
-const STARTING_Y = -1;
 
 /**
  * A top-level 3D Earth component that:
@@ -52,6 +49,9 @@ const EarthScene = () => {
     }, 1000);
   };
 
+  const isXLUp = useAtOrAboveBreakpoint("xl");
+  const isSmUp = useAtOrAboveBreakpoint("sm");
+
   return (
     <Canvas
       gl={{ alpha: true }}
@@ -63,13 +63,13 @@ const EarthScene = () => {
 
         // How far to shift the “center” of the image.
         // Try adjusting offsetX to something like size.width * 0.25 or 0.3, etc.
-        const offsetX = state.size.width * 0.2;
-
+        const offsetX = isXLUp ? state.size.width * 0.2 : 0;
+        const offsetY = isSmUp ? 0 : state.size.height * 0.07;
         state.camera.setViewOffset(
           /* fullWidth  */ state.size.width,
           /* fullHeight */ state.size.height,
           /* offsetX    */ offsetX,
-          /* offsetY    */ 0,
+          /* offsetY    */ offsetY,
           /* width      */ state.size.width,
           /* height     */ state.size.height
         );
@@ -97,7 +97,6 @@ const EarthScene = () => {
       <Suspense fallback={null}>
         <Globe
           isInteracting={isInteracting}
-          rotationCoords={[EARTH_TILT, STARTING_Y, 0]}
           rotationSpeed={0.001}
           radius={EARTH_RADIUS}
           dots={{
