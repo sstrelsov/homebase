@@ -13,7 +13,6 @@ import ContinentDots, { ContinentDotsProps } from "./ContinentDots";
 interface GlobeProps {
   radius: number;
   rotationSpeed: number;
-  rotationCoords: [number, number, number];
   isInteracting: boolean;
   dots?: ContinentDotsProps;
   atmosphere?: AtmosphereProps;
@@ -30,7 +29,6 @@ interface GlobeProps {
  * Props:
  * - radius: Base radius of the globe.
  * - rotationSpeed: Speed of Y-axis rotation (radians/frame).
- * - rotationCoords: Initial rotation (Euler angles).
  * - isInteracting: Pauses auto-rotation when true.
  * - dots: Configuration for continent dots.
  * - atmosphere: Atmospheric glow configuration.
@@ -39,7 +37,6 @@ interface GlobeProps {
 const Globe = ({
   radius,
   rotationSpeed,
-  rotationCoords,
   arcs,
   atmosphere,
   dots,
@@ -81,12 +78,7 @@ const Globe = ({
   });
 
   return (
-    <group
-      rotation={rotationCoords}
-      visible={dotsLoaded}
-      ref={globeRef}
-      scale={currentScale}
-    >
+    <group visible={dotsLoaded} ref={globeRef} scale={currentScale}>
       <BaseSphere radius={radius - 1} />
       {!!atmosphere && (
         <Atmosphere
@@ -101,6 +93,9 @@ const Globe = ({
           dotColor={dots.dotColor}
           pointSize={dots.pointSize}
           onLoaded={(isLoaded) => setDotsLoaded(isLoaded)}
+          globeRef={globeRef}
+          controlsRef={dots.controlsRef}
+          cameraRef={dots.cameraRef}
         />
       )}
 

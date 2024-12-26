@@ -1,18 +1,22 @@
 import { useFrame } from "@react-three/fiber";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  RefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import * as THREE from "three";
+import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
+import { selectFocusIso } from "../../../store/globeSlice";
+import { useAppSelector } from "../../../store/hooks";
 import { DotInfo } from "../../../types/earthTypes";
-
-// Optional: A quick, minimal debounce helper
-function debounce<T extends (...args: any[]) => void>(fn: T, delay: number): T {
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-  return function (this: any, ...args: Parameters<T>) {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-    timeoutId = setTimeout(() => fn.apply(this, args), delay);
-  } as T;
-}
+import {
+  flyCameraToPoint,
+  getCountryCentroid,
+  xyzToLatLon,
+} from "../utils/focusIso";
 
 export interface ContinentDotsProps {
   jsonUrl: string;
@@ -21,23 +25,15 @@ export interface ContinentDotsProps {
   dotColor: string;
   highlightColor?: string;
   onLoaded?: (loaded: boolean) => void;
+  globeRef?: RefObject<THREE.Group<THREE.Object3DEventMap> | null>;
+  controlsRef?: RefObject<OrbitControlsImpl | null>;
+  cameraRef?: RefObject<THREE.Camera | null>;
 }
 
 /**
  * A point cloud representing countries on the globe.
- * Fetches dot coordinates (x,y,z) from a JSON file, then displays them as points.
- * Allows clicking a point to highlight it briefly and optionally call onCountrySelect.
- *
- * @param {ContinentDotsProps} props
- *   @prop {string} jsonUrl - URL of the JSON data containing dot positions & country info.
- *   @prop {number} pointSize - Visual size of each point.
- *   @prop {(iso: string) => void} [onCountrySelect] - Callback invoked on country dot click.
- *   @prop {string} dotColor - Base color (hex) for the dots.
- *   @prop {string} [highlightColor] - Color (hex) to highlight the clicked dot with.
- *   @prop {(loaded: boolean) => void} onLoaded - Informs the parent when data is finished loading.
- *
- * Internally uses a BufferGeometry with position and color attributes.
- * On click, changes color to highlightColor for 2 seconds, then reverts.
+ * - Fetches dot coordinates (x,y,z).
+ * - Handles highlighting & rotation when focusIso changes.
  */
 const ContinentDots = ({
   jsonUrl,
@@ -45,12 +41,19 @@ const ContinentDots = ({
   onCountrySelect,
   onLoaded,
   dotColor,
-  highlightColor = "#FFFF00", // fallback if not provided
+  highlightColor = "#FFFF00",
+  globeRef,
+  controlsRef,
+  cameraRef,
 }: ContinentDotsProps) => {
+  const focusIso = useAppSelector(selectFocusIso);
   const [dots, setDots] = useState<DotInfo[]>([]);
+
+  // For highlighting a country in yellow
   const highlightRef = useRef<string | null>(null);
   const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // For click/drag detection
   const pointerDownRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef(false);
   const pointerDownDotIndexRef = useRef<number | null>(null);
@@ -67,6 +70,7 @@ const ContinentDots = ({
     return [c.r, c.g, c.b]; // each is 0-1 float
   }, [highlightColor]);
 
+  // ============ Fetch the dots =============
   useEffect(() => {
     const fetchDots = async () => {
       try {
@@ -83,7 +87,43 @@ const ContinentDots = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jsonUrl]);
 
-  // Positions
+  const handleFlyTo = (isoCode: string) => {
+    if (!controlsRef?.current || !cameraRef?.current) return;
+
+    // 1) Get the 3D centroid of that ISO
+    const centroidVec = getCountryCentroid(isoCode, dots);
+    if (!centroidVec) return;
+
+    if (!!globeRef?.current) {
+      const worldPos = centroidVec.clone();
+      globeRef.current.localToWorld(worldPos);
+      flyCameraToPoint(cameraRef.current, controlsRef.current, worldPos, 300);
+    }
+  };
+
+  // ============ If focusIso changes, rotate & highlight =============
+  useEffect(() => {
+    if (!focusIso || dots.length === 0) {
+      highlightRef.current = null;
+      return;
+    }
+    // E.g. if you have a point at x=0, y=0, z=1 => That’s equator +90°E
+    const test = xyzToLatLon(0, 0, 1);
+    console.log("lat:", THREE.MathUtils.radToDeg(test.lat)); // ~0
+    console.log("lon:", THREE.MathUtils.radToDeg(test.lon)); // ~+90
+    // highlight logic...
+    highlightRef.current = focusIso;
+    // ...
+    console.log("SWISS: ", getCountryCentroid("CHE", dots));
+
+    // 2) Also rotate the globe to that country’s centroid
+    if (!!globeRef && globeRef.current !== null) {
+      handleFlyTo(focusIso);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusIso, dots, globeRef]);
+
+  // ============ Build geometry arrays (positions, colors) ============
   const positions = useMemo(() => {
     if (!dots.length) return new Float32Array([]);
     const arr: number[] = [];
@@ -106,7 +146,7 @@ const ContinentDots = ({
 
   const colorAttrRef = useRef<THREE.BufferAttribute>(null);
 
-  // pointerDown → store initial position, reset isDragging, also store which dot (if any)
+  // ============ Pointer events for selecting a dot ============
   const handlePointerDown = useCallback((e: any) => {
     pointerDownRef.current = { x: e.clientX, y: e.clientY };
     isDraggingRef.current = false;
@@ -141,58 +181,45 @@ const ContinentDots = ({
     e.stopPropagation();
   }, []);
 
-  // pointerUp → only do the country highlight if NOT dragging
   const handlePointerUp = useCallback(
     (event: any) => {
-      // It's a click/tap, so do the intersection picking
-      if (!dots.length) {
-        console.warn("No dots loaded yet.");
-        return;
-      }
-
-      if (event.intersections.length === 0) {
-        return;
-      }
+      if (!dots.length) return;
+      if (event.intersections.length === 0) return;
 
       const intersection = event.intersections.sort(
         (a: any, b: any) => a.distance - b.distance
       )[0];
-
       const upDotIndex = intersection.index;
-      // Compare it to the pointerDown dot index
+
+      // Make sure we clicked the same dot we pressed on
       if (
         upDotIndex == null ||
-        pointerDownDotIndexRef.current === null ||
+        pointerDownDotIndexRef.current == null ||
         upDotIndex !== pointerDownDotIndexRef.current
       ) {
-        // Not the same dot -> skip
         pointerDownRef.current = null;
         pointerDownDotIndexRef.current = null;
         return;
       }
 
       const idx = intersection.index;
-      if (idx == null || !dots[idx]) {
-        console.warn("No valid index found for intersection.");
-        return;
-      }
-
       const dot = dots[idx];
+      if (!dot) return;
+      const centroid = getCountryCentroid(dot.isoA3, dots);
       console.log(
-        `Clicked dot #${idx}. Country = ${dot.countryName}, ISO = ${dot.isoA3}`
+        `Clicked dot #${idx}.\nCountry=${dot.countryName}\nISO=${
+          dot.isoA3
+        }\nCentroid:${JSON.stringify(centroid, null, 2)}`
       );
 
-      if (onCountrySelect) onCountrySelect(dot.isoA3);
-
-      // Cancel any old highlight fade
+      // 1) Fire onCountrySelect if needed
+      onCountrySelect?.(dot.isoA3);
+      handleFlyTo(dot.isoA3);
+      // 2) Temporarily highlight this country
+      highlightRef.current = dot.isoA3;
       if (highlightTimerRef.current) {
         clearTimeout(highlightTimerRef.current);
       }
-
-      // Set highlightRef
-      highlightRef.current = dot.isoA3;
-
-      // After 2s, revert
       highlightTimerRef.current = setTimeout(() => {
         highlightRef.current = null;
       }, 2000);
@@ -201,23 +228,20 @@ const ContinentDots = ({
       pointerDownRef.current = null;
       pointerDownDotIndexRef.current = null;
       isDraggingRef.current = false;
-
       event.stopPropagation();
     },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [dots, onCountrySelect]
   );
 
-  // Animate the dot colors each frame
+  // ============ Animate the dot colors each frame ============
   useFrame(() => {
-    if (!colorAttrRef.current || !dots.length) {
-      return;
-    }
+    if (!colorAttrRef.current || !dots.length) return;
     const colorArray = colorAttrRef.current.array as Float32Array;
 
     for (let i = 0; i < dots.length; i++) {
       const dot = dots[i];
       const offset = i * 3;
-
       if (highlightRef.current === dot.isoA3) {
         // highlight color
         colorArray[offset + 0] = highlightR;
@@ -246,19 +270,19 @@ const ContinentDots = ({
           attach="attributes-position"
           args={[positions, 3]}
           count={positions.length / 3}
-          itemSize={3} // Always 3 for XYZ
+          itemSize={3}
         />
         <bufferAttribute
           ref={colorAttrRef}
           attach="attributes-color"
           args={[colors, 3]}
           count={colors.length / 3}
-          itemSize={3} // Always 3 for RGB
+          itemSize={3}
         />
       </bufferGeometry>
       <pointsMaterial
         vertexColors
-        size={pointSize} // Visual size of each point
+        size={pointSize}
         sizeAttenuation
         transparent
         opacity={0.8}
