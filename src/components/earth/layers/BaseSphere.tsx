@@ -1,6 +1,3 @@
-import { useRef } from "react";
-import * as THREE from "three";
-
 interface BaseSphereProps {
   radius: number;
 }
@@ -14,9 +11,8 @@ interface BaseSphereProps {
  * Uses a meshStandardMaterial for basic shading, plus a slight emissive glow.
  */
 const BaseSphere = ({ radius }: BaseSphereProps) => {
-  const earthRef = useRef<THREE.Mesh>(null!);
   return (
-    <mesh ref={earthRef}>
+    <mesh>
       <sphereGeometry args={[radius, 64, 64]} />
       <meshStandardMaterial
         color="#0b2a57"
