@@ -1,11 +1,10 @@
-import { NextUIProvider } from "@nextui-org/react";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
 import { HashRouter } from "react-router-dom";
 import App from "./App";
 import "./css/index.css";
+import { Providers } from "./Providers";
 import reportWebVitals from "./reportWebVitals";
-import { ColorProvider } from "./utils/ColorContext";
 
 // Safely get the root element from the DOM
 const rootElement = document.getElementById("root");
@@ -19,11 +18,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <StrictMode>
     <HashRouter>
-      <ColorProvider>
-        <NextUIProvider>
-          <App />
-        </NextUIProvider>
-      </ColorProvider>
+      <Providers>
+        <App />
+      </Providers>
     </HashRouter>
   </StrictMode>
 );
