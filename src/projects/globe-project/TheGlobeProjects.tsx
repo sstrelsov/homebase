@@ -1,12 +1,15 @@
-import { Button } from "@nextui-org/react";
-import Flag from "react-flagpack";
-import Earth from "../components/earth/Earth";
-import Typewriter from "../components/Typewriter";
+import Earth from "../../components/earth/Earth";
+import Typewriter from "../../components/Typewriter";
+import { setFocusIso } from "../../store/globeSlice";
+import { useAppDispatch } from "../../store/hooks";
+import CountryButtons from "./CountryButtons";
 
 const TheGlobeProject = () => {
+  const dispatch = useAppDispatch();
+
   const handleSwissClick = () => {
     console.log("Swiss flag clicked");
-    // moveGlobeToCountry("CHE");
+    dispatch(setFocusIso("CHE"));
   };
 
   return (
@@ -27,26 +30,7 @@ const TheGlobeProject = () => {
             />
           </div>
           <div className="flex flex-row gap-2">
-            <Button
-              onPress={handleSwissClick}
-              isIconOnly
-              size="md"
-              variant="light"
-            >
-              <Flag code="CH" hasBorder={false} size="l" />
-            </Button>
-            <Button isIconOnly size="md" variant="light">
-              <Flag code="IS" hasBorder={false} size="l" />
-            </Button>
-            <Button isIconOnly size="md" variant="light">
-              <Flag code="CO" hasBorder={false} size="l" />
-            </Button>
-            <Button isIconOnly size="md" variant="light">
-              <Flag code="GB-UKM" hasBorder={false} size="l" />
-            </Button>
-            <Button isIconOnly size="md" variant="light">
-              <Flag code="US" size="l" hasBorder={false} />
-            </Button>
+            <CountryButtons isos={["CHE", "ISL", "COL", "GBR", "USA"]} />
           </div>
           <p className="text-xl mt-2 max-w-md text-left">
             Looking back on a year of travel and adventure. I had the
