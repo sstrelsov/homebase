@@ -2,21 +2,32 @@ import { useTheme } from "@nextui-org/use-theme";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useEffect, useRef, useState } from "react";
+import * as THREE from "three";
+import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
 import Globe from "./layers/Globe";
 import ManualBloom from "./layers/ManualBlooms";
+import SceneHelpers from "./SceneHelpers";
 import { flightPaths } from "./utils/flightPaths";
 
-const MAX_ZOOMED_OUT = 600;
-const EARTH_RADIUS = 150;
+const MAX_ZOOMED_OUT = 700;
+export const EARTH_RADIUS = 150;
+
+interface EarthSceneProps {
+  enableHelpers?: boolean;
+}
 
 /**
  * A top-level 3D Earth component that:
  * - Sets up a Three.js Canvas with OrbitControls and performance stats.
  * - Renders the `Globe` component and optional post-processing (ManualBloom).
  */
-const EarthScene = () => {
-  // Temp fix: Theme must be set to dark to render the globe, canvas is black (known issue)
+const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
+  // Refs for Three.js objects
+  const controlsRef = useRef<OrbitControlsImpl>(null);
+  const axesHelperRef = useRef<THREE.AxesHelper | null>(null);
+  const cameraRef = useRef<THREE.Camera | null>(null);
+
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
@@ -43,7 +54,7 @@ const EarthScene = () => {
   };
 
   const handleInteractionEnd = () => {
-    // Wait 2 seconds before resuming rotation
+    // Wait 1 second before resuming
     resumeRotationTimeout.current = setTimeout(() => {
       setIsInteracting(false);
     }, 1000);
@@ -56,13 +67,10 @@ const EarthScene = () => {
     <Canvas
       gl={{ alpha: true }}
       style={{ background: "transparent" }}
-      camera={{ position: [0, 140, MAX_ZOOMED_OUT], fov: 35 }}
+      camera={{ position: [0, 150, 900], fov: 35 }}
       onCreated={(state) => {
-        // Make sure the projection matrix is up to date
+        cameraRef.current = state.camera; // Store camera reference
         state.camera.updateProjectionMatrix();
-
-        // How far to shift the “center” of the image.
-        // Try adjusting offsetX to something like size.width * 0.25 or 0.3, etc.
         const offsetX = isXLUp ? state.size.width * 0.2 : 0;
         const offsetY = isSmUp ? 0 : state.size.height * 0.07;
         state.camera.setViewOffset(
@@ -77,9 +85,8 @@ const EarthScene = () => {
         state.raycaster.params.Points.threshold = 2;
       }}
     >
-      {/* <Perf position="bottom-right" /> */}
-
       <OrbitControls
+        ref={controlsRef}
         enableDamping={true}
         minDistance={300}
         minPolarAngle={0.3} // ~17 degrees
@@ -89,11 +96,8 @@ const EarthScene = () => {
         onStart={handleInteractionStart}
         onEnd={handleInteractionEnd}
       />
-
-      {/* Subtle ambient and hemispheral light */}
       <ambientLight intensity={1} />
       <hemisphereLight intensity={0.2} position={[0, 50, 0]} />
-
       <Suspense fallback={null}>
         <Globe
           isInteracting={isInteracting}
@@ -103,14 +107,14 @@ const EarthScene = () => {
             dotColor: "#00aaff",
             pointSize: 2.5,
             jsonUrl,
+            controlsRef,
+            cameraRef,
           }}
-          // Atmosphere
           atmosphere={{
             color: "#00aaff",
             opacity: 0.03, // I fear this isn't hooked up to anything
             earthRadius: EARTH_RADIUS,
           }}
-          // Arcs
           arcs={{
             locationArray: flightPaths,
             color: "#dd6ff0",
@@ -134,6 +138,9 @@ const EarthScene = () => {
         />
         <ManualBloom bloomStrength={1.2} bloomRadius={1} bloomThreshold={0.3} />
       </Suspense>
+      {enableHelpers && (
+        <SceneHelpers axesHelperRef={axesHelperRef} cameraRef={cameraRef} />
+      )}
     </Canvas>
   );
 };
