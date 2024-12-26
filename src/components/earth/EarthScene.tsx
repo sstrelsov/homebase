@@ -18,7 +18,7 @@ const STARTING_Y = -1;
  * - Sets up a Three.js Canvas with OrbitControls and performance stats.
  * - Renders the `Globe` component and optional post-processing (ManualBloom).
  */
-const Earth = () => {
+const EarthScene = () => {
   // Temp fix: Theme must be set to dark to render the globe, canvas is black (known issue)
   const { theme, setTheme } = useTheme();
 
@@ -139,4 +139,4 @@ const Earth = () => {
   );
 };
 
-export default Earth;
+export default EarthScene;
