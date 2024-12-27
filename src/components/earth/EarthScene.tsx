@@ -1,7 +1,7 @@
 import { useTheme } from "@nextui-org/use-theme";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
@@ -28,6 +28,7 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const axesHelperRef = useRef<THREE.AxesHelper | null>(null);
   const cameraRef = useRef<THREE.Camera | null>(null);
+  // const isoFocused = useAppSelector(selectFocusIso);
 
   const { theme, setTheme } = useTheme();
 
@@ -42,27 +43,14 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
     ? "/landDots-150rad-40k.json" // more dots
     : "/landDots-150rad-30k.json"; // fewer dots
 
-  const [isInteracting, setIsInteracting] = useState(false);
-  const resumeRotationTimeout = useRef<NodeJS.Timeout | null>(null);
-
-  const handleInteractionStart = () => {
-    // Clear any existing timeouts
-    if (resumeRotationTimeout.current) {
-      clearTimeout(resumeRotationTimeout.current);
-      resumeRotationTimeout.current = null;
-    }
-    setIsInteracting(true);
-  };
-
-  const handleInteractionEnd = () => {
-    // Wait 1 second before resuming
-    resumeRotationTimeout.current = setTimeout(() => {
-      setIsInteracting(false);
-    }, 1000);
-  };
-
   const isXLUp = useAtOrAboveBreakpoint("xl");
   const isSmUp = useAtOrAboveBreakpoint("sm");
+
+  // useEffect(() => {
+  //   if (!!isoFocused) {
+  //     // Get markers from cities const cities = getArcCities(get)
+  //   }
+  // }, [isoFocused]);
 
   return (
     <Canvas
@@ -94,14 +82,11 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
         maxPolarAngle={Math.PI - 0.3} // ~163 degrees
         enablePan={false}
         maxDistance={MAX_ZOOMED_OUT}
-        onStart={handleInteractionStart}
-        onEnd={handleInteractionEnd}
       />
       <ambientLight intensity={1} />
       <hemisphereLight intensity={0.2} position={[0, 50, 0]} />
       <Suspense fallback={null}>
         <Globe
-          isInteracting={isInteracting}
           rotationSpeed={0.001}
           radius={EARTH_RADIUS}
           dots={{

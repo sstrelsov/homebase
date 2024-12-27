@@ -217,7 +217,7 @@ const Arc = ({
     <>
       <mesh ref={meshRef}>
         {/* For persist arcs, we pass in the stable geometryRef */}
-        {onProgressPersist ? (
+        {!!onProgressPersist ? (
           <primitive object={tubeGeometry} attach="geometry" />
         ) : null}
         <meshBasicMaterial color={color} transparent opacity={0.9} />

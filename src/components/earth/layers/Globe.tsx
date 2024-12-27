@@ -18,7 +18,6 @@ import ContinentDots, { ContinentDotsProps } from "./ContinentDots";
 interface GlobeProps {
   radius: number;
   rotationSpeed: number;
-  isInteracting: boolean;
   dots?: ContinentDotsProps;
   atmosphere?: AtmosphereProps;
   arcs?: ArcGroupProps & { persistArcBehavior: AllArcsBehavior };
@@ -46,7 +45,6 @@ const Globe = ({
   atmosphere,
   dots,
   cityMarkers,
-  isInteracting,
 }: GlobeProps) => {
   const globeRef = useRef<THREE.Group>(null);
 
