@@ -117,12 +117,6 @@ const ArcGroup = ({
         case "remove":
           // Hide all arcs
           setArcsCompleted(Array(locationArray.length).fill(true));
-          // But "onProgressPersist" logic here means we set arcsCompleted to show them as "done"
-          // Actually, we want them hidden, so let's do a separate "removeAll" approach:
-          setTimeout(() => {
-            // Instantly hide all arcs
-            setArcsCompleted(Array(locationArray.length).fill(false));
-          }, 0);
           break;
         case "reset":
           // Wait a short moment so we can see the final arc

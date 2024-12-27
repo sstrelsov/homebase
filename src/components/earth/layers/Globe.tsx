@@ -74,6 +74,7 @@ const Globe = ({
 
   // 2) State for "ephemeral" arcs triggered by a country button
   const [highlightArcs, setHighlightArcs] = useState<ArcLocation[]>([]);
+  const [highlightArcKey, setHighlightArcKey] = useState(0);
 
   useEffect(() => {
     setHighlightArcs([]);
@@ -82,6 +83,8 @@ const Globe = ({
     // Filter trips that have this iso in trip.countries
     const matchedTrips = trips.filter((t) => t.countries.includes(focusIso));
     console.log("Matched trips", matchedTrips);
+    setHighlightArcKey((prev) => prev + 1);
+
     // Flatten all matched trips into arcs
     const allArcs = matchedTrips.flatMap((trip) => getArcsFromTrip(trip));
     console.log("All arcs", allArcs);
@@ -153,13 +156,14 @@ const Globe = ({
       )}
       {highlightArcs.length > 0 && !!arcs && (
         <ArcGroup
+          key={highlightArcKey}
           locationArray={highlightArcs}
           color={arcs.color}
           radius={EARTH_RADIUS}
-          animationDuration={700}
+          animationDuration={1500}
           sequential={true}
           onProgressPersist={false}
-          onAllArcsDone="persist"
+          onAllArcsDone="remove"
           persistArcBehavior={undefined}
         />
       )}
