@@ -1,80 +1,68 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AllArcsBehavior,
   ArcLocation,
+  CityLocation,
   OnAllArcsDoneBehavior,
 } from "../../../../types/earthTypes";
+import { getArcCities } from "../../utils/tripMath";
 import AllArcsStaticMesh from "./AllArcsStaticMesh";
-import ArcLight from "./Arc";
+import ArcLight from "./ArcLight";
 
 export interface ArcGroupProps {
   /**
-   * Array of start and end coordinates for each arc.
+   * Array of start/end coords or city stops.
+   * In normal mode, we draw arcs from locationArray.
+   * In infiniteRandom mode, we *extract* the cities from these arcs
+   * and treat them as our set of available points.
    */
   locationArray: ArcLocation[];
 
   /**
    * If true, arcs animate sequentially one-by-one.
-   * If false, all arcs animate in parallel.
+   * If false, all arcs animate in parallel (in normal mode).
+   * (Might ignore this if we’re doing infinite random firing.)
    */
   sequential?: boolean;
 
-  /**
-   * Color of the arcs (e.g., hex code, RGB, etc.).
-   */
   color: string;
-
-  /**
-   * Radius of the globe used to map lat/lon to 3D coordinates.
-   */
   radius: number;
-
-  /**
-   * Duration of each arc animation in milliseconds.
-   * Default is 2500ms.
-   */
   animationDuration?: number;
-
-  /**
-   * Duration of the *first* arc animation in milliseconds (optional).
-   * If provided, this overrides the animation duration only for the first arc.
-   */
   firstAnimationDuration?: number;
-
-  /**
-   * If true, completed arcs remain visible after animation ends.
-   * If false, arcs disappear upon completing their animation.
-   */
   onProgressPersist?: boolean;
-
-  /**
-   * Behavior when all arcs finish:
-   *  - "persist": Keep arcs visible (default).
-   *  - "remove": Hide all arcs immediately after completion.
-   *  - "reset": Hide arcs and restart the animation sequence.
-   */
   onAllArcsDone?: OnAllArcsDoneBehavior;
+  persistArcBehavior: AllArcsBehavior;
 
   /**
-   * Determines how arcs behave after persisting in the final state.
+   * If true, we continuously generate arcs between any pairs
+   * of the available points (derived from locationArray).
    */
-  persistArcBehavior: AllArcsBehavior;
+  infiniteRandom?: boolean;
+  /**
+   * How often (in ms) to create a new random arc.
+   * (If infiniteRandom is true)
+   */
+  spawnInterval?: number;
 }
 
-/**
- * Component for rendering a group of arcs between geographic points.
- * Arcs can animate sequentially or in parallel based on the `sequential` prop.
- *
- * Once an arc finishes:
- *  - If `onProgressPersist` is false, the arc disappears.
- *  - Otherwise, the arc remains visible until all arcs are complete.
- *
- * When all arcs finish:
- *  - Behavior is determined by the `onAllArcsDone` prop.
- */
-const ArcGroup = ({
+function randomInt(max: number) {
+  return Math.floor(Math.random() * max);
+}
+
+function createRandomArc(allPoints: CityLocation[]): ArcLocation {
+  const startIdx = randomInt(allPoints.length);
+  let endIdx = randomInt(allPoints.length);
+  while (endIdx === startIdx) {
+    endIdx = randomInt(allPoints.length);
+  }
+  return {
+    start: allPoints[startIdx],
+    end: allPoints[endIdx],
+  };
+}
+
+export default function ArcGroup({
   locationArray,
-  sequential = false,
   color,
   radius,
   animationDuration = 2500,
@@ -82,81 +70,199 @@ const ArcGroup = ({
   onProgressPersist = true,
   onAllArcsDone = "persist",
   persistArcBehavior,
-}: ArcGroupProps) => {
-  /**
-   * currentArcIndex:
-   *  - In sequential mode, the index of the arc currently animating (or just finished).
-   *  - In parallel mode, not really used to limit arcs, but we still track for resetting logic.
-   */
-  const [currentArcIndex, setCurrentArcIndex] = useState(0);
-
-  /**
-   * arcsDoneCount: how many arcs have fully completed their animation.
-   */
-  const [arcsDoneCount, setArcsDoneCount] = useState(0);
-
-  /**
-   * Track which arcs have completed to control per-arc visibility if onProgressPersist=false
-   */
-  const [arcsCompleted, setArcsCompleted] = useState<boolean[]>(
-    Array(locationArray.length).fill(false)
-  );
-
+  infiniteRandom = false,
+  spawnInterval = 1500, // default 2 sec between spawns
+}: ArcGroupProps) {
+  // “All arcs we want to show in the scene right now”
+  const [arcsToRender, setArcsToRender] = useState<ArcLocation[]>([]);
+  // Track which arcs have started animating
+  const [arcsTriggered, setArcsTriggered] = useState<boolean[]>([]);
+  // Track which arcs have completed animation
+  const [arcsCompleted, setArcsCompleted] = useState<boolean[]>([]);
+  // Show final arcs as static?
   const [showFinalArcs, setShowFinalArcs] = useState(false);
 
+  // If not infiniteRandom, once we finish all arcs, increment this
+  const [arcsDoneCount, setArcsDoneCount] = useState(0);
+
+  // For an interval-based approach, we may keep a ref to the interval ID
+  const spawnIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   /**
-   * Reset everything if the user chooses "reset" after the final arc,
-   * or if we mount fresh.
+   * One-time reset if we are NOT infinite random.
+   * In normal mode, we generate arcs from the locationArray
+   * (or do whatever “random” logic you had before).
    */
-  const resetAll = () => {
-    setCurrentArcIndex(0);
+  const normalResetAll = () => {
+    // Possibly your existing function that
+    // picks random arcs from locationArray
+    const coordinatePoints = getArcCities(locationArray);
+
+    // Example: we just generate 1 arc per city, etc.
+    const newArcs: ArcLocation[] = [];
+    for (let i = 0; i < coordinatePoints.length - 1; i++) {
+      newArcs.push({
+        start: coordinatePoints[i],
+        end: coordinatePoints[i + 1],
+      });
+    }
+
+    setArcsToRender(newArcs);
+    setArcsTriggered(Array(newArcs.length).fill(false));
+    setArcsCompleted(Array(newArcs.length).fill(false));
     setArcsDoneCount(0);
-    setArcsCompleted(Array(locationArray.length).fill(false));
     setShowFinalArcs(false);
   };
 
   /**
-   * Once the final arc is done, handle "onAllArcsDone" behavior
+   * If infiniteRandom, spin up an interval to spawn a new arc every X seconds.
+   * We spawn arcs from the *city list* derived from locationArray.
+   */
+  const infiniteStart = () => {
+    const coordinatePoints = getArcCities(locationArray);
+
+    // Clean up any existing arcs, or maybe keep them
+    setArcsToRender([]);
+    setArcsTriggered([]);
+    setArcsCompleted([]);
+    setShowFinalArcs(false);
+
+    // Start interval that spawns new arcs
+    if (!spawnIntervalRef.current) {
+      spawnIntervalRef.current = setInterval(() => {
+        const newArc = createRandomArc(coordinatePoints);
+
+        // Add the new arc to our arcsToRender
+        setArcsToRender((prev) => [...prev, newArc]);
+        // Also expand arcsTriggered / arcsCompleted
+        setArcsTriggered((prev) => [...prev, false]);
+        setArcsCompleted((prev) => [...prev, false]);
+      }, spawnInterval);
+    }
+  };
+
+  /**
+   * On mount:
+   * - If infiniteRandom, start the spawn interval
+   * - Else do normalResetAll
    */
   useEffect(() => {
-    if (arcsDoneCount === locationArray.length && locationArray.length > 0) {
-      // If we've just completed the final arc:
-      switch (onAllArcsDone) {
-        case "remove":
-          // Hide all arcs
-          setArcsCompleted(Array(locationArray.length).fill(true));
-          break;
-        case "reset":
-          // Wait a short moment so we can see the final arc
-          setTimeout(() => {
-            resetAll();
-          }, 500);
-          break;
-        case "persist":
-          setShowFinalArcs(true);
-          break;
-        default:
-          break;
+    if (infiniteRandom) {
+      infiniteStart();
+    } else {
+      normalResetAll();
+    }
+
+    return () => {
+      // Cleanup: if we had an interval going, clear it
+      if (spawnIntervalRef.current) {
+        clearInterval(spawnIntervalRef.current);
+        spawnIntervalRef.current = null;
+      }
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [infiniteRandom, spawnInterval]);
+
+  /**
+   * Whenever arcsToRender changes (new arcs added),
+   * schedule each *newly added* arc to start at a random delay.
+   * (So they don’t all begin animating the moment they appear.)
+   */
+  useEffect(() => {
+    // For each arc, if it’s not yet triggered, schedule it
+    arcsToRender.forEach((_arc, i) => {
+      if (!arcsTriggered[i]) {
+        const delay = Math.random() * 200; // up to 1s
+        setTimeout(() => {
+          setArcsTriggered((prev) => {
+            const copy = [...prev];
+            copy[i] = true;
+            return copy;
+          });
+        }, delay);
+      }
+    });
+  }, [arcsToRender, arcsTriggered]);
+
+  /**
+   * In normal (non-infinite) mode, once all arcs are done, handle onAllArcsDone
+   */
+  useEffect(() => {
+    if (!infiniteRandom) {
+      if (arcsDoneCount === arcsToRender.length && arcsToRender.length > 0) {
+        switch (onAllArcsDone) {
+          case "remove":
+            setArcsCompleted(Array(arcsToRender.length).fill(true));
+            break;
+          case "reset":
+            setTimeout(() => {
+              normalResetAll();
+            }, 500);
+            break;
+          case "persist":
+            setShowFinalArcs(true);
+            break;
+          default:
+            break;
+        }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [arcsDoneCount, locationArray.length, onAllArcsDone]);
+  }, [arcsDoneCount, arcsToRender.length, onAllArcsDone, infiniteRandom]);
+
+  /**
+   * Clean up arcs for infinite mode if we’re *not* persisting.
+   * (So we don’t get an unbounded array of old arcs in memory.)
+   */
+  useEffect(() => {
+    if (infiniteRandom && !onProgressPersist) {
+      // Filter out arcs that have completed
+      const stillActiveArcs = arcsToRender.filter((_a, i) => !arcsCompleted[i]);
+      if (stillActiveArcs.length !== arcsToRender.length) {
+        setArcsToRender(stillActiveArcs);
+
+        // We also need to keep arcsTriggered/arcsCompleted
+        // in sync with the *new* array’s ordering.
+        const stillActiveTriggered: boolean[] = [];
+        const stillActiveCompleted: boolean[] = [];
+        arcsToRender.forEach((arc, i) => {
+          if (!arcsCompleted[i]) {
+            stillActiveTriggered.push(arcsTriggered[i]);
+            stillActiveCompleted.push(arcsCompleted[i]);
+          }
+        });
+        setArcsTriggered(stillActiveTriggered);
+        setArcsCompleted(stillActiveCompleted);
+      }
+    }
+  }, [arcsCompleted, arcsToRender, infiniteRandom, onProgressPersist]);
 
   return (
     <>
+      {/* If we are showing final arcs in normal mode, 
+          or if we ever wanted to “persist” for infinite mode, 
+          you could show a single static mesh. */}
+      {showFinalArcs && (
+        <AllArcsStaticMesh
+          flights={arcsToRender}
+          color={color}
+          radius={radius + 0.1}
+          behavior={persistArcBehavior}
+        />
+      )}
+
+      {/* Otherwise, render all arcs that are triggered. */}
       {!showFinalArcs &&
-        locationArray.map((flight, i) => {
-          // If we are in sequential mode, skip arcs beyond currentArcIndex
-          if (sequential && i > currentArcIndex) {
-            return null;
+        arcsToRender.map((arc, i) => {
+          if (!arcsTriggered[i]) {
+            return null; // not started yet
           }
 
-          // If arc i is done & onProgressPersist is false => hide it
+          // If arc completed & onProgressPersist=false => hide
           if (arcsCompleted[i] && !onProgressPersist) {
             return null;
           }
 
-          // Determine the animation duration for each arc:
+          // Possibly first arc special duration
           const arcDuration =
             i === 0 && firstAnimationDuration
               ? firstAnimationDuration
@@ -166,10 +272,10 @@ const ArcGroup = ({
             <ArcLight
               key={i}
               color={color}
-              startLat={flight.start.lat}
-              startLon={flight.start.lon}
-              endLat={flight.end.lat}
-              endLon={flight.end.lon}
+              startLat={arc.start.lat}
+              startLon={arc.start.lon}
+              endLat={arc.end.lat}
+              endLon={arc.end.lon}
               radius={radius + 0.1}
               onProgressPersist={onProgressPersist}
               animationDuration={arcDuration}
@@ -179,30 +285,11 @@ const ArcGroup = ({
                   copy[i] = true;
                   return copy;
                 });
-
-                // Increase arcsDoneCount
                 setArcsDoneCount((prev) => prev + 1);
-
-                // If sequential, move to the next arc in line
-                if (sequential && i === currentArcIndex) {
-                  setTimeout(() => {
-                    setCurrentArcIndex((prev) => prev + 1);
-                  }, 500);
-                }
               }}
             />
           );
         })}
-      {showFinalArcs && (
-        <AllArcsStaticMesh
-          flights={locationArray}
-          color={color}
-          radius={radius + 0.1}
-          behavior={persistArcBehavior}
-        />
-      )}
     </>
   );
-};
-
-export default ArcGroup;
+}
