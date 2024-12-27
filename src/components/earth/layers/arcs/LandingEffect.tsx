@@ -77,7 +77,7 @@ const LandingEffect = ({ position, color, onDone }: ArcLandingEffectProps) => {
           ringScale * FINAL_SCALE,
         ]}
       >
-        <ringGeometry args={[10, 3.1, 64]} />
+        <ringGeometry args={[5, 6, 64]} />
         <meshBasicMaterial
           color={color}
           transparent
