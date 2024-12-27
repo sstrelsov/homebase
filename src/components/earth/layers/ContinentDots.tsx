@@ -25,7 +25,7 @@ export interface ContinentDotsProps {
   pointSize: number;
   onCountrySelect?: (iso: string) => void;
   dotColor: string;
-  highlightColor?: string;
+  highlightColor: string;
   onLoaded?: (loaded: boolean) => void;
   globeRef?: RefObject<THREE.Group | null>;
   controlsRef?: RefObject<OrbitControlsImpl | null>;
@@ -43,7 +43,7 @@ const ContinentDots = ({
   onCountrySelect,
   onLoaded,
   dotColor,
-  highlightColor = "#FFFF00",
+  highlightColor,
   globeRef,
   controlsRef,
   cameraRef,

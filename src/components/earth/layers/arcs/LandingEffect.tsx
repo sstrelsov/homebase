@@ -4,15 +4,11 @@ import * as THREE from "three";
 
 interface ArcLandingEffectProps {
   position: THREE.Vector3;
-  color?: string;
+  color: string;
   onDone?: () => void;
 }
 
-const LandingEffect = ({
-  position,
-  color = "#ffffff",
-  onDone,
-}: ArcLandingEffectProps) => {
+const LandingEffect = ({ position, color, onDone }: ArcLandingEffectProps) => {
   const groupRef = useRef<THREE.Group>(null!);
 
   // If you want separate references to tweak them individually:
@@ -20,7 +16,7 @@ const LandingEffect = ({
   const ringRef = useRef<THREE.Mesh>(null!);
 
   // Circle’s *base* radius (the dot):
-  const BASE_RADIUS = 1;
+  const BASE_RADIUS = 1.5;
 
   // How large do we want them to expand? (1 = same size as base, 2 = double, etc.)
   const FINAL_SCALE = 1.3;
@@ -81,7 +77,7 @@ const LandingEffect = ({
           ringScale * FINAL_SCALE,
         ]}
       >
-        <ringGeometry args={[2.95, 3.1, 64]} />
+        <ringGeometry args={[10, 3.1, 64]} />
         <meshBasicMaterial
           color={color}
           transparent
