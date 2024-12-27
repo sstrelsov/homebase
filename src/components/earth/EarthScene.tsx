@@ -1,17 +1,15 @@
-import { useTheme } from "@nextui-org/use-theme";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
 import Globe from "./layers/Globe";
-import ManualBloom from "./layers/ManualBlooms";
 import SceneHelpers from "./SceneHelpers";
 import { flattenAllTrips, getArcCities } from "./utils/tripMath";
 import { trips } from "./utils/trips";
 
-const MAX_ZOOMED_OUT = 700;
+const MAX_ZOOMED_OUT = 600;
 export const EARTH_RADIUS = 150;
 
 interface EarthSceneProps {
@@ -29,14 +27,6 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
   const axesHelperRef = useRef<THREE.AxesHelper | null>(null);
   const cameraRef = useRef<THREE.Camera | null>(null);
   // const isoFocused = useAppSelector(selectFocusIso);
-
-  const { theme, setTheme } = useTheme();
-
-  useEffect(() => {
-    if (theme !== "dark") {
-      setTheme("dark");
-    }
-  }, [theme, setTheme]);
 
   const isSmallUp = useAtOrAboveBreakpoint("sm");
   const jsonUrl = isSmallUp
@@ -56,7 +46,7 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
     <Canvas
       gl={{ alpha: true }}
       style={{ background: "transparent" }}
-      camera={{ position: [0, 150, 900], fov: 35 }}
+      camera={{ position: [0, 400, 900], fov: 35 }}
       onCreated={(state) => {
         cameraRef.current = state.camera; // Store camera reference
         state.camera.updateProjectionMatrix();
@@ -83,14 +73,18 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
         enablePan={false}
         maxDistance={MAX_ZOOMED_OUT}
       />
-      <ambientLight intensity={1} />
-      <hemisphereLight intensity={0.2} position={[0, 50, 0]} />
+      <directionalLight
+        intensity={2.0}
+        position={[-300, 200, 100]} // Some offset from Earth
+      />
+      <hemisphereLight intensity={0.5} position={[100, 100, 0]} />
       <Suspense fallback={null}>
         <Globe
-          rotationSpeed={0.001}
+          rotationSpeed={0.0002}
           radius={EARTH_RADIUS}
           dots={{
-            dotColor: "#00aaff",
+            dotColor: "#44ff00",
+            highlightColor: "#86d4fc",
             pointSize: 2.5,
             jsonUrl,
             controlsRef,
@@ -105,10 +99,9 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
             locationArray: flattenAllTrips(trips),
             color: "#dd6ff0",
             radius: EARTH_RADIUS,
-            animationDuration: 700,
-            sequential: false,
-            onProgressPersist: true,
-            onAllArcsDone: "persist",
+            animationDuration: 1000,
+            onProgressPersist: false,
+            infiniteRandom: true,
             persistArcBehavior: undefined,
           }}
           cityMarkers={{
@@ -118,7 +111,6 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
             markerSize: 1,
           }}
         />
-        <ManualBloom bloomStrength={1.2} bloomRadius={1} bloomThreshold={0.3} />
       </Suspense>
       {enableHelpers && (
         <SceneHelpers axesHelperRef={axesHelperRef} cameraRef={cameraRef} />

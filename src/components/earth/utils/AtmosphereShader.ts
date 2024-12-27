@@ -1,29 +1,47 @@
-// AtmosphereShader.ts
 import * as THREE from "three";
-
 export const AtmosphereShader = {
   uniforms: {
     uColor: { value: new THREE.Color("#00aaff") },
-    uIntensity: { value: 1.0 }, // how strong the glow is
-    uPower: { value: 2.0 }, // how quickly it falls off
+    uIntensity: { value: 1.0 },
+    uPower: { value: 2.0 },
+    uOpacity: { value: 0.3 },
   },
   vertexShader: `
     varying vec3 vNormal;
+    varying vec3 vWorldPos;
+
     void main() {
-      vNormal = normalize(normal);
-      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      // Flip the normal so it faces outward on a back-sided sphere
+      vNormal = -normalize(normal);
+
+      vec4 worldPos = modelMatrix * vec4(position, 1.0);
+      vWorldPos = worldPos.xyz;
+
+      gl_Position = projectionMatrix * viewMatrix * worldPos;
     }
   `,
   fragmentShader: `
     uniform vec3 uColor;
     uniform float uIntensity;
     uniform float uPower;
-    varying vec3 vNormal;
+    uniform float uOpacity;
     
+    varying vec3 vNormal;
+    varying vec3 vWorldPos;
+
     void main() {
-      // Fresnel-like term: how perpendicular the normal is to the view direction
-      float intensity = pow(1.0 - dot(vNormal, vec3(0.0, 0.0, 1.0)), uPower);
-      gl_FragColor = vec4(uColor, intensity * uIntensity);
+      // Calculate the view direction from fragment to camera
+      vec3 viewDir = normalize(cameraPosition - vWorldPos);
+
+      // Because we flipped the normal, this is a more direct Fresnel
+      float fresnelTerm = dot(vNormal, viewDir);
+      fresnelTerm = clamp(fresnelTerm, 0.0, 1.0);
+
+      // Exponential falloff
+      float intensity = pow(fresnelTerm, uPower) * uIntensity;
+
+      // Final color with alpha
+      gl_FragColor = vec4(uColor, intensity * uOpacity);
     }
   `,
 };

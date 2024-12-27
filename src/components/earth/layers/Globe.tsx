@@ -12,8 +12,9 @@ import { trips } from "../utils/trips";
 import ArcGroup, { ArcGroupProps } from "./arcs/ArcGroup";
 import Atmosphere, { AtmosphereProps } from "./Atmosphere";
 import BaseSphere from "./BaseSphere";
-import CityMarkers, { CityMarkersProps } from "./CityMarkerGroup";
+import { CityMarkersProps } from "./CityMarkerGroup";
 import ContinentDots, { ContinentDotsProps } from "./ContinentDots";
+import Halo from "./Halo";
 
 interface GlobeProps {
   radius: number;
@@ -119,6 +120,7 @@ const Globe = ({
           opacity={atmosphere.opacity}
         />
       )}
+      <Halo radius={150} />
       {!!dots && (
         <ContinentDots
           jsonUrl={dots.jsonUrl}
@@ -128,18 +130,18 @@ const Globe = ({
           globeRef={globeRef}
           controlsRef={dots.controlsRef}
           cameraRef={dots.cameraRef}
-          highlightColor="white"
+          highlightColor={dots.highlightColor}
         />
       )}
 
-      {!!cityMarkers && (
+      {/* {!!cityMarkers && (
         <CityMarkers
           cities={cityMarkers.cities}
           radius={cityMarkers.radius}
           color={cityMarkers.color}
           markerSize={cityMarkers.markerSize}
         />
-      )}
+      )} */}
       {!!arcs && !highlightArcs.length && (
         <ArcGroup
           animationDuration={arcs.animationDuration}
@@ -148,7 +150,7 @@ const Globe = ({
           onAllArcsDone={arcs.onAllArcsDone}
           onProgressPersist={arcs.onProgressPersist}
           radius={arcs.radius}
-          sequential={arcs.sequential}
+          infiniteRandom={arcs.infiniteRandom}
           persistArcBehavior={arcs.persistArcBehavior}
         />
       )}
@@ -160,12 +162,13 @@ const Globe = ({
           radius={EARTH_RADIUS}
           firstAnimationDuration={1500}
           animationDuration={500}
-          sequential={true}
+          // arcMode={"sequential"}
           onProgressPersist={false}
           onAllArcsDone="remove"
           persistArcBehavior={undefined}
         />
       )}
+      {/* <ManualBloom bloomStrength={1.2} bloomRadius={1} bloomThreshold={0.3} /> */}
     </group>
   );
 };
