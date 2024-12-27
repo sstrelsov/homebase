@@ -36,6 +36,12 @@ export interface ArcGroupProps {
   animationDuration?: number;
 
   /**
+   * Duration of the *first* arc animation in milliseconds (optional).
+   * If provided, this overrides the animation duration only for the first arc.
+   */
+  firstAnimationDuration?: number;
+
+  /**
    * If true, completed arcs remain visible after animation ends.
    * If false, arcs disappear upon completing their animation.
    */
@@ -72,6 +78,7 @@ const ArcGroup = ({
   color,
   radius,
   animationDuration = 2500,
+  firstAnimationDuration,
   onProgressPersist = true,
   onAllArcsDone = "persist",
   persistArcBehavior,
@@ -105,6 +112,7 @@ const ArcGroup = ({
     setCurrentArcIndex(0);
     setArcsDoneCount(0);
     setArcsCompleted(Array(locationArray.length).fill(false));
+    setShowFinalArcs(false);
   };
 
   /**
@@ -148,6 +156,12 @@ const ArcGroup = ({
             return null;
           }
 
+          // Determine the animation duration for each arc:
+          const arcDuration =
+            i === 0 && firstAnimationDuration
+              ? firstAnimationDuration
+              : animationDuration;
+
           return (
             <ArcLight
               key={i}
@@ -158,7 +172,7 @@ const ArcGroup = ({
               endLon={flight.end.lon}
               radius={radius + 0.1}
               onProgressPersist={onProgressPersist}
-              animationDuration={animationDuration}
+              animationDuration={arcDuration}
               onDone={() => {
                 setArcsCompleted((prev) => {
                   const copy = [...prev];

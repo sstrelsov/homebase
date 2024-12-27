@@ -13,6 +13,7 @@ import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { selectFocusIso } from "../../../store/globeSlice";
 import { useAppSelector } from "../../../store/hooks";
 import { DotInfo } from "../../../types/earthTypes";
+import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
 import {
   flyCameraToPoint,
   getCountryCentroid,
@@ -58,6 +59,8 @@ const ContinentDots = ({
   const pointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
   const isDraggingRef = useRef<boolean>(false);
   const pointerDownDotIndexRef = useRef<number | null>(null);
+
+  const isSmUp = useAtOrAboveBreakpoint("sm");
 
   // -------------------- Pre-Converted Colors (Base & Highlight) --------------------
   const [baseR, baseG, baseB] = useMemo(() => {
@@ -108,7 +111,7 @@ const ContinentDots = ({
         camera: cameraRef.current,
         controls: controlsRef.current,
         targetPos: worldPos,
-        distanceOffset: 300,
+        distanceOffset: isSmUp ? 380 : 480,
       });
     },
     [cameraRef, controlsRef, globeRef, dots]
