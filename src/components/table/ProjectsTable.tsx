@@ -17,7 +17,8 @@ const ProjectsTable = () => {
   return (
     <Table
       classNames={{
-        wrapper: "self-center flex flex-col max-w-xs bg-transparent",
+        wrapper:
+          "self-center flex flex-col max-w-xs bg-transparent shadow-none",
         td: "text-center",
       }}
       hideHeader
