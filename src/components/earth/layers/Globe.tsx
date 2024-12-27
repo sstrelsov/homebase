@@ -1,9 +1,14 @@
 import { useFrame } from "@react-three/fiber";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { lerp } from "three/src/math/MathUtils";
-import { AllArcsBehavior } from "../../../types/earthTypes";
+import { selectFocusIso } from "../../../store/globeSlice";
+import { useAppSelector } from "../../../store/hooks";
+import { AllArcsBehavior, ArcLocation } from "../../../types/earthTypes";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
+import { EARTH_RADIUS } from "../EarthScene";
+import { getArcsFromTrip } from "../utils/tripMath";
+import { trips } from "../utils/trips";
 import ArcGroup, { ArcGroupProps } from "./arcs/ArcGroup";
 import Atmosphere, { AtmosphereProps } from "./Atmosphere";
 import BaseSphere from "./BaseSphere";
@@ -64,15 +69,41 @@ const Globe = ({
   const [currentScale, setCurrentScale] = useState(0.55);
   const [dotsLoaded, setDotsLoaded] = useState(false);
 
+  // 1) Read the currently selected ISO from Redux
+  const focusIso = useAppSelector(selectFocusIso);
+
+  // 2) State for "ephemeral" arcs triggered by a country button
+  const [highlightArcs, setHighlightArcs] = useState<ArcLocation[]>([]);
+
+  useEffect(() => {
+    setHighlightArcs([]);
+    if (!focusIso) return;
+    console.log("ISO FOCUSED!", focusIso);
+    // Filter trips that have this iso in trip.countries
+    const matchedTrips = trips.filter((t) => t.countries.includes(focusIso));
+    console.log("Matched trips", matchedTrips);
+    // Flatten all matched trips into arcs
+    const allArcs = matchedTrips.flatMap((trip) => getArcsFromTrip(trip));
+    console.log("All arcs", allArcs);
+    // Store them in state
+    setHighlightArcs(allArcs);
+    if (
+      !dots?.controlsRef?.current ||
+      !dots?.cameraRef?.current ||
+      !globeRef.current
+    )
+      return;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusIso]);
+
   useFrame((_, delta) => {
     if (!globeRef.current) return;
 
     // 1) Only rotate if not interacting
-    if (!isInteracting) {
+    if (!focusIso) {
       globeRef.current.rotation.y += rotationSpeed;
     }
 
-    // 2) If dots are loaded, lerp from 0 => targetScale
     const scaleSpeed = 2.0;
     setCurrentScale((prev) => lerp(prev, targetScale, delta * scaleSpeed));
   });
@@ -96,6 +127,7 @@ const Globe = ({
           globeRef={globeRef}
           controlsRef={dots.controlsRef}
           cameraRef={dots.cameraRef}
+          highlightColor="white"
         />
       )}
 
@@ -107,7 +139,7 @@ const Globe = ({
           markerSize={cityMarkers.markerSize}
         />
       )}
-      {!!arcs && (
+      {!!arcs && !highlightArcs.length && (
         <ArcGroup
           animationDuration={arcs.animationDuration}
           color={arcs.color}
@@ -117,6 +149,18 @@ const Globe = ({
           radius={arcs.radius}
           sequential={arcs.sequential}
           persistArcBehavior={arcs.persistArcBehavior}
+        />
+      )}
+      {highlightArcs.length > 0 && !!arcs && (
+        <ArcGroup
+          locationArray={highlightArcs}
+          color={arcs.color}
+          radius={EARTH_RADIUS}
+          animationDuration={700}
+          sequential={true}
+          onProgressPersist={false}
+          onAllArcsDone="persist"
+          persistArcBehavior={undefined}
         />
       )}
     </group>

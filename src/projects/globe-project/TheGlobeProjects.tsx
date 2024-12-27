@@ -1,8 +1,16 @@
 import EarthScene from "../../components/earth/EarthScene";
+import {
+  flattenAllIsos,
+  flattenAllTrips,
+  getArcCities,
+} from "../../components/earth/utils/tripMath";
+import { trips } from "../../components/earth/utils/trips";
 import Typewriter from "../../components/Typewriter";
 import CountryButtons from "./CountryButtons";
 
 const TheGlobeProject = () => {
+  const isos = flattenAllIsos(trips);
+  const cities = Array.from(new Set(getArcCities(flattenAllTrips(trips))));
   return (
     <div className="relative w-screen h-screen overflow-hidden">
       {/* Full-screen Earth in the background */}
@@ -17,9 +25,9 @@ const TheGlobeProject = () => {
             <Typewriter
               phrases={[
                 "2024 Travel:",
-                "2024 Travel: 3 continents",
-                "2024 Travel: 5 countries",
-                "2024 Travel: X cities",
+                `2024 Travel: 3 continents`, // TODO: calculate this
+                `2024 Travel: ${isos.length} countries`,
+                `2024 Travel: ${cities.length} cities`,
               ]}
               loop={false}
               typingSpeed={100}
@@ -27,7 +35,7 @@ const TheGlobeProject = () => {
             />
           </div>
           <div className="flex flex-row gap-2">
-            <CountryButtons isos={["CHE", "ISL", "COL", "GBR", "USA"]} />
+            <CountryButtons isos={isos} />
           </div>
           <p className="text-medium sm:text-xl mt-2 max-w-md text-left">
             Looking back on a year of travel and adventure.

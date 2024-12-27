@@ -8,7 +8,8 @@ import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
 import Globe from "./layers/Globe";
 import ManualBloom from "./layers/ManualBlooms";
 import SceneHelpers from "./SceneHelpers";
-import { flightPaths } from "./utils/flightPaths";
+import { flattenAllTrips, getArcCities } from "./utils/tripMath";
+import { trips } from "./utils/trips";
 
 const MAX_ZOOMED_OUT = 700;
 export const EARTH_RADIUS = 150;
@@ -116,7 +117,7 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
             earthRadius: EARTH_RADIUS,
           }}
           arcs={{
-            locationArray: flightPaths,
+            locationArray: flattenAllTrips(trips),
             color: "#dd6ff0",
             radius: EARTH_RADIUS,
             animationDuration: 700,
@@ -126,11 +127,7 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
             persistArcBehavior: undefined,
           }}
           cityMarkers={{
-            cities: flightPaths.map((f) => ({
-              lat: f.end.lat,
-              lon: f.end.lon,
-              name: f.end.name,
-            })),
+            cities: getArcCities(flattenAllTrips(trips)),
             radius: EARTH_RADIUS,
             color: "#dd6ff0",
             markerSize: 1,
