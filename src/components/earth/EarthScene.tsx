@@ -30,7 +30,7 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
 
   const isSmallUp = useAtOrAboveBreakpoint("sm");
   const jsonUrl = isSmallUp
-    ? "/landDots-150rad-40k.json" // more dots
+    ? "/landDots-150rad-60k.json" // more dots
     : "/landDots-150rad-30k.json"; // fewer dots
 
   const isXLUp = useAtOrAboveBreakpoint("xl");
@@ -74,8 +74,28 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
         maxDistance={MAX_ZOOMED_OUT}
       />
       <directionalLight
-        intensity={2.0}
-        position={[-300, 200, 100]} // Some offset from Earth
+        // Light 1 — maybe a pinkish tone
+        intensity={1.5}
+        color="#0091ff"
+        position={[300, 100, 500]}
+      />
+      <directionalLight
+        // Light 2 — perhaps a softer purple
+        intensity={1.0}
+        color="#444aff"
+        position={[-300, 200, -200]}
+      />
+      <directionalLight
+        // Light 3 — cooler blue from another angle
+        intensity={0.8}
+        color="#00aaff"
+        position={[0, -300, 200]}
+      />
+      <directionalLight
+        // Light 4 — a warm side fill
+        intensity={0.7}
+        color="#ff8800"
+        position={[100, 300, 100]}
       />
       <hemisphereLight intensity={0.5} position={[100, 100, 0]} />
       <Suspense fallback={null}>
@@ -83,7 +103,7 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
           rotationSpeed={0.0002}
           radius={EARTH_RADIUS}
           dots={{
-            dotColor: "#44ff00",
+            dotColor: "#bb00ff",
             highlightColor: "#86d4fc",
             pointSize: 2.5,
             jsonUrl,

@@ -21,7 +21,11 @@ export default function Halo({
   const meshRef = useRef<THREE.Mesh>(null);
 
   return (
-    <mesh ref={meshRef} scale={[scaleFactor, scaleFactor, scaleFactor]}>
+    <mesh
+      ref={meshRef}
+      scale={[scaleFactor, scaleFactor, scaleFactor]}
+      rotation={[Math.PI * 0.03, Math.PI * 0.03, 0]} // small tilt
+    >
       <sphereGeometry args={[radius, 128, 128]} />
       <shaderMaterial
         vertexShader={`

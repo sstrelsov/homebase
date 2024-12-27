@@ -15,8 +15,8 @@ const BaseSphere = ({ radius }: BaseSphereProps) => {
     <mesh>
       <sphereGeometry args={[radius, 64, 64]} />
       <meshPhongMaterial
-        color="#063985"
-        emissive="#081c3c"
+        color="#533f7b"
+        emissive="#24083c"
         shininess={5}
         emissiveIntensity={0.4}
         specular={0x222222}
