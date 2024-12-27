@@ -121,7 +121,7 @@ const Arc = ({
       .addVectors(startVec, endVec)
       .multiplyScalar(0.5);
     const distance = startVec.distanceTo(endVec);
-    const arcHeight = distance * 1.5;
+    const arcHeight = distance;
     midPoint.setLength(midPoint.length() + arcHeight);
 
     const control1 = new THREE.Vector3().lerpVectors(startVec, midPoint, 0.25);
@@ -227,7 +227,7 @@ const Arc = ({
       {showLandingEffect && (
         <LandingEffect
           position={endVec}
-          color="#ffcd53"
+          color="#dd6ff0"
           onDone={() => setShowLandingEffect(false)}
         />
       )}
