@@ -1,34 +1,85 @@
 import { useRef } from "react";
 import * as THREE from "three";
-import { AtmosphereShader } from "../utils/AtmosphereShader";
+
+const SEGMENTS = 128;
 
 export interface AtmosphereProps {
-  earthRadius: number;
+  radius: number;
+  scaleFactor: number;
   color: string;
+  power: number;
+  intensity: number;
   opacity: number;
 }
 
-const Atmosphere = ({ earthRadius, color, opacity }: AtmosphereProps) => {
+/**
+ * A spherical atmosphere around a planet.
+ *
+ * @param radius the radius of the sphere that the atmosphere is on
+ * @param scaleFactor the scale factor of the atmosphere relative to the sphere
+ * @param color the color of the atmosphere
+ * @param power the power of the atmosphere: higher values make the atmosphere more visible
+ * @param intensity the intensity of the atmosphere: higher values make the atmosphere brighter
+ * @param opacity the opacity of the atmosphere: higher values make the atmosphere more transparent
+ * @returns a THREE.js mesh representing the atmosphere
+ */
+const Atmosphere = ({
+  radius,
+  scaleFactor,
+  color,
+  power,
+  intensity,
+  opacity,
+}: AtmosphereProps) => {
   const meshRef = useRef<THREE.Mesh>(null);
-
+  const scale: THREE.Vector3 = Array(3).fill(
+    scaleFactor
+  ) as unknown as THREE.Vector3;
+  const smallTilt = Math.PI * 0.03;
   return (
-    <mesh ref={meshRef}>
-      {/* Make the sphere slightly bigger than Earth */}
-      <sphereGeometry args={[150 * 1.03, 64, 64]} />
+    <mesh ref={meshRef} scale={scale} rotation={[smallTilt, smallTilt, 0]}>
+      <sphereGeometry args={[radius, SEGMENTS, SEGMENTS]} />
       <shaderMaterial
-        side={THREE.BackSide}
+        vertexShader={`
+          varying vec3 vNormal;
+          varying vec3 vViewPosition;
+          
+          void main() {
+            vNormal = normalize(normalMatrix * normal);
+            vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+            vViewPosition = -mvPosition.xyz;
+            gl_Position = projectionMatrix * mvPosition;
+          }
+        `}
+        fragmentShader={`
+          uniform vec3 uColor;
+          uniform float uIntensity;
+          uniform float uOpacity;
+          uniform float uPower;
+          
+          varying vec3 vNormal;
+          varying vec3 vViewPosition;
+          
+          void main() {
+            vec3 normal = normalize(vNormal);
+            vec3 viewDir = normalize(vViewPosition);
+            
+            float rim = 1.0 - abs(dot(viewDir, normal));
+            rim = pow(rim, uPower) * uIntensity;
+            
+            gl_FragColor = vec4(uColor * rim, rim * uOpacity);
+          }
+        `}
+        uniforms={{
+          uColor: { value: new THREE.Color(color) },
+          uIntensity: { value: intensity },
+          uOpacity: { value: opacity },
+          uPower: { value: power },
+        }}
         transparent={true}
+        side={THREE.BackSide}
         depthWrite={false}
         blending={THREE.AdditiveBlending}
-        uniforms={{
-          ...AtmosphereShader.uniforms,
-          uColor: { value: new THREE.Color(color) },
-          uIntensity: { value: 1.0 },
-          uPower: { value: 1.5 },
-          uOpacity: { value: opacity }, // e.g. 0.3
-        }}
-        vertexShader={AtmosphereShader.vertexShader}
-        fragmentShader={AtmosphereShader.fragmentShader}
       />
     </mesh>
   );

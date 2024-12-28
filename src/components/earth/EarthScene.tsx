@@ -102,9 +102,12 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
             cameraRef,
           }}
           atmosphere={{
-            color: "#00aaff",
-            opacity: 0.03, // I fear this isn't hooked up to anything
-            earthRadius: EARTH_RADIUS,
+            radius: EARTH_RADIUS,
+            scaleFactor: 1.001,
+            color: "#f4bcf6",
+            power: 5.0,
+            intensity: 1.5,
+            opacity: 0.5,
           }}
           arcs={{
             locationArray: flattenAllTrips(trips),

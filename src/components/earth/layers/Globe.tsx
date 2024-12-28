@@ -16,7 +16,6 @@ import Atmosphere, { AtmosphereProps } from "./Atmosphere";
 import BaseSphere from "./BaseSphere";
 import { CityMarkersProps } from "./CityMarkerGroup";
 import ContinentDots, { ContinentDotsProps } from "./ContinentDots";
-import Halo from "./Halo";
 
 interface GlobeProps {
   radius: number;
@@ -128,14 +127,8 @@ const Globe = ({
       visible={dotsLoaded}
     >
       <BaseSphere radius={radius - 1} />
-      {!!atmosphere && (
-        <Atmosphere
-          earthRadius={radius - 2}
-          color={atmosphere.color}
-          opacity={atmosphere.opacity}
-        />
-      )}
-      <Halo radius={radius} />
+
+      {!!atmosphere && <Atmosphere {...atmosphere} />}
       {!!dots && (
         <ContinentDots
           jsonUrl={dots.jsonUrl}
