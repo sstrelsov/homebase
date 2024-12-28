@@ -11,12 +11,12 @@ interface HaloProps {
 }
 
 export default function Halo({
-  radius = 150,
-  scaleFactor = 1.009,
-  color = "#00aaff",
+  radius = 151,
+  scaleFactor = 1.005,
+  color = "#f4bcf6",
   power = 5.0,
   intensity = 1.5,
-  opacity = 0.8,
+  opacity = 0.5,
 }: HaloProps) {
   const meshRef = useRef<THREE.Mesh>(null);
 

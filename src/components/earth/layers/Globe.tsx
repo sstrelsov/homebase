@@ -1,4 +1,7 @@
+import { a, useSpring } from "@react-spring/three";
+import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useDrag } from "react-use-gesture";
 import * as THREE from "three";
 import { lerp } from "three/src/math/MathUtils";
 import { selectFocusIso } from "../../../store/globeSlice";
@@ -14,11 +17,6 @@ import BaseSphere from "./BaseSphere";
 import { CityMarkersProps } from "./CityMarkerGroup";
 import ContinentDots, { ContinentDotsProps } from "./ContinentDots";
 import Halo from "./Halo";
-
-// 1) Imports for spring + gesture
-import { a, useSpring } from "@react-spring/three";
-import { useFrame } from "@react-three/fiber";
-import { useDrag } from "react-use-gesture";
 
 interface GlobeProps {
   radius: number;
@@ -130,7 +128,6 @@ const Globe = ({
       visible={dotsLoaded}
     >
       <BaseSphere radius={radius - 1} />
-
       {!!atmosphere && (
         <Atmosphere
           earthRadius={radius - 2}
@@ -138,8 +135,7 @@ const Globe = ({
           opacity={atmosphere.opacity}
         />
       )}
-
-      <Halo radius={150} />
+      <Halo radius={radius} />
       {!!dots && (
         <ContinentDots
           jsonUrl={dots.jsonUrl}
@@ -152,7 +148,6 @@ const Globe = ({
           highlightColor={dots.highlightColor}
         />
       )}
-
       {!!arcs && !highlightArcs.length && (
         <ArcGroup
           animationDuration={arcs.animationDuration}
@@ -165,7 +160,6 @@ const Globe = ({
           persistArcBehavior={arcs.persistArcBehavior}
         />
       )}
-
       {highlightArcs.length > 0 && !!arcs && (
         <ArcGroup
           key={highlightArcKey}
