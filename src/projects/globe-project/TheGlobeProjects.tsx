@@ -1,3 +1,5 @@
+import { useTheme } from "@nextui-org/use-theme";
+import { useEffect } from "react";
 import EarthScene from "../../components/earth/EarthScene";
 import {
   flattenAllIsos,
@@ -10,6 +12,13 @@ import CountryButtons from "./CountryButtons";
 const TheGlobeProject = () => {
   const isos = flattenAllIsos(trips);
   const cities = Array.from(new Set(getArcCities(flattenAllTrips(trips))));
+
+  const { setTheme } = useTheme();
+
+  useEffect(() => {
+    setTheme("dark");
+  }, [setTheme]);
+
   return (
     <div className="relative w-full h-full">
       {/* Full-screen Earth in the background */}
