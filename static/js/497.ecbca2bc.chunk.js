@@ -1,2 +1,0 @@
-"use strict";(self.webpackChunkhomebase=self.webpackChunkhomebase||[]).push([[497],{7497:(e,s,l)=>{l.r(s),l.d(s,{default:()=>t});var a=l(6580),c=l(579);const t=()=>(0,c.jsx)("div",{className:"flex flex-col w-full h-full justify-center text-center gap-2",children:(0,c.jsx)(a.sv,{})})}}]);
-//# sourceMappingURL=497.ecbca2bc.chunk.js.map
