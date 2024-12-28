@@ -8,12 +8,12 @@ import ArcGroup, { ArcGroupProps } from "./arcs/ArcGroup";
 import Atmosphere, { AtmosphereProps } from "./Atmosphere";
 import BaseSphere, { BaseSphereProps } from "./BaseSphere";
 import { CityMarkersProps } from "./CityMarkerGroup";
-import ContinentDots, { ContinentDotsProps } from "./ContinentDots";
+import LandDots, { LandDotsProps } from "./LandDots";
 
 interface GlobeProps {
   baseSphere: BaseSphereProps;
   rotationSpeed: number;
-  dots?: ContinentDotsProps;
+  dots?: LandDotsProps;
   atmosphere?: AtmosphereProps;
   arcs?: ArcGroupProps & { persistArcBehavior: AllArcsBehavior };
   cityMarkers?: CityMarkersProps;
@@ -75,11 +75,10 @@ const Globe = ({
       rotation={springs.rotation}
       visible={dotsLoaded}
     >
-      {baseSphere && <BaseSphere {...baseSphere} />}
-
+      {!!baseSphere && <BaseSphere {...baseSphere} />}
       {!!atmosphere && <Atmosphere {...atmosphere} />}
       {!!dots && (
-        <ContinentDots
+        <LandDots
           onLoaded={(isLoaded) => setDotsLoaded(isLoaded)}
           globeRef={globeRef}
           {...dots}

@@ -14,7 +14,7 @@ import { DotInfo } from "../../../types/earthTypes";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
 import { flyCameraToPoint, getCountryCentroid } from "../utils/earthMath";
 
-export interface ContinentDotsProps {
+export interface LandDotsProps {
   jsonUrl: string;
   pointSize: number;
   onCountrySelect?: (iso: string) => void;
@@ -31,7 +31,7 @@ export interface ContinentDotsProps {
  * - Fetches dot coordinates (x,y,z).
  * - Handles highlighting & rotation when focusIso changes.
  */
-const ContinentDots = ({
+const LandDots = ({
   jsonUrl,
   pointSize,
   onCountrySelect,
@@ -41,7 +41,7 @@ const ContinentDots = ({
   globeRef,
   controlsRef,
   cameraRef,
-}: ContinentDotsProps) => {
+}: LandDotsProps) => {
   const focusIso = useAppSelector(selectFocusIso);
   const [dots, setDots] = useState<DotInfo[]>([]);
 
@@ -194,4 +194,4 @@ const ContinentDots = ({
   );
 };
 
-export default ContinentDots;
+export default LandDots;
