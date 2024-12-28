@@ -1,5 +1,4 @@
-import { useFrame } from "@react-three/fiber";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { lerp } from "three/src/math/MathUtils";
 import { selectFocusIso } from "../../../store/globeSlice";
@@ -16,37 +15,29 @@ import { CityMarkersProps } from "./CityMarkerGroup";
 import ContinentDots, { ContinentDotsProps } from "./ContinentDots";
 import Halo from "./Halo";
 
+// 1) Imports for spring + gesture
+import { a, useSpring } from "@react-spring/three";
+import { useFrame } from "@react-three/fiber";
+import { useDrag } from "react-use-gesture";
+
 interface GlobeProps {
   radius: number;
-  rotationSpeed: number;
+  rotationSpeed: number; // Radians per second (recommended)
   dots?: ContinentDotsProps;
   atmosphere?: AtmosphereProps;
   arcs?: ArcGroupProps & { persistArcBehavior: AllArcsBehavior };
   cityMarkers?: CityMarkersProps;
 }
 
-/**
- * 3D Interactive Globe Component
- * - Features: Earth's sphere, atmosphere, continent dots, and animated arcs.
- * - Responsive Scaling: Adjusts based on breakpoints (XS, SM, MD).
- * - Animation: Handles rotation and smooth scaling after data loads.
- *
- * Props:
- * - radius: Base radius of the globe.
- * - rotationSpeed: Speed of Y-axis rotation (radians/frame).
- * - isInteracting: Pauses auto-rotation when true.
- * - dots: Configuration for continent dots.
- * - atmosphere: Atmospheric glow configuration.
- * - arcs: Flight arc animation configuration.
- */
 const Globe = ({
   radius,
-  rotationSpeed,
+  rotationSpeed = 0.05, // Example default
   arcs,
   atmosphere,
   dots,
   cityMarkers,
 }: GlobeProps) => {
+  // Ref to our top-level globe group
   const globeRef = useRef<THREE.Group>(null);
 
   // Breakpoints for final scale
@@ -68,42 +59,62 @@ const Globe = ({
   const [currentScale, setCurrentScale] = useState(0.55);
   const [dotsLoaded, setDotsLoaded] = useState(false);
 
-  // 1) Read the currently selected ISO from Redux
+  // Read the currently selected ISO from Redux
   const focusIso = useAppSelector(selectFocusIso);
 
-  // 2) State for "ephemeral" arcs triggered by a country button
+  // State for "ephemeral" arcs triggered by a country button
   const [highlightArcs, setHighlightArcs] = useState<ArcLocation[]>([]);
   const [highlightArcKey, setHighlightArcKey] = useState(0);
 
   useEffect(() => {
     setHighlightArcs([]);
     if (!focusIso) return;
-    console.log("ISO FOCUSED!", focusIso);
-    // Filter trips that have this iso in trip.countries
     const matchedTrips = trips.filter((t) => t.countries.includes(focusIso));
-    console.log("Matched trips", matchedTrips);
     setHighlightArcKey((prev) => prev + 1);
-
-    // Flatten all matched trips into arcs
     const allArcs = matchedTrips.flatMap((trip) => getArcsFromTrip(trip));
-    console.log("All arcs", allArcs);
-    // Store them in state
     setHighlightArcs(allArcs);
-    if (
-      !dots?.controlsRef?.current ||
-      !dots?.cameraRef?.current ||
-      !globeRef.current
-    )
-      return;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focusIso]);
 
-  useFrame((_, delta) => {
-    if (!globeRef.current) return;
+  const euler = useMemo(() => new THREE.Euler(0, 0, 0), []);
 
-    // 1) Only rotate if not interacting
-    if (!focusIso) {
-      globeRef.current.rotation.y += rotationSpeed;
+  const [springs, api] = useSpring<{
+    rotation: [number, number, number] | any;
+  }>(() => ({
+    rotation: [0, 0, 0],
+    config: { mass: 1, friction: 30, tension: 50 },
+  }));
+
+  const [isDragging, setIsDragging] = useState(false);
+
+  const bind = useDrag(({ offset: [ox, oy], active }) => {
+    setIsDragging(active);
+
+    // Convert offset into rotation
+    const factor = 0.005;
+    const newX = oy * factor;
+    const newY = ox * factor;
+
+    // Clamp X so we don’t flip poles
+    const clampedX = THREE.MathUtils.clamp(newX, -Math.PI / 2, Math.PI / 2);
+
+    euler.x = clampedX;
+    euler.y = newY;
+
+    api.start({ rotation: [euler.x, euler.y, 0] });
+  });
+
+  // Auto-rotate Y when not dragging
+  useFrame((_, delta) => {
+    if (!isDragging) {
+      euler.y += 0.02 * delta;
+      api.start({ rotation: [euler.x, euler.y, 0] });
+    }
+  });
+
+  useFrame((_, delta) => {
+    if (!isDragging && !focusIso) {
+      euler.y += rotationSpeed * delta;
+      api.start({ rotation: [euler.x, euler.y, 0] });
     }
 
     const scaleSpeed = 2.0;
@@ -111,8 +122,15 @@ const Globe = ({
   });
 
   return (
-    <group visible={dotsLoaded} ref={globeRef} scale={currentScale}>
+    <a.group
+      ref={globeRef}
+      {...(bind() as any)}
+      rotation={springs.rotation}
+      scale={currentScale}
+      visible={dotsLoaded}
+    >
       <BaseSphere radius={radius - 1} />
+
       {!!atmosphere && (
         <Atmosphere
           earthRadius={radius - 2}
@@ -120,6 +138,7 @@ const Globe = ({
           opacity={atmosphere.opacity}
         />
       )}
+
       <Halo radius={150} />
       {!!dots && (
         <ContinentDots
@@ -134,14 +153,6 @@ const Globe = ({
         />
       )}
 
-      {/* {!!cityMarkers && (
-        <CityMarkers
-          cities={cityMarkers.cities}
-          radius={cityMarkers.radius}
-          color={cityMarkers.color}
-          markerSize={cityMarkers.markerSize}
-        />
-      )} */}
       {!!arcs && !highlightArcs.length && (
         <ArcGroup
           animationDuration={arcs.animationDuration}
@@ -154,6 +165,7 @@ const Globe = ({
           persistArcBehavior={arcs.persistArcBehavior}
         />
       )}
+
       {highlightArcs.length > 0 && !!arcs && (
         <ArcGroup
           key={highlightArcKey}
@@ -162,14 +174,12 @@ const Globe = ({
           radius={EARTH_RADIUS}
           firstAnimationDuration={1500}
           animationDuration={500}
-          // arcMode={"sequential"}
           onProgressPersist={false}
           onAllArcsDone="remove"
           persistArcBehavior={undefined}
         />
       )}
-      {/* <ManualBloom bloomStrength={1.2} bloomRadius={1} bloomThreshold={0.3} /> */}
-    </group>
+    </a.group>
   );
 };
 

@@ -1,6 +1,5 @@
 import { useFrame } from "@react-three/fiber";
 import {
-  PointerEvent,
   RefObject,
   useCallback,
   useEffect,
@@ -14,11 +13,7 @@ import { selectFocusIso } from "../../../store/globeSlice";
 import { useAppSelector } from "../../../store/hooks";
 import { DotInfo } from "../../../types/earthTypes";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
-import {
-  flyCameraToPoint,
-  getCountryCentroid,
-  getNearestIntersection,
-} from "../utils/earthMath";
+import { flyCameraToPoint, getCountryCentroid } from "../utils/earthMath";
 
 export interface ContinentDotsProps {
   jsonUrl: string;
@@ -53,12 +48,6 @@ const ContinentDots = ({
 
   // -------------------- Highlighting Logic --------------------
   const highlightRef = useRef<string | null>(null);
-  const highlightTimerRef = useRef<NodeJS.Timeout | null>(null);
-
-  // -------------------- Pointer / Drag Detection --------------------
-  const pointerDownPositionRef = useRef<{ x: number; y: number } | null>(null);
-  const isDraggingRef = useRef<boolean>(false);
-  const pointerDownDotIndexRef = useRef<number | null>(null);
 
   const isSmUp = useAtOrAboveBreakpoint("sm");
 
@@ -150,83 +139,6 @@ const ContinentDots = ({
   // We'll store an explicit ref to the color attribute so we can update it each frame
   const colorAttrRef = useRef<THREE.BufferAttribute>(null);
 
-  // -------------------- Pointer Events --------------------
-  const handlePointerDown = useCallback((event: PointerEvent) => {
-    pointerDownPositionRef.current = { x: event.clientX, y: event.clientY };
-    isDraggingRef.current = false;
-    pointerDownDotIndexRef.current = null;
-
-    const nearestIntersection = getNearestIntersection(event);
-    pointerDownDotIndexRef.current = nearestIntersection?.index ?? null;
-
-    event.stopPropagation();
-  }, []);
-
-  const handlePointerMove = useCallback((event: PointerEvent) => {
-    if (!pointerDownPositionRef.current) return;
-    const dx = event.clientX - pointerDownPositionRef.current.x;
-    const dy = event.clientY - pointerDownPositionRef.current.y;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-
-    // If we moved the pointer a certain threshold, treat it as a drag
-    if (distance > 20) {
-      isDraggingRef.current = true;
-    }
-    event.stopPropagation();
-  }, []);
-
-  const handlePointerUp = useCallback(
-    (event: PointerEvent) => {
-      if (!dots.length || !pointerDownDotIndexRef.current) return;
-
-      // If there's no intersection, do nothing
-      const nearestIntersection = getNearestIntersection(event);
-      if (!nearestIntersection) return;
-
-      // Is the dot the same one we pointer-downed on?
-      if (
-        nearestIntersection.index !== pointerDownDotIndexRef.current ||
-        isDraggingRef.current
-      ) {
-        // We either dragged or clicked a different dot
-        pointerDownPositionRef.current = null;
-        pointerDownDotIndexRef.current = null;
-        return;
-      }
-
-      // We are clicking on the same dot
-      const idx = nearestIntersection.index;
-      const dot = dots[idx];
-      if (!dot) return;
-
-      console.log(
-        `Clicked dot #${idx} → Country=${dot.countryName}, ISO=${dot.isoA3}`
-      );
-
-      // 1) Fire onCountrySelect if needed
-      onCountrySelect?.(dot.isoA3);
-
-      // 2) Fly to it
-      handleFlyToIso(dot.isoA3);
-
-      // 3) Temporarily highlight this country
-      highlightRef.current = dot.isoA3;
-      if (highlightTimerRef.current) {
-        clearTimeout(highlightTimerRef.current);
-      }
-      highlightTimerRef.current = setTimeout(() => {
-        highlightRef.current = null;
-      }, 2000);
-
-      // Reset
-      pointerDownPositionRef.current = null;
-      pointerDownDotIndexRef.current = null;
-      isDraggingRef.current = false;
-      event.stopPropagation();
-    },
-    [dots, onCountrySelect, handleFlyToIso]
-  );
-
   // -------------------- Animate the Dot Colors --------------------
   useFrame(() => {
     if (!colorAttrRef.current || !dots.length) return;
@@ -256,11 +168,7 @@ const ContinentDots = ({
 
   // -------------------- Render the Point Cloud --------------------
   return (
-    <points
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-    >
+    <points>
       <bufferGeometry>
         <bufferAttribute
           attach="attributes-position"
