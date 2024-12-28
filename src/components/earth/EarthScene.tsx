@@ -77,23 +77,29 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
 
       {/* Fill Light: from left-ish side, weaker */}
       <directionalLight
-        intensity={1.5}
-        color="#ff7a3d"
-        position={[-400, -100, 100]}
+        intensity={2}
+        color="#df3dff"
+        position={[-300, -100, -500]}
       />
 
-      {/* Rim Light: behind the globe for silhouette & drama */}
       <directionalLight
         intensity={1.8}
         color="#ff7a3d"
-        position={[300, 100, -300]}
+        position={[-300, -300, -100]}
+      />
+
+      {/* Rim Light: behind the globe for silhouette & drama: Creates a beautiful purple in top right */}
+      <directionalLight
+        intensity={1.8}
+        color="#ff7a3d"
+        position={[300, 100, -100]} // -300 also beautiful
       />
 
       {/* Kicker Light: from below or another interesting angle */}
       <directionalLight
         intensity={1.4}
         color="#8066ff"
-        position={[-200, -200, -200]}
+        position={[-200, -200, -100]} // z=-300 also beautiful
       />
 
       <hemisphereLight intensity={0.7} position={[100, 100, 0]} />

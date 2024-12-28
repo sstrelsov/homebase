@@ -12,7 +12,7 @@ interface HaloProps {
 
 export default function Halo({
   radius = 151,
-  scaleFactor = 1.005,
+  scaleFactor = 1.001,
   color = "#f4bcf6",
   power = 5.0,
   intensity = 1.5,
