@@ -13,12 +13,13 @@ import { getArcsFromTrip } from "../utils/tripMath";
 import { trips } from "../utils/trips";
 import ArcGroup, { ArcGroupProps } from "./arcs/ArcGroup";
 import Atmosphere, { AtmosphereProps } from "./Atmosphere";
-import BaseSphere from "./BaseSphere";
+import BaseSphere, { BaseSphereProps } from "./BaseSphere";
 import { CityMarkersProps } from "./CityMarkerGroup";
 import ContinentDots, { ContinentDotsProps } from "./ContinentDots";
 
 interface GlobeProps {
   radius: number;
+  baseSphere: BaseSphereProps;
   rotationSpeed: number; // Radians per second (recommended)
   dots?: ContinentDotsProps;
   atmosphere?: AtmosphereProps;
@@ -28,6 +29,7 @@ interface GlobeProps {
 
 const Globe = ({
   radius,
+  baseSphere,
   rotationSpeed = 0.05, // Example default
   arcs,
   atmosphere,
@@ -126,7 +128,7 @@ const Globe = ({
       scale={currentScale}
       visible={dotsLoaded}
     >
-      <BaseSphere radius={radius - 1} />
+      {baseSphere && <BaseSphere {...baseSphere} />}
 
       {!!atmosphere && <Atmosphere {...atmosphere} />}
       {!!dots && (
@@ -141,18 +143,7 @@ const Globe = ({
           highlightColor={dots.highlightColor}
         />
       )}
-      {!!arcs && !highlightArcs.length && (
-        <ArcGroup
-          animationDuration={arcs.animationDuration}
-          color={arcs.color}
-          locationArray={arcs.locationArray}
-          onAllArcsDone={arcs.onAllArcsDone}
-          onProgressPersist={arcs.onProgressPersist}
-          radius={arcs.radius}
-          infiniteRandom={arcs.infiniteRandom}
-          persistArcBehavior={arcs.persistArcBehavior}
-        />
-      )}
+      {!!arcs && !highlightArcs.length && <ArcGroup {...arcs} />}
       {highlightArcs.length > 0 && !!arcs && (
         <ArcGroup
           key={highlightArcKey}

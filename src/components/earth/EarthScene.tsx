@@ -93,6 +93,14 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
         <Globe
           rotationSpeed={0.0002}
           radius={EARTH_RADIUS}
+          baseSphere={{
+            radius: EARTH_RADIUS - 1,
+            color: "#533f7b",
+            emissive: "#24083c",
+            shininess: 5,
+            emissiveIntensity: 0.4,
+            specular: "#222222",
+          }}
           dots={{
             dotColor: "#df8cfd",
             highlightColor: "#86d4fc",
