@@ -1,16 +1,9 @@
 import { a, useSpring } from "@react-spring/three";
 import { useFrame } from "@react-three/fiber";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useDrag } from "react-use-gesture";
 import * as THREE from "three";
-import { lerp } from "three/src/math/MathUtils";
-import { selectFocusIso } from "../../../store/globeSlice";
-import { useAppSelector } from "../../../store/hooks";
-import { AllArcsBehavior, ArcLocation } from "../../../types/earthTypes";
-import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
-import { EARTH_RADIUS } from "../EarthScene";
-import { getArcsFromTrip } from "../utils/tripMath";
-import { trips } from "../utils/trips";
+import { AllArcsBehavior } from "../../../types/earthTypes";
 import ArcGroup, { ArcGroupProps } from "./arcs/ArcGroup";
 import Atmosphere, { AtmosphereProps } from "./Atmosphere";
 import BaseSphere, { BaseSphereProps } from "./BaseSphere";
@@ -18,9 +11,8 @@ import { CityMarkersProps } from "./CityMarkerGroup";
 import ContinentDots, { ContinentDotsProps } from "./ContinentDots";
 
 interface GlobeProps {
-  radius: number;
   baseSphere: BaseSphereProps;
-  rotationSpeed: number; // Radians per second (recommended)
+  rotationSpeed: number;
   dots?: ContinentDotsProps;
   atmosphere?: AtmosphereProps;
   arcs?: ArcGroupProps & { persistArcBehavior: AllArcsBehavior };
@@ -28,9 +20,8 @@ interface GlobeProps {
 }
 
 const Globe = ({
-  radius,
   baseSphere,
-  rotationSpeed = 0.05, // Example default
+  rotationSpeed,
   arcs,
   atmosphere,
   dots,
@@ -39,40 +30,7 @@ const Globe = ({
   // Ref to our top-level globe group
   const globeRef = useRef<THREE.Group>(null);
 
-  // Breakpoints for final scale
-  const isMdUp = useAtOrAboveBreakpoint("md");
-  const isSmUp = useAtOrAboveBreakpoint("sm");
-  const isXSUp = useAtOrAboveBreakpoint("xs");
-
-  let targetScale = 1.0;
-  if (isMdUp) {
-    targetScale = 1.0;
-  } else if (isSmUp) {
-    targetScale = 0.8;
-  } else if (isXSUp) {
-    targetScale = 0.7;
-  } else {
-    targetScale = 0.6;
-  }
-
-  const [currentScale, setCurrentScale] = useState(0.55);
   const [dotsLoaded, setDotsLoaded] = useState(false);
-
-  // Read the currently selected ISO from Redux
-  const focusIso = useAppSelector(selectFocusIso);
-
-  // State for "ephemeral" arcs triggered by a country button
-  const [highlightArcs, setHighlightArcs] = useState<ArcLocation[]>([]);
-  const [highlightArcKey, setHighlightArcKey] = useState(0);
-
-  useEffect(() => {
-    setHighlightArcs([]);
-    if (!focusIso) return;
-    const matchedTrips = trips.filter((t) => t.countries.includes(focusIso));
-    setHighlightArcKey((prev) => prev + 1);
-    const allArcs = matchedTrips.flatMap((trip) => getArcsFromTrip(trip));
-    setHighlightArcs(allArcs);
-  }, [focusIso]);
 
   const euler = useMemo(() => new THREE.Euler(0, 0, 0), []);
 
@@ -105,19 +63,9 @@ const Globe = ({
   // Auto-rotate Y when not dragging
   useFrame((_, delta) => {
     if (!isDragging) {
-      euler.y += 0.02 * delta;
-      api.start({ rotation: [euler.x, euler.y, 0] });
-    }
-  });
-
-  useFrame((_, delta) => {
-    if (!isDragging && !focusIso) {
       euler.y += rotationSpeed * delta;
       api.start({ rotation: [euler.x, euler.y, 0] });
     }
-
-    const scaleSpeed = 2.0;
-    setCurrentScale((prev) => lerp(prev, targetScale, delta * scaleSpeed));
   });
 
   return (
@@ -125,7 +73,6 @@ const Globe = ({
       ref={globeRef}
       {...(bind() as any)}
       rotation={springs.rotation}
-      scale={currentScale}
       visible={dotsLoaded}
     >
       {baseSphere && <BaseSphere {...baseSphere} />}
@@ -133,30 +80,12 @@ const Globe = ({
       {!!atmosphere && <Atmosphere {...atmosphere} />}
       {!!dots && (
         <ContinentDots
-          jsonUrl={dots.jsonUrl}
-          dotColor={dots.dotColor}
-          pointSize={dots.pointSize}
           onLoaded={(isLoaded) => setDotsLoaded(isLoaded)}
           globeRef={globeRef}
-          controlsRef={dots.controlsRef}
-          cameraRef={dots.cameraRef}
-          highlightColor={dots.highlightColor}
+          {...dots}
         />
       )}
-      {!!arcs && !highlightArcs.length && <ArcGroup {...arcs} />}
-      {highlightArcs.length > 0 && !!arcs && (
-        <ArcGroup
-          key={highlightArcKey}
-          locationArray={highlightArcs}
-          color={arcs.color}
-          radius={EARTH_RADIUS}
-          firstAnimationDuration={1500}
-          animationDuration={500}
-          onProgressPersist={false}
-          onAllArcsDone="remove"
-          persistArcBehavior={undefined}
-        />
-      )}
+      {!!arcs && <ArcGroup {...arcs} />}
     </a.group>
   );
 };
