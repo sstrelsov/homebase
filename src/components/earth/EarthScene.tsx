@@ -3,8 +3,9 @@ import { Canvas } from "@react-three/fiber";
 import { Suspense, useRef } from "react";
 import * as THREE from "three";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
+import RotateController from "./controllers/RotateController";
+import ScaleOffsetController from "./controllers/ScaleOffsetController";
 import Globe from "./layers/Globe";
-import SceneScaleAndOffsets from "./layers/SceneScaleAndOffsets";
 import SceneHelpers from "./SceneHelpers";
 import { flattenAllTrips, getArcCities } from "./utils/tripMath";
 import { trips } from "./utils/trips";
@@ -43,7 +44,7 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
         state.raycaster.params.Points.threshold = 2;
       }}
     >
-      <SceneScaleAndOffsets>
+      <ScaleOffsetController>
         <OrbitControls
           ref={controlsRef}
           enableRotate={false}
@@ -90,53 +91,54 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
 
         <hemisphereLight intensity={0.7} position={[100, 100, 0]} />
         <Suspense fallback={null}>
-          <Globe
-            rotationSpeed={0.02}
-            baseSphere={{
-              radius: EARTH_RADIUS - 1,
-              color: "#533f7b",
-              emissive: "#24083c",
-              shininess: 5,
-              emissiveIntensity: 0.4,
-              specular: "#222222",
-            }}
-            dots={{
-              dotColor: "#df8cfd",
-              highlightColor: "#86d4fc",
-              pointSize: 2.5,
-              jsonUrl,
-              controlsRef,
-              cameraRef,
-            }}
-            atmosphere={{
-              radius: EARTH_RADIUS,
-              scaleFactor: 1.001,
-              color: "#f4bcf6",
-              power: 5.0,
-              intensity: 1.5,
-              opacity: 0.5,
-            }}
-            arcs={{
-              locationArray: flattenAllTrips(trips),
-              color: "#dd6ff0",
-              radius: EARTH_RADIUS,
-              animationDuration: 1000,
-              onProgressPersist: false,
-              infiniteRandom: true,
-              persistArcBehavior: undefined,
-            }}
-            cityMarkers={{
-              cities: getArcCities(flattenAllTrips(trips)),
-              radius: EARTH_RADIUS,
-              color: "#dd6ff0",
-              markerSize: 1,
-            }}
-          />
+          <RotateController rotationSpeed={0.02}>
+            <Globe
+              baseSphere={{
+                radius: EARTH_RADIUS - 1,
+                color: "#533f7b",
+                emissive: "#24083c",
+                shininess: 5,
+                emissiveIntensity: 0.4,
+                specular: "#222222",
+              }}
+              dots={{
+                dotColor: "#df8cfd",
+                highlightColor: "#86d4fc",
+                pointSize: 2.5,
+                jsonUrl,
+                controlsRef,
+                cameraRef,
+              }}
+              atmosphere={{
+                radius: EARTH_RADIUS,
+                scaleFactor: 1.001,
+                color: "#f4bcf6",
+                power: 5.0,
+                intensity: 1.5,
+                opacity: 0.5,
+              }}
+              arcs={{
+                locationArray: flattenAllTrips(trips),
+                color: "#dd6ff0",
+                radius: EARTH_RADIUS,
+                animationDuration: 1000,
+                onProgressPersist: false,
+                infiniteRandom: true,
+                persistArcBehavior: undefined,
+              }}
+              cityMarkers={{
+                cities: getArcCities(flattenAllTrips(trips)),
+                radius: EARTH_RADIUS,
+                color: "#dd6ff0",
+                markerSize: 1,
+              }}
+            />
+          </RotateController>
         </Suspense>
         {enableHelpers && (
           <SceneHelpers axesHelperRef={axesHelperRef} cameraRef={cameraRef} />
         )}
-      </SceneScaleAndOffsets>
+      </ScaleOffsetController>
     </Canvas>
   );
 };
