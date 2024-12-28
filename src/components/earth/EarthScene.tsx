@@ -4,6 +4,7 @@ import { Suspense, useRef } from "react";
 import * as THREE from "three";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
 import Globe from "./layers/Globe";
+import SceneCameraOffsets from "./layers/SceneCamera";
 import SceneHelpers from "./SceneHelpers";
 import { flattenAllTrips, getArcCities } from "./utils/tripMath";
 import { trips } from "./utils/trips";
@@ -32,31 +33,17 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
     ? "/landDots-150rad-60k.json" // more dots
     : "/landDots-150rad-30k.json"; // fewer dots
 
-  const isXLUp = useAtOrAboveBreakpoint("xl");
-  const isSmUp = useAtOrAboveBreakpoint("sm");
-
   return (
     <Canvas
       gl={{ alpha: true }}
       style={{ background: "transparent" }}
       camera={{ position: [0, 400, 900], fov: 35 }}
       onCreated={(state) => {
-        cameraRef.current = state.camera; // Store camera reference
-        state.camera.updateProjectionMatrix();
-        const offsetX = isXLUp ? state.size.width * 0.2 : 0;
-        const offsetY = isSmUp ? 0 : state.size.height * 0.07;
-        state.camera.setViewOffset(
-          /* fullWidth  */ state.size.width,
-          /* fullHeight */ state.size.height,
-          /* offsetX    */ offsetX,
-          /* offsetY    */ offsetY,
-          /* width      */ state.size.width,
-          /* height     */ state.size.height
-        );
-
+        cameraRef.current = state.camera;
         state.raycaster.params.Points.threshold = 2;
       }}
     >
+      <SceneCameraOffsets />
       <OrbitControls
         ref={controlsRef}
         enableRotate={false}
