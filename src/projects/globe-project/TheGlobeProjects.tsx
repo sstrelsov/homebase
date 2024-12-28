@@ -5,6 +5,7 @@ import {
   getArcCities,
 } from "../../components/earth/utils/tripMath";
 import { trips } from "../../components/earth/utils/trips";
+import CountryButtons from "./CountryButtons";
 
 const TheGlobeProject = () => {
   const isos = flattenAllIsos(trips);
@@ -21,7 +22,7 @@ const TheGlobeProject = () => {
         <div className="flex flex-col pointer-events-auto text-2xl items-center px-2 pb-8 sm:text-4xl sm:flex-start lg:pb-0 sm:px-0">
           <div className="flex mb-2 sm:mb-4">Travels in 2024</div>
           <div className="flex flex-row gap-2">
-            {/* <CountryButtons isos={isos} /> */}
+            <CountryButtons isos={isos} />
           </div>
         </div>
       </div>
