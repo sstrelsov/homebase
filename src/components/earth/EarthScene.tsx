@@ -2,7 +2,6 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useRef } from "react";
 import * as THREE from "three";
-import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
 import Globe from "./layers/Globe";
 import SceneHelpers from "./SceneHelpers";
@@ -23,7 +22,7 @@ interface EarthSceneProps {
  */
 const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
   // Refs for Three.js objects
-  const controlsRef = useRef<OrbitControlsImpl>(null);
+  const controlsRef = useRef<any>(null);
   const axesHelperRef = useRef<THREE.AxesHelper | null>(null);
   const cameraRef = useRef<THREE.Camera | null>(null);
   // const isoFocused = useAppSelector(selectFocusIso);

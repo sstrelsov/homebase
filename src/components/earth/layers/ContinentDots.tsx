@@ -8,7 +8,6 @@ import {
   useState,
 } from "react";
 import * as THREE from "three";
-import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { selectFocusIso } from "../../../store/globeSlice";
 import { useAppSelector } from "../../../store/hooks";
 import { DotInfo } from "../../../types/earthTypes";
@@ -23,7 +22,7 @@ export interface ContinentDotsProps {
   highlightColor: string;
   onLoaded?: (loaded: boolean) => void;
   globeRef?: RefObject<THREE.Group | null>;
-  controlsRef?: RefObject<OrbitControlsImpl | null>;
+  controlsRef?: RefObject<any>;
   cameraRef?: RefObject<THREE.Camera | null>;
 }
 

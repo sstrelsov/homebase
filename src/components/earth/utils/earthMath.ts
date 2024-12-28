@@ -1,6 +1,5 @@
 import gsap from "gsap";
 import * as THREE from "three";
-import { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { DotInfo } from "../../../types/earthTypes";
 
 interface GetCountryCentroidProps {
@@ -34,7 +33,7 @@ export const getCountryCentroid = ({
 
 interface FlyCameraToPointProps {
   camera: THREE.Camera;
-  controls: OrbitControlsImpl;
+  controls: any;
   targetPos: THREE.Vector3;
   distanceOffset?: number;
 }
@@ -83,7 +82,7 @@ export function flyCameraToCountry({
   distanceOffset = 300,
 }: {
   camera: THREE.Camera;
-  controls: OrbitControlsImpl;
+  controls: any;
   globe: THREE.Group;
   isoA3: string;
   dots: DotInfo[];

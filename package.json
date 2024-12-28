@@ -21,36 +21,34 @@
     "@types/react-dom": "^18.0.11",
     "@types/react-router-dom": "^5.3.3",
     "@types/three": "^0.171.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "c8": "^10.1.3",
     "d3-geo": "^3.1.1",
     "framer-motion": "^11.15.0",
     "gh-pages": "^6.2.0",
     "gsap": "^3.12.5",
+    "jsdom": "^25.0.1",
     "r3f-perf": "^7.2.3",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-flagpack": "^2.0.6",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.1.0",
-    "react-scripts": "5.0.1",
     "react-use-gesture": "^9.1.3",
     "tailwindcss": "^3.4.17",
     "three": "^0.171.0",
     "ts-jest": "^29.2.5",
+    "vite": "^6.0.6",
+    "vite-plugin-svgr": "^4.3.0",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^2.1.8",
     "web-vitals": "^4.2.4"
   },
   "scripts": {
     "postinstall": "react-flagpack",
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "local-ip": "node -e \"const os=require('os');Object.values(os.networkInterfaces()).flat().filter(a=>a.family==='IPv4'&&!a.internal).forEach(a=>console.log('http://'+a.address+':3000'));\"",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "start": "vite",
+    "build": "tsc && vite build",
+    "serve": "vite preview"
   },
   "browserslist": {
     "production": [
