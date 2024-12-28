@@ -36,12 +36,6 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
   const isXLUp = useAtOrAboveBreakpoint("xl");
   const isSmUp = useAtOrAboveBreakpoint("sm");
 
-  // useEffect(() => {
-  //   if (!!isoFocused) {
-  //     // Get markers from cities const cities = getArcCities(get)
-  //   }
-  // }, [isoFocused]);
-
   return (
     <Canvas
       gl={{ alpha: true }}
@@ -66,6 +60,7 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
     >
       <OrbitControls
         ref={controlsRef}
+        enableRotate={false}
         enableDamping={true}
         minDistance={300}
         minPolarAngle={0.3} // ~17 degrees
@@ -73,37 +68,41 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
         enablePan={false}
         maxDistance={MAX_ZOOMED_OUT}
       />
+      {/* 1) Key Light (strongest, casts shadows) */}
       <directionalLight
-        // Light 1 — maybe a pinkish tone
+        intensity={1.6}
+        color="#b3e2ff" // bright, cool blue
+        position={[300, 300, 300]}
+      />
+
+      {/* Fill Light: from left-ish side, weaker */}
+      <directionalLight
         intensity={1.5}
-        color="#0091ff"
-        position={[300, 100, 500]}
+        color="#ff7a3d"
+        position={[-400, -100, 100]}
       />
+
+      {/* Rim Light: behind the globe for silhouette & drama */}
       <directionalLight
-        // Light 2 — perhaps a softer purple
-        intensity={1.0}
-        color="#444aff"
-        position={[-300, 200, -200]}
+        intensity={1.8}
+        color="#ff7a3d"
+        position={[300, 100, -300]}
       />
+
+      {/* Kicker Light: from below or another interesting angle */}
       <directionalLight
-        // Light 3 — cooler blue from another angle
-        intensity={0.8}
-        color="#00aaff"
-        position={[0, -300, 200]}
+        intensity={1.4}
+        color="#8066ff"
+        position={[-200, -200, -200]}
       />
-      <directionalLight
-        // Light 4 — a warm side fill
-        intensity={0.7}
-        color="#ff8800"
-        position={[100, 300, 100]}
-      />
-      <hemisphereLight intensity={0.5} position={[100, 100, 0]} />
+
+      <hemisphereLight intensity={0.7} position={[100, 100, 0]} />
       <Suspense fallback={null}>
         <Globe
           rotationSpeed={0.0002}
           radius={EARTH_RADIUS}
           dots={{
-            dotColor: "#bb00ff",
+            dotColor: "#df8cfd",
             highlightColor: "#86d4fc",
             pointSize: 2.5,
             jsonUrl,
