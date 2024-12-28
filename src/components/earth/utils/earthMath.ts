@@ -62,7 +62,7 @@ export const flyCameraToPoint = ({
     y: newCamPos.y,
     z: newCamPos.z,
     duration: 1.5,
-    ease: "power1",
+    ease: "power2.inOut",
     onUpdate: () => {
       controls.update();
     },
