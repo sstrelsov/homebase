@@ -5,61 +5,23 @@ import { latLongToVector3 } from "../../../../utils/arcs";
 import LandingEffect from "./LandingEffect";
 
 interface ArcProps {
-  /**
-   * Color of the arc.
-   */
   color: string;
-  /**
-   * Starting latitude in degrees.
-   */
   startLat: number;
-  /**
-   * Starting longitude in degrees.
-   */
   startLon: number;
-  /**
-   * Ending latitude in degrees.
-   */
   endLat: number;
-  /**
-   * Ending longitude in degrees.
-   */
   endLon: number;
-  /**
-   * Radius of the sphere on which the arc is drawn.
-   */
   radius: number;
-  /**
-   * Duration of the arc animation in milliseconds.
-   * Defaults to 2500ms.
-   */
   animationDuration?: number;
-  /**
-   * Callback function triggered when the arc animation completes.
-   */
   onDone?: () => void;
-  /**
-   * Whether the arc persists after drawing or retracts in a two-phase animation.
-   * Defaults to `false`.
-   */
   onProgressPersist?: boolean;
 }
 
-/**
- * `PartialCurve` extends a base `THREE.Curve` to only render a section (partial curve)
- * between `minT` and `maxT`.
- */
+/** "Two-phase" partial curve for retractable arcs. */
 class PartialCurve extends THREE.Curve<THREE.Vector3> {
   baseCurve: THREE.Curve<THREE.Vector3>;
   minT: number;
   maxT: number;
 
-  /**
-   * Constructs a `PartialCurve` from a base curve and fractional range [minT, maxT].
-   * @param baseCurve The base curve (e.g., `THREE.CubicBezierCurve3`) to extract from.
-   * @param minT Start fraction of the curve (0.0–1.0).
-   * @param maxT End fraction of the curve (0.0–1.0).
-   */
   constructor(
     baseCurve: THREE.Curve<THREE.Vector3>,
     minT: number,
@@ -71,23 +33,12 @@ class PartialCurve extends THREE.Curve<THREE.Vector3> {
     this.maxT = maxT;
   }
 
-  /**
-   * Computes a point on the partial curve given `t` (fractional position).
-   * @param t Fraction along the partial curve (0.0–1.0).
-   * @param optionalTarget Optional target vector for storing the result.
-   * @returns The computed point as a `THREE.Vector3`.
-   */
   getPoint(t: number, optionalTarget?: THREE.Vector3) {
     const u = this.minT + (this.maxT - this.minT) * t;
     return this.baseCurve.getPoint(u, optionalTarget);
   }
 }
 
-/**
- * `Arc` renders a curved path between two geographic points on a sphere.
- * - Animates the arc over time, optionally showing a landing effect upon completion.
- * - Supports both persistent and retractable animations.
- */
 const Arc = ({
   color,
   startLat,
@@ -121,6 +72,8 @@ const Arc = ({
       .addVectors(startVec, endVec)
       .multiplyScalar(0.5);
     const distance = startVec.distanceTo(endVec);
+    // Adjust how high the arc bulges upwards;
+    // here we just do arcHeight ~ distance
     const arcHeight = distance;
     midPoint.setLength(midPoint.length() + arcHeight);
 
@@ -135,7 +88,6 @@ const Arc = ({
     return new THREE.TubeGeometry(fullCurve, 64, 0.5, 8, false);
   }, [fullCurve]);
 
-  // Store that geometry in geometryRef so we can .setDrawRange() on it
   useMemo(() => {
     geometryRef.current = tubeGeometry;
   }, [tubeGeometry]);
@@ -148,47 +100,37 @@ const Arc = ({
     if (t > 1) t = 1;
 
     if (onProgressPersist) {
-      // Single-phase (persist mode), 0->1, using setDrawRange
+      // Single-phase: 0->1 growth
       const indexCount = geometryRef.current.index
         ? geometryRef.current.index.count
         : geometryRef.current.attributes.position.count;
       const drawCount = Math.floor(indexCount * t);
       geometryRef.current.setDrawRange(0, drawCount);
 
-      // Optional: show the effect at t=1 in persist mode
       if (t >= 1) {
         geometryRef.current.setDrawRange(0, indexCount);
-        // If you want the landing effect as soon as we fully reach the end:
-        if (!showLandingEffect) {
-          setShowLandingEffect(true);
-        }
+        if (!showLandingEffect) setShowLandingEffect(true);
         setDone(true);
         onDone?.();
       }
     } else {
-      // Two-phase: 0..0.5 => extend, 0.5..1 => retract
+      // Two-phase: extend in [0..0.5], retract in [0.5..1]
       if (!meshRef.current) return;
 
       let extendP = 0;
       let retractP = 0;
 
       if (t <= 0.5) {
-        // extending
         extendP = t / 0.5; // 0..1
         retractP = 0;
       } else {
-        // retracting
         extendP = 1;
         retractP = (t - 0.5) / 0.5; // 0..1
-
-        // As soon as the arc hits the end (t >= 0.5) show landing effect
-        if (!showLandingEffect) {
-          setShowLandingEffect(true);
-        }
+        if (!showLandingEffect) setShowLandingEffect(true);
       }
 
-      const startParam = retractP; // grows 0..1 in second half
-      const endParam = extendP; // 0..1 in first half, pinned at 1 in second half
+      const startParam = retractP;
+      const endParam = extendP;
 
       if (endParam <= startParam) {
         meshRef.current.visible = false;
@@ -197,7 +139,6 @@ const Arc = ({
         const partialCurve = new PartialCurve(fullCurve, startParam, endParam);
         const newGeom = new THREE.TubeGeometry(partialCurve, 64, 0.5, 8, false);
 
-        // Dispose old geometry to avoid leaks
         if (meshRef.current.geometry) {
           (meshRef.current.geometry as THREE.BufferGeometry).dispose();
         }
@@ -205,7 +146,6 @@ const Arc = ({
       }
 
       if (t >= 1) {
-        // fully done
         meshRef.current.visible = false;
         setDone(true);
         onDone?.();
@@ -216,14 +156,12 @@ const Arc = ({
   return (
     <>
       <mesh ref={meshRef}>
-        {/* For persist arcs, we pass in the stable geometryRef */}
-        {!!onProgressPersist ? (
+        {/* For persist arcs, we reuse the stable geometry */}
+        {onProgressPersist && (
           <primitive object={tubeGeometry} attach="geometry" />
-        ) : null}
+        )}
         <meshBasicMaterial color={color} transparent opacity={0.9} />
       </mesh>
-
-      {/* Show landing effect when showLandingEffect = true */}
       {showLandingEffect && (
         <LandingEffect
           position={endVec}

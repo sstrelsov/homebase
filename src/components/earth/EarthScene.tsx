@@ -3,6 +3,9 @@ import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useRef } from "react";
 import * as THREE from "three";
+import { trips } from "../../data/trips";
+import { CityLocation } from "../../types/earthTypes";
+import { flattenAllTrips, getArcsFromLegs } from "../../utils/arcs";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
 import CameraFocusController from "./controllers/CameraFocusController";
 import RotateController from "./controllers/RotateController";
@@ -14,14 +17,16 @@ import CityMarkers from "./layers/CityMarkerGroup";
 import LandDots from "./layers/LandDots";
 import SceneHelpers from "./SceneHelpers";
 import { useLandDotsData } from "./useLandDotsData";
-import { flattenAllTrips, getArcCities } from "./utils/tripMath";
-import { trips } from "./utils/trips";
 
 const MAX_ZOOMED_OUT = 600;
 export const EARTH_RADIUS = 150;
 
 interface EarthSceneProps {
   enableHelpers?: boolean;
+  focusCameraOnCountry?: string;
+  spotlightCountries?: string[];
+  spotlightCities?: CityLocation[];
+  spotlightMiles?: CityLocation[];
 }
 
 /**
@@ -29,7 +34,13 @@ interface EarthSceneProps {
  * - Sets up a Three.js Canvas with OrbitControls and performance stats.
  * - Renders the `Globe` component and optional post-processing (ManualBloom).
  */
-const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
+const EarthScene = ({
+  enableHelpers,
+  focusCameraOnCountry,
+  spotlightCities,
+  spotlightCountries,
+  spotlightMiles,
+}: EarthSceneProps) => {
   // Refs for Three.js objects
   const controlsRef = useRef<any>(null);
   const axesHelperRef = useRef<THREE.AxesHelper | null>(null);
@@ -40,7 +51,7 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
   const { isLoading, dots } = useLandDotsData(
     `/landDots-150rad-${isSmallUp ? "60" : "30"}k.json`
   );
-
+  console.log(spotlightCities);
   return (
     <Canvas
       gl={{ alpha: true }}
@@ -103,6 +114,7 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
             controlsRef={controlsRef}
             globeRef={globeRef}
             dots={dots}
+            focusIso={focusCameraOnCountry}
           >
             <RotateController rotationSpeed={0.02}>
               <a.group ref={globeRef} visible={!isLoading}>
@@ -116,9 +128,10 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
                 />
                 <LandDots
                   dotColor="#df8cfd"
-                  highlightColor="#86d4fc"
+                  highlightColor="#b908f9"
                   dots={dots}
                   pointSize={2.5}
+                  spotlightCountries={spotlightCountries}
                 />
                 <Atmosphere
                   radius={EARTH_RADIUS}
@@ -128,21 +141,28 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
                   intensity={1.5}
                   opacity={0.5}
                 />
-                <ArcGroup
-                  locationArray={flattenAllTrips(trips)}
-                  color="#dd6ff0"
-                  radius={EARTH_RADIUS}
-                  animationDuration={1000}
-                  onProgressPersist={false}
-                  infiniteRandom={true}
-                  persistArcBehavior={undefined}
-                />
-                <CityMarkers
-                  cities={getArcCities(flattenAllTrips(trips))}
-                  radius={EARTH_RADIUS}
-                  color="#dd6ff0"
-                  markerSize={1}
-                />
+                {!spotlightCountries && !spotlightCities && (
+                  <ArcGroup
+                    locationArray={
+                      !!spotlightMiles
+                        ? getArcsFromLegs(spotlightMiles)
+                        : flattenAllTrips(trips)
+                    }
+                    color="#dd6ff0"
+                    radius={EARTH_RADIUS}
+                    animationDuration={1000}
+                    onProgressPersist={!!spotlightMiles}
+                    freeMode={!spotlightMiles}
+                  />
+                )}
+                {!!spotlightCities && (
+                  <CityMarkers
+                    cities={spotlightCities}
+                    radius={EARTH_RADIUS}
+                    color="#dd6ff0"
+                    markerSize={1}
+                  />
+                )}
               </a.group>
             </RotateController>
           </CameraFocusController>

@@ -63,6 +63,7 @@ export const getArcsFromTrip = (trip: Trip): ArcLocation[] => {
     arcs.push({
       start: legs[i],
       end: legs[i + 1],
+      id: crypto.randomUUID(),
     });
   }
   return arcs;
@@ -78,6 +79,7 @@ export const getArcsFromLegs = (legs: CityLocation[]): ArcLocation[] => {
     arcs.push({
       start: legs[i],
       end: legs[i + 1],
+      id: crypto.randomUUID(),
     });
   }
   return arcs;

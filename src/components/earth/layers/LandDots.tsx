@@ -6,7 +6,7 @@ import { DotInfo } from "../../../types/earthTypes";
 
 export interface LandDotsProps {
   dots: DotInfo[]; // <--- We receive the data from outside
-  highlightIso?: string; // <--- Which country is highlighted (optional)
+  spotlightCountries?: string[]; // <--- Array of countries to highlight
   pointSize: number;
   dotColor: string;
   highlightColor: string;
@@ -18,7 +18,7 @@ export interface LandDotsProps {
  */
 const LandDots = ({
   dots,
-  highlightIso,
+  spotlightCountries,
   pointSize,
   dotColor,
   highlightColor,
@@ -42,7 +42,7 @@ const LandDots = ({
 
   // Build color array
   const colors = useMemo(() => {
-    return new Float32Array(dots.flatMap((_) => [baseR, baseG, baseB]));
+    return new Float32Array(dots.flatMap(() => [baseR, baseG, baseB]));
   }, [dots, baseR, baseG, baseB]);
 
   // We'll store a ref to the color attribute so we can update it each frame
@@ -57,7 +57,8 @@ const LandDots = ({
       const dot = dots[i];
       const offset = i * 3;
 
-      if (highlightIso && highlightIso === dot.isoA3) {
+      // If dot's isoA3 is in spotlightCountries, use highlight color, else base color
+      if (spotlightCountries && spotlightCountries.includes(dot.isoA3)) {
         colorArray[offset] = highlightR;
         colorArray[offset + 1] = highlightG;
         colorArray[offset + 2] = highlightB;

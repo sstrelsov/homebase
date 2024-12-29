@@ -1,8 +1,6 @@
 // DotFocusController.tsx
 import React, { useEffect } from "react";
 import * as THREE from "three";
-import { selectFocusIso } from "../../../store/globeSlice";
-import { useAppSelector } from "../../../store/hooks";
 import { DotInfo } from "../../../types/earthTypes";
 import { flyCameraToPoint, getCountryCentroid } from "../../../utils/earthMath";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
@@ -13,6 +11,7 @@ interface DotFocusControllerProps {
   globeRef: React.RefObject<THREE.Group | null>;
   dots: DotInfo[]; // The array of loaded dot data
   children: React.ReactNode;
+  focusIso?: string;
 }
 
 /**
@@ -25,8 +24,8 @@ const CameraFocusController = ({
   globeRef,
   dots,
   children,
+  focusIso,
 }: DotFocusControllerProps) => {
-  const focusIso = useAppSelector(selectFocusIso);
   const isSmUp = useAtOrAboveBreakpoint("sm");
 
   useEffect(() => {

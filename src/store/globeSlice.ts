@@ -1,26 +1,16 @@
 // globeSlice.ts
-import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-import { RootState } from "./store";
+import { createSlice } from "@reduxjs/toolkit";
 
-interface GlobeState {
-  focusIso?: string;
-}
+interface GlobeState {}
 
-const initialState: GlobeState = {
-  focusIso: undefined,
-};
+const initialState: GlobeState = {};
 
 const globeSlice = createSlice({
   name: "globe",
   initialState,
-  reducers: {
-    setFocusIso: (state, action: PayloadAction<string | undefined>) => {
-      state.focusIso = action.payload;
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {},
 });
 
-export const { setFocusIso } = globeSlice.actions;
-export const selectFocusIso = (state: RootState) => state.globe.focusIso;
+export const {} = globeSlice.actions;
 export default globeSlice.reducer;

@@ -18,6 +18,10 @@ export interface ArcLocation {
    * End location of the arc.
    */
   end: CityLocation;
+  /**
+   * Unique ID for this arc.
+   */
+  id: string;
 }
 
 export interface CityLocation {

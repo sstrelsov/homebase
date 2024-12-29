@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import TheGlobeProject from "../../projects/globe-project/TheGlobeProjects";
+import TheGlobeProject from "../../projects/globe-project/TheGlobeProject";
 
 const ProjectDetails = () => {
   const { projectSlug } = useParams();

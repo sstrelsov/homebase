@@ -1,18 +1,13 @@
 import { Button } from "@nextui-org/react";
 import Flag from "react-flagpack";
-import { selectFocusIso, setFocusIso } from "../../store/globeSlice";
-import { useAppDispatch, useAppSelector } from "../../store/hooks";
 
 interface CountryButtonProps {
   isos: string[] /** Must be alpha-3 */;
+  onClick?: (iso: string) => void;
 }
-const CountryButtons = ({ isos }: CountryButtonProps) => {
-  const dispatch = useAppDispatch();
-  const focusedISO = useAppSelector(selectFocusIso);
+const CountryButtons = ({ isos, onClick }: CountryButtonProps) => {
   const handleClick = (iso: string) => {
-    iso === focusedISO
-      ? dispatch(setFocusIso(undefined))
-      : dispatch(setFocusIso(iso));
+    onClick?.(iso);
   };
   return (
     <>
