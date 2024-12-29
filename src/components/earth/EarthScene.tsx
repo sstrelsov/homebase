@@ -1,12 +1,19 @@
+import { a } from "@react-spring/three";
 import { OrbitControls } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { Suspense, useRef } from "react";
 import * as THREE from "three";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
+import CameraFocusController from "./controllers/CameraFocusController";
 import RotateController from "./controllers/RotateController";
 import ScaleOffsetController from "./controllers/ScaleOffsetController";
-import Globe from "./layers/Globe";
+import ArcGroup from "./layers/arcs/ArcGroup";
+import Atmosphere from "./layers/Atmosphere";
+import BaseSphere from "./layers/BaseSphere";
+import CityMarkers from "./layers/CityMarkerGroup";
+import LandDots from "./layers/LandDots";
 import SceneHelpers from "./SceneHelpers";
+import { useLandDotsData } from "./useLandDotsData";
 import { flattenAllTrips, getArcCities } from "./utils/tripMath";
 import { trips } from "./utils/trips";
 
@@ -27,12 +34,12 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
   const controlsRef = useRef<any>(null);
   const axesHelperRef = useRef<THREE.AxesHelper | null>(null);
   const cameraRef = useRef<THREE.Camera | null>(null);
-  // const isoFocused = useAppSelector(selectFocusIso);
-
+  const globeRef = useRef<THREE.Group>(null);
   const isSmallUp = useAtOrAboveBreakpoint("sm");
-  const jsonUrl = isSmallUp
-    ? "/landDots-150rad-60k.json" // more dots
-    : "/landDots-150rad-30k.json"; // fewer dots
+
+  const { isLoading, dots } = useLandDotsData(
+    `/landDots-150rad-${isSmallUp ? "60" : "30"}k.json`
+  );
 
   return (
     <Canvas
@@ -91,49 +98,54 @@ const EarthScene = ({ enableHelpers }: EarthSceneProps) => {
 
         <hemisphereLight intensity={0.7} position={[100, 100, 0]} />
         <Suspense fallback={null}>
-          <RotateController rotationSpeed={0.02}>
-            <Globe
-              baseSphere={{
-                radius: EARTH_RADIUS - 1,
-                color: "#533f7b",
-                emissive: "#24083c",
-                shininess: 5,
-                emissiveIntensity: 0.4,
-                specular: "#222222",
-              }}
-              dots={{
-                dotColor: "#df8cfd",
-                highlightColor: "#86d4fc",
-                pointSize: 2.5,
-                jsonUrl,
-                controlsRef,
-                cameraRef,
-              }}
-              atmosphere={{
-                radius: EARTH_RADIUS,
-                scaleFactor: 1.001,
-                color: "#f4bcf6",
-                power: 5.0,
-                intensity: 1.5,
-                opacity: 0.5,
-              }}
-              arcs={{
-                locationArray: flattenAllTrips(trips),
-                color: "#dd6ff0",
-                radius: EARTH_RADIUS,
-                animationDuration: 1000,
-                onProgressPersist: false,
-                infiniteRandom: true,
-                persistArcBehavior: undefined,
-              }}
-              cityMarkers={{
-                cities: getArcCities(flattenAllTrips(trips)),
-                radius: EARTH_RADIUS,
-                color: "#dd6ff0",
-                markerSize: 1,
-              }}
-            />
-          </RotateController>
+          <CameraFocusController
+            cameraRef={cameraRef}
+            controlsRef={controlsRef}
+            globeRef={globeRef}
+            dots={dots}
+          >
+            <RotateController rotationSpeed={0.02}>
+              <a.group ref={globeRef} visible={!isLoading}>
+                <BaseSphere
+                  radius={EARTH_RADIUS - 1}
+                  color="#533f7b"
+                  emissive="#24083c"
+                  emissiveIntensity={0.4}
+                  shininess={5}
+                  specular="#222222"
+                />
+                <LandDots
+                  dotColor="#df8cfd"
+                  highlightColor="#86d4fc"
+                  dots={dots}
+                  pointSize={2.5}
+                />
+                <Atmosphere
+                  radius={EARTH_RADIUS}
+                  scaleFactor={1.001}
+                  color="#f4bcf6"
+                  power={5.0}
+                  intensity={1.5}
+                  opacity={0.5}
+                />
+                <ArcGroup
+                  locationArray={flattenAllTrips(trips)}
+                  color="#dd6ff0"
+                  radius={EARTH_RADIUS}
+                  animationDuration={1000}
+                  onProgressPersist={false}
+                  infiniteRandom={true}
+                  persistArcBehavior={undefined}
+                />
+                <CityMarkers
+                  cities={getArcCities(flattenAllTrips(trips))}
+                  radius={EARTH_RADIUS}
+                  color="#dd6ff0"
+                  markerSize={1}
+                />
+              </a.group>
+            </RotateController>
+          </CameraFocusController>
         </Suspense>
         {enableHelpers && (
           <SceneHelpers axesHelperRef={axesHelperRef} cameraRef={cameraRef} />
