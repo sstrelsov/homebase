@@ -10,16 +10,6 @@ export const projects = [
   //   name: "TBD",
   //   date: "TBD",
   // },
-  // {
-  //   key: "3",
-  //   name: "TBD",
-  //   date: "TBD",
-  // },
-  // {
-  //   key: "4",
-  //   name: "TBD",
-  //   date: "TBD",
-  // },
 ];
 
 export const columns = [

@@ -1,6 +1,6 @@
 import gsap from "gsap";
 import * as THREE from "three";
-import { DotInfo } from "../../../types/earthTypes";
+import { DotInfo } from "../types/earthTypes";
 
 interface GetCountryCentroidProps {
   isoA3: string;
@@ -67,49 +67,3 @@ export const flyCameraToPoint = ({
     },
   });
 };
-
-/** ------------------------------------------------------------------
- *  (OPTIONAL) HELPER #1: Fly camera to a specific ISO code directly.
- * ------------------------------------------------------------------ */
-// This function is purely optional — it’s basically a convenience that
-// wraps getCountryCentroid and flyCameraToPoint together.
-export function flyCameraToCountry({
-  camera,
-  controls,
-  globe,
-  isoA3,
-  dots,
-  distanceOffset = 300,
-}: {
-  camera: THREE.Camera;
-  controls: any;
-  globe: THREE.Group;
-  isoA3: string;
-  dots: DotInfo[];
-  distanceOffset?: number;
-}) {
-  const centroid = getCountryCentroid({ isoA3, dots });
-  if (!centroid) return;
-  const worldPos = centroid.clone();
-  globe.localToWorld(worldPos);
-  flyCameraToPoint({
-    camera,
-    controls,
-    targetPos: worldPos,
-    distanceOffset,
-  });
-}
-
-/** ------------------------------------------------------------------
- *  (OPTIONAL) HELPER #2: Sort & get the nearest intersection from a pointer event.
- * ------------------------------------------------------------------ */
-export function getNearestIntersection(
-  e: THREE.Event & { intersections?: THREE.Intersection[] }
-): THREE.Intersection | null {
-  if (!e.intersections || e.intersections.length === 0) {
-    return null;
-  }
-  // Sort by distance ascending
-  const sorted = e.intersections.sort((a, b) => a.distance - b.distance);
-  return sorted[0];
-}

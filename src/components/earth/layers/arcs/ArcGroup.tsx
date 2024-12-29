@@ -5,7 +5,7 @@ import {
   CityLocation,
   OnAllArcsDoneBehavior,
 } from "../../../../types/earthTypes";
-import { getArcCities } from "../../utils/tripMath";
+import { getArcCities } from "../../../../utils/arcs";
 import AllArcsStaticMesh from "./AllArcsStaticMesh";
 import ArcLight from "./ArcLight";
 

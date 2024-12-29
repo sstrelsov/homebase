@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { CityLocation } from "../../../types/earthTypes";
-import { latLongToVector3 } from "../utils/arcs";
+import { latLongToVector3 } from "../../../utils/arcs";
 import CityMarker from "./helpers/CityMarker";
 
 export interface CityMarkersProps {

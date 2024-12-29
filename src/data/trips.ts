@@ -1,4 +1,4 @@
-import { Trip } from "../../../types/earthTypes";
+import { Trip } from "../types/earthTypes";
 
 export const trips: Trip[] = [
   {

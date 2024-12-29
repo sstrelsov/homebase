@@ -1,5 +1,5 @@
 import * as THREE from "three";
-
+import { ArcLocation, CityLocation, Trip } from "../types/earthTypes";
 /**
  * Convert latitude & longitude to a THREE.Vector3 on a sphere.
  * @param lat   latitude in degrees
@@ -53,4 +53,62 @@ export const buildAllArcs = (
   );
 
   return new THREE.TubeGeometry(curve, 64, 0.5, 8, false);
+};
+
+export const getArcsFromTrip = (trip: Trip): ArcLocation[] => {
+  const arcs: ArcLocation[] = [];
+  const legs = trip.legs; // an array of CityLocation
+
+  for (let i = 0; i < legs.length - 1; i++) {
+    arcs.push({
+      start: legs[i],
+      end: legs[i + 1],
+    });
+  }
+  return arcs;
+};
+
+/**
+ * Converts an ordered list of city stops [C0, C1, C2, ... Cn]
+ * into [Arc(C0->C1), Arc(C1->C2), ..., Arc(Cn-1->Cn)].
+ */
+export const getArcsFromLegs = (legs: CityLocation[]): ArcLocation[] => {
+  const arcs: ArcLocation[] = [];
+  for (let i = 0; i < legs.length - 1; i++) {
+    arcs.push({
+      start: legs[i],
+      end: legs[i + 1],
+    });
+  }
+  return arcs;
+};
+
+/**
+ * Flatten arcs from all trips into a single array.
+ */
+export const flattenAllTrips = (trips: Trip[]): ArcLocation[] => {
+  return trips.flatMap((trip) => getArcsFromLegs(trip.legs));
+};
+
+/**
+ * Each arc has start + end city.
+ * We want to produce [Arc0.start, Arc0.end, Arc1.end, Arc2.end, ...].
+ */
+export const getArcCities = (arcs: ArcLocation[]): CityLocation[] => {
+  if (arcs.length === 0) return [];
+
+  const cities: CityLocation[] = [];
+  // Push the first arc's start city
+  cities.push(arcs[0].start);
+
+  // Then for each arc, push the end city
+  for (let i = 0; i < arcs.length; i++) {
+    cities.push(arcs[i].end);
+  }
+
+  return cities;
+};
+
+export const flattenAllIsos = (trips: Trip[]): string[] => {
+  return Array.from(new Set(trips.flatMap((trip) => trip.countries ?? [])));
 };

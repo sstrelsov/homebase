@@ -4,8 +4,8 @@ import * as THREE from "three";
 import { selectFocusIso } from "../../../store/globeSlice";
 import { useAppSelector } from "../../../store/hooks";
 import { DotInfo } from "../../../types/earthTypes";
+import { flyCameraToPoint, getCountryCentroid } from "../../../utils/earthMath";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
-import { flyCameraToPoint, getCountryCentroid } from "../utils/earthMath";
 
 interface DotFocusControllerProps {
   cameraRef: React.RefObject<THREE.Camera | null>;
