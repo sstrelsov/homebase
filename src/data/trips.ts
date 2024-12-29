@@ -15,6 +15,7 @@ export const trips: Trip[] = [
     legs: [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
       { lat: 32.7767, lon: -96.797, name: "Dallas", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
   {
@@ -28,6 +29,7 @@ export const trips: Trip[] = [
     legs: [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
       { lat: 37.7749, lon: -122.4194, name: "San Francisco", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
   {
@@ -41,6 +43,7 @@ export const trips: Trip[] = [
     legs: [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
       { lat: 38.2527, lon: -85.7585, name: "Louisville", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
   {
@@ -54,6 +57,7 @@ export const trips: Trip[] = [
     legs: [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
       { lat: 47.6062, lon: -122.3321, name: "Seattle", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
   {
@@ -73,6 +77,7 @@ export const trips: Trip[] = [
       { lat: 4.711, lon: -74.0721, name: "Bogota", iso: "COL" },
       { lat: 4.2702, lon: -73.4772, name: "Cumaral", iso: "COL" },
       { lat: 10.391, lon: -75.4794, name: "Cartagena", iso: "COL" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
   {
@@ -86,6 +91,7 @@ export const trips: Trip[] = [
     legs: [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
       { lat: 30.3935, lon: -86.4958, name: "Destin", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
   {
@@ -99,6 +105,7 @@ export const trips: Trip[] = [
     legs: [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
       { lat: 37.3382, lon: -121.8863, name: "San Jose, CA", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
   {
@@ -116,6 +123,7 @@ export const trips: Trip[] = [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
       { lat: 36.1627, lon: -86.7816, name: "Nashville", iso: "USA" },
       { lat: 38.2527, lon: -85.7585, name: "Louisville", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
   {
@@ -135,6 +143,7 @@ export const trips: Trip[] = [
       { lat: 47.3769, lon: 8.5417, name: "Zurich", iso: "CHE" },
       { lat: 55.6761, lon: 12.5683, name: "Copenhagen", iso: "DNK" },
       { lat: 46.948, lon: 7.4474, name: "Bern", iso: "CHE" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
   {
@@ -148,6 +157,7 @@ export const trips: Trip[] = [
     legs: [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
       { lat: 64.1466, lon: -21.9426, name: "Reykjavik", iso: "ISL" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
   {
@@ -161,6 +171,7 @@ export const trips: Trip[] = [
     legs: [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
       { lat: 38.2527, lon: -85.7585, name: "Louisville", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
   {
@@ -174,6 +185,7 @@ export const trips: Trip[] = [
     legs: [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
       { lat: 38.2527, lon: -85.7585, name: "Louisville", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
     ],
   },
 ];
