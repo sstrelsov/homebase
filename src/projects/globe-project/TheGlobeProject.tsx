@@ -78,12 +78,20 @@ const TheGlobeProject = () => {
     } else {
       setSpotlightCities(cities);
       setSpotlightMiles(undefined);
+      setSpotlightCountries(undefined);
+      setShowFlags(false);
     }
   };
 
   const handleMilesStatClick = () => {
-    console.log("Clicked miles stats");
-    !!spotlightMiles ? setSpotlightMiles(undefined) : setSpotlightMiles(cities);
+    if (!!spotlightMiles) {
+      setSpotlightMiles(undefined);
+    } else {
+      setSpotlightMiles(cities);
+      setSpotlightCities(undefined);
+      setSpotlightCountries(undefined);
+      setShowFlags(false);
+    }
   };
 
   return (
