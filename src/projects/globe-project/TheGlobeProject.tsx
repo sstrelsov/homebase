@@ -37,7 +37,7 @@ const TheGlobeProject = () => {
   >(undefined);
 
   // Earth camera focus
-  const [cameraOnCountry, setCameraOnCountry] = useState<string | undefined>(
+  const [focusOnCountry, setFocusOnCountry] = useState<string | undefined>(
     undefined
   );
   /**
@@ -45,7 +45,7 @@ const TheGlobeProject = () => {
    */
   const handleCountryStatClick = () => {
     setShowFlags(!showFlags);
-    setCameraOnCountry(undefined);
+    setFocusOnCountry(undefined);
     setSpotlightMiles(undefined);
     if (!showFlags) {
       setSpotlightCountries(isos);
@@ -59,15 +59,15 @@ const TheGlobeProject = () => {
    * @param iso The ISO code of the country to toggle
    */
   const handleFlagClick = (iso: string) => {
-    if (!cameraOnCountry) {
+    if (!focusOnCountry) {
       setSpotlightCountries([iso]);
-      setCameraOnCountry(iso);
-    } else if (!!cameraOnCountry && cameraOnCountry === iso) {
+      setFocusOnCountry(iso);
+    } else if (!!focusOnCountry && focusOnCountry === iso) {
       setSpotlightCountries(isos);
-      setCameraOnCountry(undefined);
+      setFocusOnCountry(undefined);
     } else {
       setSpotlightCountries([iso]);
-      setCameraOnCountry(iso);
+      setFocusOnCountry(iso);
     }
   };
 
@@ -79,6 +79,7 @@ const TheGlobeProject = () => {
       setSpotlightCities(cities);
       setSpotlightMiles(undefined);
       setSpotlightCountries(undefined);
+      setFocusOnCountry(undefined);
       setShowFlags(false);
     }
   };
@@ -90,6 +91,7 @@ const TheGlobeProject = () => {
       setSpotlightMiles(cities);
       setSpotlightCities(undefined);
       setSpotlightCountries(undefined);
+      setFocusOnCountry(undefined);
       setShowFlags(false);
     }
   };
@@ -100,7 +102,7 @@ const TheGlobeProject = () => {
       <div className="absolute inset-0 pointer-events-auto">
         <EarthScene
           spotlightCountries={spotlightCountries}
-          focusCameraOnCountry={cameraOnCountry}
+          focusIso={focusOnCountry}
           spotlightCities={spotlightCities}
           spotlightMiles={spotlightMiles}
         />

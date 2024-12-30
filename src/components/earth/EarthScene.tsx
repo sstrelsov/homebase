@@ -7,8 +7,10 @@ import { trips } from "../../data/trips";
 import { CityLocation } from "../../types/earthTypes";
 import { flattenAllTrips, getArcsFromLegs } from "../../utils/arcs";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
-import CameraFocusController from "./controllers/CameraFocusController";
-import RotateController from "./controllers/RotateController";
+import FocusController from "./controllers/FocusController";
+import RotateController, {
+  RotateControllerHandle,
+} from "./controllers/RotateController";
 import ScaleOffsetController from "./controllers/ScaleOffsetController";
 import ArcGroup from "./layers/arcs/ArcGroup";
 import Atmosphere from "./layers/Atmosphere";
@@ -22,7 +24,7 @@ export const EARTH_RADIUS = 150;
 
 interface EarthSceneProps {
   enableHelpers?: boolean;
-  focusCameraOnCountry?: string;
+  focusIso?: string;
   spotlightCountries?: string[];
   spotlightCities?: CityLocation[];
   spotlightMiles?: CityLocation[];
@@ -35,7 +37,7 @@ interface EarthSceneProps {
  */
 const EarthScene = ({
   enableHelpers,
-  focusCameraOnCountry,
+  focusIso,
   spotlightCities,
   spotlightCountries,
   spotlightMiles,
@@ -45,6 +47,8 @@ const EarthScene = ({
   const axesHelperRef = useRef<THREE.AxesHelper | null>(null);
   const cameraRef = useRef<THREE.Camera | null>(null);
   const globeRef = useRef<THREE.Group>(null);
+  const rotateControllerRef = useRef<RotateControllerHandle>(null);
+
   const isSmallUp = useAtOrAboveBreakpoint("sm");
 
   const { isLoading, dots } = useLandDotsData(
@@ -109,14 +113,14 @@ const EarthScene = ({
         <ambientLight intensity={0.55} color="#ffffff" />
 
         <Suspense fallback={null}>
-          <CameraFocusController
+          <FocusController
             cameraRef={cameraRef}
             controlsRef={controlsRef}
-            globeRef={globeRef}
+            rotateControllerRef={rotateControllerRef}
             dots={dots}
-            focusIso={focusCameraOnCountry}
+            focusIso={focusIso}
           >
-            <RotateController rotationSpeed={0.02}>
+            <RotateController ref={rotateControllerRef} rotationSpeed={0.02}>
               <a.group ref={globeRef} visible={!isLoading}>
                 <BaseSphere
                   radius={EARTH_RADIUS - 1}
@@ -128,9 +132,9 @@ const EarthScene = ({
                 />
                 <LandDots
                   dotColor="#e4d6f6"
-                  highlightColor="#fdf6fe"
+                  highlightColor="#d35bff"
                   dots={dots}
-                  pointSize={isSmallUp ? 2.7 : 2.3}
+                  pointSize={isSmallUp ? 2 : 2.3}
                   spotlightCountries={spotlightCountries}
                   edgeFadeStart={isSmallUp ? 0.6 : 0.8}
                   edgeFadeEnd={isSmallUp ? 0.3 : 0.2}
@@ -167,7 +171,7 @@ const EarthScene = ({
                 )}
               </a.group>
             </RotateController>
-          </CameraFocusController>
+          </FocusController>
         </Suspense>
         {enableHelpers && (
           <SceneHelpers axesHelperRef={axesHelperRef} cameraRef={cameraRef} />
