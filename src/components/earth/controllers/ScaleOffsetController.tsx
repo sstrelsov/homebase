@@ -27,6 +27,7 @@ const ScaleOffsetController = ({ children }: SceneScaleAndOffsetsProps) => {
   const isXsUp = useAtOrAboveBreakpoint("xs");
   const isSmUp = useAtOrAboveBreakpoint("sm");
   const isMdUp = useAtOrAboveBreakpoint("md");
+  const isLgUp = useAtOrAboveBreakpoint("lg");
   const isXLUp = useAtOrAboveBreakpoint("xl");
 
   // Camera offset based on breakpoints
@@ -37,7 +38,7 @@ const ScaleOffsetController = ({ children }: SceneScaleAndOffsetsProps) => {
   }));
 
   useEffect(() => {
-    const newOffsetX = isXLUp ? size.width * 0.2 : 0;
+    const newOffsetX = isLgUp ? size.width * 0.2 : 0;
     const newOffsetY = isSmUp ? 0 : size.height * 0.07;
 
     offsetApi.start({
@@ -60,9 +61,9 @@ const ScaleOffsetController = ({ children }: SceneScaleAndOffsetsProps) => {
 
   // Decide target scale from breakpoints
   let targetScale = FULL_EARTH_SCALE;
-  if (isMdUp) {
+  if (isXLUp) {
     targetScale = FULL_EARTH_SCALE;
-  } else if (isSmUp) {
+  } else if (isMdUp) {
     targetScale = FOUR_FIFTHS_EARTH_SCALE;
   } else if (isXsUp) {
     targetScale = SEVEN_TENTHS_EARTH_SCALE;
