@@ -165,7 +165,7 @@ const Arc = ({
       {showLandingEffect && (
         <LandingEffect
           position={endVec}
-          color="#dd6ff0"
+          color={color}
           onDone={() => setShowLandingEffect(false)}
         />
       )}

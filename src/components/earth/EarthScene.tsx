@@ -74,50 +74,40 @@ const EarthScene = ({
         />
         {/* Main Key Light - Subtle cool tone */}
         <directionalLight
-          intensity={1.4}
-          color="#b3e2ff"
+          intensity={1.2}
+          color="#ffe8d6"
           position={[300, 3000, 300]}
         />
 
-        {/* Gentle Rim Light */}
+        {/* Accent Light 1 - Adjusted color and position */}
         <directionalLight
-          intensity={1.6}
-          color="#ff7a3d"
-          position={[
-            isSmallUp ? 3000 : 1500,
-            isSmallUp ? 100 : 50,
-            isSmallUp ? -600 : -500,
-          ]}
+          intensity={1.4}
+          color="#ff9a6d"
+          position={[2500, 200, -800]}
         />
 
-        {/* Subtle Pink Accent */}
+        {/* Accent Light 2 - Adjusted color and position */}
         <directionalLight
-          intensity={1.2}
-          color="#ff3d8a"
-          position={[isSmallUp ? -2500 : -1200, 500, -200]}
+          intensity={1.0}
+          color="#ff6b9a"
+          position={[-2000, 600, -400]}
         />
 
-        {/* Deep Purple Base Light */}
+        {/* Base Light - Adjusted color and intensity */}
         <directionalLight
-          intensity={0.8}
-          color="#533f7b"
+          intensity={0.6}
+          color="#6a5299"
           position={[-800, 0, -800]}
         />
 
-        {/* Soft Blue for depth */}
+        {/* Depth Light - Adjusted color and intensity */}
         <directionalLight
-          intensity={0.9}
-          color="#8066ff"
+          intensity={0.7}
+          color="#9a8cff"
           position={[-500, 0, 300]}
         />
+        <ambientLight intensity={0.55} color="#ffffff" />
 
-        {/* Minimal Ambient Light */}
-        <hemisphereLight
-          intensity={0.4}
-          color="#e8e1ff"
-          groundColor="#2a1f3d"
-          position={[100, 100, 0]}
-        />
         <Suspense fallback={null}>
           <CameraFocusController
             cameraRef={cameraRef}
@@ -137,8 +127,8 @@ const EarthScene = ({
                   specular="#222222"
                 />
                 <LandDots
-                  dotColor={isSmallUp ? "#e4d6f6" : "#f9d3fe"}
-                  highlightColor="#edb0ff"
+                  dotColor="#e4d6f6"
+                  highlightColor="#fdf6fe"
                   dots={dots}
                   pointSize={isSmallUp ? 2.7 : 2.3}
                   spotlightCountries={spotlightCountries}
@@ -148,7 +138,7 @@ const EarthScene = ({
                 <Atmosphere
                   radius={EARTH_RADIUS}
                   scaleFactor={1}
-                  color="#bc95f3"
+                  color="#f1aece"
                   power={15}
                   intensity={5}
                   opacity={0.5}
@@ -160,7 +150,7 @@ const EarthScene = ({
                         ? getArcsFromLegs(spotlightMiles)
                         : flattenAllTrips(trips)
                     }
-                    color="#dd6ff0"
+                    color="#ef9bfc"
                     radius={EARTH_RADIUS}
                     animationDuration={1000}
                     onProgressPersist={!!spotlightMiles}
