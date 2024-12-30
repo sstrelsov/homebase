@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { v4 as uuidv4 } from "uuid";
 import { ArcLocation } from "../../../../types/earthTypes";
 import Arc from "./ArcLight";
-
 export interface ArcGroupProps {
   /**
    * Array of start/end coords or city stops.
@@ -39,7 +39,7 @@ function createRandomArc(allPoints: ArcLocation[]): ArcLocation {
   const i = Math.floor(Math.random() * allPoints.length);
 
   // Generate a stable ID
-  const id = crypto.randomUUID();
+  const id = uuidv4();
 
   return {
     id,
@@ -73,10 +73,11 @@ export default function ArcGroup({
   function showAllArcs() {
     // We'll just show all arcs in `locationArray` at once (immediately triggered).
     // Make sure each has an ID:
-    const arcsWithId = locationArray.map((arc) =>
-      arc.id
-        ? arc // already has an ID
-        : { ...arc, id: crypto.randomUUID() }
+    const arcsWithId = locationArray.map(
+      (arc) =>
+        arc.id
+          ? arc // already has an ID
+          : { ...arc, id: uuidv4() } // generate a new ID
     );
 
     setArcsToRender(arcsWithId);

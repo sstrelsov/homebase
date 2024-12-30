@@ -49,7 +49,7 @@ const BaseSphere = ({
 }: BaseSphereProps) => {
   return (
     <mesh>
-      <sphereGeometry args={[radius, 64, 64]} />
+      <sphereGeometry args={[radius, 128, 128]} />
       <meshPhongMaterial
         color={color}
         emissive={emissive}
