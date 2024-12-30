@@ -176,12 +176,8 @@ export const trips: Trip[] = [
     id: uuidv4(),
     title: "NYC → Dallas",
     description: "Business trip to Dallas",
-    startDate: "2021-01-05",
-    endDate: "2021-01-10",
-    images: [
-      "https://example.com/dallas1.jpg",
-      "https://example.com/dallas2.jpg",
-    ],
+    startDate: "2024-01-29",
+    endDate: "2024-02-01",
     countries: ["USA"],
     legs: [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
@@ -192,10 +188,9 @@ export const trips: Trip[] = [
   {
     id: uuidv4(),
     title: "NYC → San Francisco",
-    description: "Coast-to-coast weekend getaway.",
-    startDate: "2021-02-10",
-    endDate: "2021-02-15",
-    images: ["https://example.com/sf1.jpg", "https://example.com/sf2.jpg"],
+    description: "Casetext offsite in SF",
+    startDate: "2024-03-04",
+    endDate: "2024-03-08",
     countries: ["USA"],
     legs: [
       { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
@@ -206,9 +201,9 @@ export const trips: Trip[] = [
   {
     id: uuidv4(),
     title: "NYC → Louisville",
-    description: "A quick trip for bourbon and horse racing.",
-    startDate: "2021-03-05",
-    endDate: "2021-03-10",
+    description: "A quick trip to Louisville for Naomi's birthday.",
+    startDate: "2024-04-01",
+    endDate: "2024-04-09",
     images: ["https://example.com/louisville1.jpg"],
     countries: ["USA"],
     legs: [
@@ -220,9 +215,9 @@ export const trips: Trip[] = [
   {
     id: uuidv4(),
     title: "NYC → Seattle",
-    description: "Coffee and rain in the Pacific Northwest.",
-    startDate: "2021-04-01",
-    endDate: "2021-04-07",
+    description: "Microsoft BUILD Conference",
+    startDate: "2024-05-20",
+    endDate: "2024-05-23",
     images: [],
     countries: ["USA"],
     legs: [
@@ -236,8 +231,8 @@ export const trips: Trip[] = [
     title: "NYC → Bogota → Cumaral → Cartagena",
     description:
       "Exploring Colombia, from the capital to the countryside to the coast.",
-    startDate: "2021-05-10",
-    endDate: "2021-05-25",
+    startDate: "2024-05-24",
+    endDate: "2024-06-02",
     images: [
       "https://example.com/bogota.jpg",
       "https://example.com/cartagena.jpg",
@@ -254,9 +249,9 @@ export const trips: Trip[] = [
   {
     id: uuidv4(),
     title: "NYC → Destin",
-    description: "Relaxing on the Emerald Coast.",
-    startDate: "2021-06-01",
-    endDate: "2021-06-05",
+    description: "Family beach vacation.",
+    startDate: "2024-07-05",
+    endDate: "2024-07-08",
     images: ["https://example.com/destin.jpg"],
     countries: ["USA"],
     legs: [
@@ -268,9 +263,9 @@ export const trips: Trip[] = [
   {
     id: uuidv4(),
     title: "NYC → San Jose, CA",
-    description: "Visiting Silicon Valley.",
-    startDate: "2021-07-01",
-    endDate: "2021-07-07",
+    description: "Reuters Momentum Conference",
+    startDate: "2024-07-15",
+    endDate: "2024-07-18",
     images: [],
     countries: ["USA"],
     legs: [
@@ -282,9 +277,9 @@ export const trips: Trip[] = [
   {
     id: uuidv4(),
     title: "NYC → Nashville → Louisville",
-    description: "From Music City to Derby City.",
-    startDate: "2021-08-10",
-    endDate: "2021-08-20",
+    description: "ILTACON legal tech conference and quick trip to Louisville.",
+    startDate: "2024-08-11",
+    endDate: "2024-08-16",
     images: [
       "https://example.com/nashville.jpg",
       "https://example.com/louisville2.jpg",
@@ -301,8 +296,8 @@ export const trips: Trip[] = [
     id: uuidv4(),
     title: "NYC → London → Zurich → Copenhagen → Bern",
     description: "European adventure through the UK, Switzerland, and Denmark.",
-    startDate: "2021-09-05",
-    endDate: "2021-09-25",
+    startDate: "2024-08-17",
+    endDate: "2024-09-08",
     images: [
       "https://example.com/london.jpg",
       "https://example.com/zurich.jpg",
@@ -321,8 +316,8 @@ export const trips: Trip[] = [
     id: uuidv4(),
     title: "NYC → Reykjavik",
     description: "Checking out Iceland's capital city.",
-    startDate: "2021-10-01",
-    endDate: "2021-10-05",
+    startDate: "2024-10-08",
+    endDate: "2024-10-13",
     images: ["https://example.com/reykjavik.jpg"],
     countries: ["ISL"],
     legs: [
@@ -333,10 +328,23 @@ export const trips: Trip[] = [
   },
   {
     id: uuidv4(),
+    title: "NYC → New Haven",
+    description: "Day trip to Yale for the Princeton / Yale tailgate.",
+    startDate: "2024-11-16",
+    endDate: "2024-11-16",
+    countries: ["USA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 41.3083, lon: -72.9279, name: "New Haven", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
     title: "NYC → Louisville",
-    description: "A second trip back for more Kentucky experiences.",
-    startDate: "2021-11-01",
-    endDate: "2021-11-05",
+    description: "Louisville for Thanksgiving and Remi's birthday.",
+    startDate: "2024-11-26",
+    endDate: "2024-12-03",
     images: [],
     countries: ["USA"],
     legs: [
@@ -348,9 +356,9 @@ export const trips: Trip[] = [
   {
     id: uuidv4(),
     title: "NYC → Louisville (Part 3)",
-    description: "Yet another Louisville trip.",
-    startDate: "2021-12-19",
-    endDate: "2021-12-10",
+    description: "Louisville for the holidays and New Years",
+    startDate: "2024-12-19",
+    endDate: "2025-01-02",
     images: ["https://example.com/louisville3.jpg"],
     countries: ["USA"],
     legs: [
