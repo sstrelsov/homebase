@@ -72,46 +72,52 @@ const EarthScene = ({
           enablePan={false}
           maxDistance={MAX_ZOOMED_OUT}
         />
-        {/* 1) Key Light (strongest, casts shadows) */}
+        {/* Main Key Light - Subtle cool tone */}
         <directionalLight
-          intensity={1.6}
-          color="#b3e2ff" // bright, cool blue
+          intensity={1.4}
+          color="#b3e2ff"
           position={[300, 3000, 300]}
         />
 
-        {/* Fill Light: from left-ish side, weaker */}
+        {/* Gentle Rim Light */}
         <directionalLight
-          intensity={2}
-          color="#df3dff"
-          position={[-3000, -100, -300]}
-        />
-
-        <directionalLight
-          intensity={1.8}
+          intensity={1.6}
           color="#ff7a3d"
-          position={[-300, -300, -100]}
+          position={[
+            isSmallUp ? 3000 : 1500,
+            isSmallUp ? 100 : 50,
+            isSmallUp ? -600 : -500,
+          ]}
         />
 
-        {/* Rim Light: behind the globe for silhouette & drama: Creates a beautiful purple in top right */}
+        {/* Subtle Pink Accent */}
         <directionalLight
-          intensity={3.8}
-          color="#ff7a3d"
-          position={[3000, 100, -600]} // -300 also beautiful
+          intensity={1.2}
+          color="#ff3d8a"
+          position={[isSmallUp ? -2500 : -1200, 500, -200]}
         />
 
-        {/* Kicker Light: from below or another interesting angle */}
+        {/* Deep Purple Base Light */}
         <directionalLight
-          intensity={1.4}
+          intensity={0.8}
+          color="#533f7b"
+          position={[-800, 0, -800]}
+        />
+
+        {/* Soft Blue for depth */}
+        <directionalLight
+          intensity={0.9}
           color="#8066ff"
-          position={[-200, -200, -100]} // z=-300 also beautiful
-        />
-        <directionalLight
-          intensity={1.4}
-          color="#ff9166"
-          position={[-800, 0, -800]} // z=-300 also beautiful
+          position={[-500, 0, 300]}
         />
 
-        <hemisphereLight intensity={0.7} position={[100, 100, 0]} />
+        {/* Minimal Ambient Light */}
+        <hemisphereLight
+          intensity={0.4}
+          color="#e8e1ff"
+          groundColor="#2a1f3d"
+          position={[100, 100, 0]}
+        />
         <Suspense fallback={null}>
           <CameraFocusController
             cameraRef={cameraRef}
@@ -131,13 +137,13 @@ const EarthScene = ({
                   specular="#222222"
                 />
                 <LandDots
-                  dotColor="#d9c5f4"
+                  dotColor={isSmallUp ? "#e4d6f6" : "#f9d3fe"}
                   highlightColor="#edb0ff"
                   dots={dots}
-                  pointSize={isSmallUp ? 2.7 : 3}
+                  pointSize={isSmallUp ? 2.7 : 2.3}
                   spotlightCountries={spotlightCountries}
-                  edgeFadeStart={isSmallUp ? 0.6 : 0.7}
-                  edgeFadeEnd={isSmallUp ? 0.3 : 0.25}
+                  edgeFadeStart={isSmallUp ? 0.6 : 0.8}
+                  edgeFadeEnd={isSmallUp ? 0.3 : 0.2}
                 />
                 <Atmosphere
                   radius={EARTH_RADIUS}

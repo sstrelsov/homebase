@@ -1,10 +1,181 @@
+import { v4 as uuidv4 } from "uuid";
 import { Trip } from "../types/earthTypes";
 
 export const trips: Trip[] = [
+  // 2023
   {
-    id: "nyc-dallas",
+    id: uuidv4(),
+    title: "NYC → Louisville",
+    description: "Visit home for Sebastian's birthday.",
+    startDate: "2023-03-17",
+    endDate: "2023-03-20",
+    countries: ["USA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 38.2527, lon: -85.7585, name: "Louisville", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
+    title: "NYC → Boston",
+    description: "Weekend in Cambridge and Boston.",
+    startDate: "2023-03-30",
+    endDate: "2023-04-02",
+    countries: ["USA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 42.3601, lon: -71.0589, name: "Boston", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
+    title: "NYC → Louisville",
+    description: "Derby weekend with friends.",
+    startDate: "2023-05-04",
+    endDate: "2023-05-10",
+    countries: ["USA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 38.2527, lon: -85.7585, name: "Louisville", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
+    title:
+      "NYC → Paris → Cannes → Monte Carlo → Saint Jean Cap Ferrat -> Paris -> San Francisco",
+    description:
+      "Cannes Festival of Creativity and French Riviera vacation. Casetext acquired upon arrial in San Francisco.",
+    startDate: "2023-06-16",
+    endDate: "2023-06-30",
+    countries: ["FRA", "MC", "USA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 48.8566, lon: 2.3522, name: "Paris", iso: "FRA" },
+      { lat: 43.5528, lon: 7.0174, name: "Cannes", iso: "FRA" },
+      { lat: 43.7384, lon: 7.4246, name: "Monte Carlo", iso: "MC" },
+      { lat: 43.7034, lon: 7.2663, name: "Saint Jean Cap Ferrat", iso: "FRA" },
+      { lat: 48.8566, lon: 2.3522, name: "Paris", iso: "FRA" },
+      { lat: 37.7749, lon: -122.4194, name: "San Francisco", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
+    title: "NYC → Martha's Vineyard",
+    description: "Beach week with Henry and Abey. Remote work from the island.",
+    startDate: "2023-07-02",
+    endDate: "2023-07-08",
+    countries: ["USA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 41.3805, lon: -70.6455, name: "Martha's Vineyard", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
+    title: "NYC → Philadelphia",
+    description: "Day trip to Philly with Kendall to surprise Onyx",
+    startDate: "2023-07-30",
+    endDate: "2023-07-30",
+    countries: ["USA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 39.9526, lon: -75.1652, name: "Philadelphia", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
+    title: "NYC → Louisville",
+    description: "Louisville for Sam Rueff's wedding and a visit with family.",
+    startDate: "2023-08-25",
+    endDate: "2023-08-29",
+    countries: ["USA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 38.2527, lon: -85.7585, name: "Louisville", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
+    title: "NYC → Los Angeles → Mexico City → Buenos Aires",
+    description:
+      "Casetext celebratory offsite in LA, brother's trip to Mexico City, and a solo trip to Buenos Aires.",
+    startDate: "2023-09-24",
+    endDate: "2023-10-09",
+    countries: ["USA", "MEX", "ARG"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 34.0522, lon: -118.2437, name: "Los Angeles", iso: "USA" },
+      { lat: 19.4326, lon: -99.1332, name: "Mexico City", iso: "MEX" },
+      { lat: -34.6037, lon: -58.3816, name: "Buenos Aires", iso: "ARG" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
+    title: "NYC → Paris → Marseilles",
+    description:
+      "Spontaneous trip to France with Henry for a long weekend and remote work.",
+    startDate: "2023-11-06",
+    endDate: "2023-11-12",
+    countries: ["FRA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 48.8566, lon: 2.3522, name: "Paris", iso: "FRA" },
+      { lat: 43.2965, lon: 5.3698, name: "Marseilles", iso: "FRA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
+    title: "NYC → New Haven",
+    description: "Day trip to visit Yale for the Harvard / Yale game.",
+    startDate: "2023-11-18",
+    endDate: "2023-11-18",
+    countries: ["USA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 41.3083, lon: -72.9279, name: "New Haven", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
+    title: "NYC → Louisville",
+    description: "Thanksgiving with family.",
+    startDate: "2023-11-19",
+    endDate: "2023-11-26",
+    countries: ["USA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 38.2527, lon: -85.7585, name: "Louisville", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  {
+    id: uuidv4(),
+    title: "NYC → Louisville",
+    description: "Holidays with family.",
+    startDate: "2023-12-25",
+    endDate: "2023-12-29",
+    countries: ["USA"],
+    legs: [
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+      { lat: 38.2527, lon: -85.7585, name: "Louisville", iso: "USA" },
+      { lat: 40.7128, lon: -74.006, name: "New York City", iso: "USA" },
+    ],
+  },
+  // 2024
+  {
+    id: uuidv4(),
     title: "NYC → Dallas",
-    description: "A short trip to Dallas to escape the winter cold.",
+    description: "Business trip to Dallas",
     startDate: "2021-01-05",
     endDate: "2021-01-10",
     images: [
@@ -19,7 +190,7 @@ export const trips: Trip[] = [
     ],
   },
   {
-    id: "nyc-sf",
+    id: uuidv4(),
     title: "NYC → San Francisco",
     description: "Coast-to-coast weekend getaway.",
     startDate: "2021-02-10",
@@ -33,7 +204,7 @@ export const trips: Trip[] = [
     ],
   },
   {
-    id: "nyc-louisville-1",
+    id: uuidv4(),
     title: "NYC → Louisville",
     description: "A quick trip for bourbon and horse racing.",
     startDate: "2021-03-05",
@@ -47,7 +218,7 @@ export const trips: Trip[] = [
     ],
   },
   {
-    id: "nyc-seattle",
+    id: uuidv4(),
     title: "NYC → Seattle",
     description: "Coffee and rain in the Pacific Northwest.",
     startDate: "2021-04-01",
@@ -61,7 +232,7 @@ export const trips: Trip[] = [
     ],
   },
   {
-    id: "nyc-bogota-cumaral-cartagena",
+    id: uuidv4(),
     title: "NYC → Bogota → Cumaral → Cartagena",
     description:
       "Exploring Colombia, from the capital to the countryside to the coast.",
@@ -81,7 +252,7 @@ export const trips: Trip[] = [
     ],
   },
   {
-    id: "nyc-destin",
+    id: uuidv4(),
     title: "NYC → Destin",
     description: "Relaxing on the Emerald Coast.",
     startDate: "2021-06-01",
@@ -95,7 +266,7 @@ export const trips: Trip[] = [
     ],
   },
   {
-    id: "nyc-sanjose",
+    id: uuidv4(),
     title: "NYC → San Jose, CA",
     description: "Visiting Silicon Valley.",
     startDate: "2021-07-01",
@@ -109,7 +280,7 @@ export const trips: Trip[] = [
     ],
   },
   {
-    id: "nyc-nashville-louisville",
+    id: uuidv4(),
     title: "NYC → Nashville → Louisville",
     description: "From Music City to Derby City.",
     startDate: "2021-08-10",
@@ -127,7 +298,7 @@ export const trips: Trip[] = [
     ],
   },
   {
-    id: "nyc-london-zurich-copenhagen-bern",
+    id: uuidv4(),
     title: "NYC → London → Zurich → Copenhagen → Bern",
     description: "European adventure through the UK, Switzerland, and Denmark.",
     startDate: "2021-09-05",
@@ -147,7 +318,7 @@ export const trips: Trip[] = [
     ],
   },
   {
-    id: "nyc-reykjavik",
+    id: uuidv4(),
     title: "NYC → Reykjavik",
     description: "Checking out Iceland's capital city.",
     startDate: "2021-10-01",
@@ -161,7 +332,7 @@ export const trips: Trip[] = [
     ],
   },
   {
-    id: "nyc-louisville-2",
+    id: uuidv4(),
     title: "NYC → Louisville",
     description: "A second trip back for more Kentucky experiences.",
     startDate: "2021-11-01",
@@ -175,10 +346,10 @@ export const trips: Trip[] = [
     ],
   },
   {
-    id: "nyc-louisville-3",
+    id: uuidv4(),
     title: "NYC → Louisville (Part 3)",
     description: "Yet another Louisville trip.",
-    startDate: "2021-12-05",
+    startDate: "2021-12-19",
     endDate: "2021-12-10",
     images: ["https://example.com/louisville3.jpg"],
     countries: ["USA"],

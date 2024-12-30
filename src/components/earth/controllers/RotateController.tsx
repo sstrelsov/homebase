@@ -4,6 +4,7 @@ import { useFrame } from "@react-three/fiber";
 import React, { useMemo, useRef, useState } from "react";
 import { useDrag } from "react-use-gesture";
 import * as THREE from "three";
+import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
 
 interface RotateControllerProps {
   rotationSpeed?: number;
@@ -20,11 +21,15 @@ const RotateController = ({
 }: RotateControllerProps) => {
   const groupRef = useRef<THREE.Group>(null);
   const euler = useMemo(() => new THREE.Euler(0, 0, 0), []);
-
+  const isSmallUp = useAtOrAboveBreakpoint("sm");
   // We use a spring to smoothly rotate the group
   const [springs, api] = useSpring(() => ({
     rotation: [0, 0, 0],
-    config: { mass: 1, friction: 30, tension: 50 },
+    config: {
+      mass: 1,
+      friction: isSmallUp ? 30 : 10,
+      tension: isSmallUp ? 50 : 25,
+    },
   }));
 
   // Track whether the user is dragging
