@@ -1,4 +1,3 @@
-import { MDXProvider } from "@mdx-js/react";
 import { NextUIProvider } from "@nextui-org/react";
 import React from "react";
 import { Provider } from "react-redux";
@@ -12,9 +11,7 @@ export function Providers({ children }: ProvidersProps) {
   return (
     <Provider store={store}>
       <ColorProvider>
-        <MDXProvider>
-          <NextUIProvider>{children}</NextUIProvider>
-        </MDXProvider>
+        <NextUIProvider>{children}</NextUIProvider>
       </ColorProvider>
     </Provider>
   );

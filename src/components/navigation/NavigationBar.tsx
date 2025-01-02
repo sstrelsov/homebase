@@ -4,15 +4,19 @@ import {
   NavbarContent,
   NavbarItem,
 } from "@nextui-org/react";
+import { useLocation } from "react-router-dom";
 import { RoutePath } from "../../config/Routes";
 import NavLink from "./NavLink";
 
-/**
- * Custom main navigation bar component for the website
- *
- * @returns a navigation bar component
- */
 const NavigationBar = () => {
+  const location = useLocation();
+
+  const isBlogRoute = location.pathname.includes("cafe-belle");
+
+  if (isBlogRoute) {
+    return null;
+  }
+
   return (
     <Navbar
       isBlurred={false}
