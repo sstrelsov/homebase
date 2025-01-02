@@ -8,6 +8,7 @@ import {
 } from "@remix-run/react";
 import stylesheet from "~/tailwind.css?url";
 import { Providers } from "./Providers";
+import { NavigationBar } from "./components/NavigationBar";
 
 export const links: LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -39,8 +40,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
 export default function App() {
   return (
-    <div className="font-sans font-normal h-dvh flex flex-grow w-full items-center justify-center overflow-y-auto">
-      <Outlet />
+    <div className="font-light relative h-dvh w-full overflow-hidden">
+      <NavigationBar />
+      <div className="font-sans font-normal h-dvh flex flex-grow w-full items-center justify-center overflow-y-auto">
+        <Outlet />
+      </div>
     </div>
   );
 }

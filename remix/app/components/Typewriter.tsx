@@ -141,7 +141,7 @@ const Typewriter = ({
       {renderWithLineBreaks(display)}
       <span
         className={`border-r-[2.5px] solid ml-[1.8px] ${styles.blink}`}
-        style={{ borderColor: linkColor }}
+        style={!!linkColor ? { borderColor: linkColor } : undefined}
       />
     </div>
   );
