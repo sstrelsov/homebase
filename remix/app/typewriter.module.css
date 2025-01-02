@@ -1,0 +1,13 @@
+/* The blinking cursor is handled by this class */
+.blink {
+  animation: blink 0.9s steps(44) infinite normal;
+}
+
+@keyframes blink {
+  from {
+    border-right-color: opaque;
+  }
+  to {
+    border-right-color: transparent;
+  }
+}

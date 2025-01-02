@@ -1,22 +1,32 @@
+import { nextui } from "@nextui-org/react";
 import type { Config } from "tailwindcss";
 
 export default {
-  content: ["./app/**/{**,.client,.server}/**/*.{js,jsx,ts,tsx}"],
+  content: [
+    "./app/**/{**,.client,.server}/**/*.{js,jsx,ts,tsx,mdx}",
+    "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  darkMode: "class",
   theme: {
     extend: {
+      screens: {
+        xs: "480px",
+      },
       fontFamily: {
-        sans: [
-          "Inter",
-          "ui-sans-serif",
-          "system-ui",
-          "sans-serif",
-          "Apple Color Emoji",
-          "Segoe UI Emoji",
-          "Segoe UI Symbol",
-          "Noto Color Emoji",
+        sans: ["IBM Plex Sans", "sans-serif"],
+        special: "Special Elite",
+        serif: ["IBM Plex Serif", "serif"],
+        inter: ["Inter", "sans-serif"],
+        code: [
+          "source-code-pro",
+          "Menlo",
+          "Monaco",
+          "Consolas",
+          "Courier New",
+          "monospace",
         ],
       },
     },
   },
-  plugins: [],
+  plugins: [nextui(), require("@tailwindcss/typography")],
 } satisfies Config;
