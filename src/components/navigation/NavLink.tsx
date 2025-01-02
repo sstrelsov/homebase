@@ -28,7 +28,7 @@ const NavLink = ({
   console.log("linkColor", linkColor);
   return (
     <RouterLink
-      {...props}
+      {...(props as any)}
       to={to}
       className={isActive && !disableEffects ? "underline" : "text-inherit"}
       style={
