@@ -15,12 +15,12 @@
       "purpose": "any"
     },
     {
-      "src": "web-logo-dark.png",
+      "src": "homebase-logo-dark.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "web-logo-light.png",
+      "src": "homebase-logo.png",
       "type": "image/png",
       "sizes": "192x192"
     }
