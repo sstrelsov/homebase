@@ -2,9 +2,10 @@ const { nextui } = require("@nextui-org/react");
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
+  darkMode: "class",
   content: [
     "./node_modules/@nextui-org/theme/dist/**/*.{js,ts,jsx,tsx,mdx}",
-    "./src/**/*.{js,ts,jsx,tsx,mdx}", // Include your project's src folder for Tailwind scanning
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -27,5 +28,5 @@ module.exports = {
       },
     },
   },
-  plugins: [nextui(), require("@tailwindcss/typography")],
+  plugins: [require("@tailwindcss/typography"), nextui()],
 };
