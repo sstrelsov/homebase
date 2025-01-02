@@ -14,7 +14,7 @@ interface BlogTemplateProps {
 const PostTemplate = ({ meta, children }: BlogTemplateProps) => {
   const isLgUp = useAtOrAboveBreakpoint("lg");
   return (
-    <article className="h-full w-full flex flex-col py-8 px-4 items-center">
+    <article className="h-full w-full flex flex-col py-4 px-4 items-center">
       <div className="flex items-center justify-center">
         <Card
           shadow="none"
@@ -25,11 +25,13 @@ const PostTemplate = ({ meta, children }: BlogTemplateProps) => {
           }}
         >
           {!!meta.imageSrc && (
-            <Image
-              width={isLgUp ? 650 : 500}
-              alt="G at Cafe Belle"
-              src={meta.imageSrc}
-            />
+            <div className="lg:flex-1 items-center">
+              <Image
+                width={isLgUp ? 650 : 500}
+                alt="G at Cafe Belle"
+                src={meta.imageSrc}
+              />
+            </div>
           )}
           <CardFooter>
             {!!meta.title && (
