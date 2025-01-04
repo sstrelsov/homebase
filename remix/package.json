@@ -24,7 +24,8 @@
     "react-dom": "^18.2.0",
     "react-redux": "^9.2.0",
     "remix-ssg": "^0.0.8",
-    "remix-utils": "^8.0.0"
+    "remix-utils": "^8.0.0",
+    "tailwindcss-debug-screens": "^2.2.1"
   },
   "devDependencies": {
     "@remix-run/dev": "^2.15.2",
