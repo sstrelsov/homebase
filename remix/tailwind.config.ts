@@ -1,5 +1,6 @@
 import { nextui } from "@nextui-org/react";
 import type { Config } from "tailwindcss";
+const { screens } = require("tailwindcss/defaultTheme");
 
 export default {
   content: [
@@ -8,10 +9,11 @@ export default {
   ],
   darkMode: "class",
   theme: {
+    screens: {
+      xs: "480px",
+      ...screens,
+    },
     extend: {
-      screens: {
-        xs: "480px",
-      },
       fontFamily: {
         sans: ["IBM Plex Sans", "sans-serif"],
         special: "Special Elite",
@@ -28,5 +30,9 @@ export default {
       },
     },
   },
-  plugins: [nextui(), require("@tailwindcss/typography")],
+  plugins: [
+    nextui(),
+    require("@tailwindcss/typography"),
+    require("tailwindcss-debug-screens"),
+  ],
 } satisfies Config;
