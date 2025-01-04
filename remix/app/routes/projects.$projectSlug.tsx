@@ -1,6 +1,7 @@
 // app/routes/projects.$projectSlug.tsx
 
 import { useParams, useSearchParams } from "@remix-run/react";
+import TheGlobeProject from "~/components/TheGlobeProject";
 // import CafeBelle from "~/components/CafeBelle";
 // import TheGlobeProject from "~/components/TheGlobeProject";
 import useAtOrAboveBreakpoint from "~/utils/useAtOrAboveBreakpoint";
@@ -18,7 +19,7 @@ export default function ProjectSlugRoute() {
 
   switch (projectSlug) {
     case "earth":
-    // return <TheGlobeProject />;
+      return <TheGlobeProject />;
 
     default:
       return <div>Oops! Project not found.</div>;

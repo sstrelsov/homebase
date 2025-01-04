@@ -8,7 +8,7 @@ import {
   TableRow,
   getKeyValue,
 } from "@nextui-org/react";
-import { Link, useSearchParams } from "@remix-run/react";
+import { useNavigate, useSearchParams } from "@remix-run/react";
 
 interface Project {
   slug: string;
@@ -26,6 +26,15 @@ export default function ProjectsTable({
   projects,
 }: ProjectsTableProps) {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+
+  const handleRowAction = (slug: string) => {
+    const currentSearchString = searchParams.toString();
+    const destination = `/projects/${slug}${
+      currentSearchString ? `?${currentSearchString}` : ""
+    }`;
+    navigate(destination);
+  };
 
   return (
     <Table
@@ -38,24 +47,19 @@ export default function ProjectsTable({
       selectionMode="single"
       fullWidth
       aria-label="Projects and writings"
+      onRowAction={(slug) => handleRowAction(slug as string)}
     >
       <TableHeader columns={columns}>
         {(column) => <TableColumn key={column.key}>{column.label}</TableColumn>}
       </TableHeader>
       <TableBody items={projects}>
         {(item) => {
-          const currentSearchString = searchParams.toString();
-          const destination = `/projects/${item.slug}${
-            currentSearchString ? `?${currentSearchString}` : ""
-          }`;
-
           return (
             <TableRow key={item.slug} className="cursor-pointer">
               {columns.map((col) => {
                 return (
                   <TableCell key={col.key}>
-                    {/* Link each cell to the details page for that project */}
-                    <Link to={destination}>{getKeyValue(item, col.key)}</Link>
+                    {getKeyValue(item, col.key)}
                   </TableCell>
                 );
               })}
