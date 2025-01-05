@@ -12,10 +12,11 @@ declare module "@remix-run/node" {
 
 export default defineConfig({
   plugins: [
+    tsconfigPaths(),
     mdx({
       remarkPlugins: [
         remarkFrontmatter,
-        [remarkMdxFrontmatter, { name: "frontmatter" }],
+        [remarkMdxFrontmatter, { name: "sadf" }],
       ],
     }),
     remix({
@@ -27,6 +28,5 @@ export default defineConfig({
         v3_lazyRouteDiscovery: true,
       },
     }),
-    tsconfigPaths(),
   ],
 });

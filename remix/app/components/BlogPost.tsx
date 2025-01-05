@@ -1,17 +1,13 @@
 import { Card, CardFooter, Image } from "@nextui-org/react";
+import { Frontmatter } from "~/types/frontmatter";
 import useAtOrAboveBreakpoint from "~/utils/useAtOrAboveBreakpoint";
 
 interface BlogPostProps {
   post: JSX.Element;
-  frontMatter: {
-    title: string;
-    author?: string;
-    imageSrc?: string;
-    [key: string]: any;
-  };
+  frontmatter: Frontmatter;
 }
 
-const BlogPost = ({ post, frontMatter }: BlogPostProps) => {
+const BlogPost = ({ post, frontmatter }: BlogPostProps) => {
   const isLgUp = useAtOrAboveBreakpoint("lg");
   return (
     <article className="h-full w-full flex flex-col py-4 px-4 items-center">
@@ -24,24 +20,24 @@ const BlogPost = ({ post, frontMatter }: BlogPostProps) => {
             footer: "justify-center flex flex-col lg:flex-1",
           }}
         >
-          {!!frontMatter.imageSrc && (
+          {!!frontmatter.imageSrc && (
             <div className="lg:flex-1 items-center">
               <Image
                 width={isLgUp ? 650 : 500}
                 alt="G at Cafe Belle"
-                src={frontMatter.imageSrc}
+                src={frontmatter.imageSrc}
               />
             </div>
           )}
           <CardFooter>
-            {!!frontMatter.title && (
+            {!!frontmatter.title && (
               <h1 className="text-4xl lg:text-5xl text-center mt-4">
-                {frontMatter.title}
+                {frontmatter.title}
               </h1>
             )}
-            {!!frontMatter.author && (
+            {!!frontmatter.author && (
               <h2 className="text-sm font-light text-center mt-2">
-                {frontMatter.author}
+                {frontmatter.author}
               </h2>
             )}
           </CardFooter>
