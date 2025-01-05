@@ -1,0 +1,50 @@
+name: Deploy Remix to GitHub Pages
+
+on:
+  # Trigger on push to main (adjust branch as needed)
+  push:
+    branches: ["remix"]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Check out the repo
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      # 2. Use the correct Node version (adjust to your needs)
+      - name: Use Node 20
+        uses: actions/setup-node@v2
+        with:
+          node-version: 20
+
+      # 3. Install dependencies
+      - name: Install dependencies
+        run: yarn install
+
+      # 4. Build your Remix project
+      - name: Build Remix app
+        run: yarn build
+
+      # 5. Generate static files with remix-ssg
+      #    - This step depends on how you configured remix-ssg.
+      #    - You might have a script in your package.json like "generate": "remix-ssg"
+      - name: Generate static site
+        run: yarn generate
+
+      # 6. Deploy to GitHub Pages
+      #
+      #    This uses the peaceiris/actions-gh-pages action:
+      #       https://github.com/peaceiris/actions-gh-pages
+      #    The 'publish_dir' should be the output folder that remix-ssg generates,
+      #    which might be "public" or "build" depending on your setup.
+      #
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          # GitHub token
+          personal_token: ${{ secrets.GITHUB_TOKEN }}
+          # The folder that contains your generated static files
+          publish_dir: ./build
