@@ -8,13 +8,19 @@ const BioPage = () => {
         for CoCounsel—the world's first AI assistant for law. I also build
         AI-powered prototypes for Reuters journalists. I joined in 2022, when
         Thomson Reuters{" "}
-        <HomebaseLink href="https://techcrunch.com/2023/06/26/thomson-reuters-buys-casetext-an-ai-legal-tech-startup-for-650m-in-cash/">
+        <HomebaseLink
+          target="_blank"
+          href="https://techcrunch.com/2023/06/26/thomson-reuters-buys-casetext-an-ai-legal-tech-startup-for-650m-in-cash/"
+        >
           acquired Casetext.
         </HomebaseLink>
       </p>
       <p className="text-md xs:text-lg sm:text-xl md:text-2xl">
         At Casetext, I led the team that built the latest iteration of{" "}
-        <HomebaseLink href="https://www.fastcompany.com/91033227/casetext-thomson-reuters-most-innovative-companies-2024">
+        <HomebaseLink
+          target="_blank"
+          href="https://www.fastcompany.com/91033227/casetext-thomson-reuters-most-innovative-companies-2024"
+        >
           CoCounsel.
         </HomebaseLink>{" "}
         Prior to that, I was a fullstack engineer, working on the core Casetext
@@ -25,7 +31,7 @@ const BioPage = () => {
         My family immigrated from Kyiv, Ukraine in 1990, and I grew up in
         Louisville, Kentucky. I'm a first-generation college graduate, and a
         proud alumnus of Yale University, where I studied{" "}
-        <HomebaseLink size="" href="/files/senior-thesis.pdf">
+        <HomebaseLink target="_blank" href="/files/senior-thesis.pdf">
           history.
         </HomebaseLink>
       </p>

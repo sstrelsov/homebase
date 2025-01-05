@@ -1,1 +1,0 @@
-import{j as e}from"./index-7zqVQZSl.js";import{H as s}from"./HomebaseLink-Bb-F-vpT.js";import"./hooks-CiuIyPzu.js";const a=()=>e.jsxs("div",{className:"flex flex-col sm:flex-row gap-2 sm:gap-1 items-center text-md sm:text-xl",children:[e.jsx("p",{children:"Oops! Looks like we got a 404."}),e.jsx(s,{href:"/",children:"Head back home"})]});export{a as default};
