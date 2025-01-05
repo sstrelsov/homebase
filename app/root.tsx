@@ -28,6 +28,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
+        <link
+          rel="icon"
+          type="image/ico"
+          href="/favicon-light.ico"
+          media="(prefers-color-scheme: light)"
+        />
+        {/* Dark mode favicon */}
+        <link
+          rel="icon"
+          type="image/ico"
+          href="/favicon-dark.ico"
+          media="(prefers-color-scheme: dark)"
+        />
       </head>
       <body>
         <Providers>{children}</Providers>
