@@ -40,7 +40,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # The folder containing your exported static files
           publish_dir: ./static-export
-          publish_branch: remix
           cname: strelsov.me
 
           # If you want to preserve existing build history,
