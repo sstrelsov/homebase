@@ -21,8 +21,6 @@ export const NavigationBar = () => {
       className="fixed top-0 w-full bg-transparent z-50"
     >
       <NavbarBrand>
-        {/* If you still want to wrap with your custom NavLink, that’s fine—
-            but simplest is just to use <Link /> from Remix */}
         <NavLink to="/" disableEffects>
           spencer strelsov
         </NavLink>
