@@ -1,6 +1,6 @@
 // app/routes/projects.$projectSlug.tsx
 
-import { useParams } from "@remix-run/react";
+import { useParams, useSearchParams } from "@remix-run/react";
 import BlogPost from "~/components/BlogPost";
 import TheGlobeProject from "~/components/TheGlobeProject";
 import CafeBelle, {
@@ -10,7 +10,8 @@ import useAtOrAboveBreakpoint from "~/utils/useAtOrAboveBreakpoint";
 
 export default function ProjectSlugRoute() {
   const { projectSlug } = useParams(); // e.g. "earth", "cafe-belle"
-
+  const [searchParams] = useSearchParams();
+  const showDrafts = searchParams.get("showDrafts") === "true";
   // your breakpoints
   const isSmUp = useAtOrAboveBreakpoint("sm");
   const isMdUp = useAtOrAboveBreakpoint("md");
@@ -21,9 +22,11 @@ export default function ProjectSlugRoute() {
     case "earth":
       return <TheGlobeProject />;
     case "cafe-belle":
-      return (
-        <BlogPost post={<CafeBelle />} frontMatter={cafeBelleFrontmatter} />
-      );
+      if (showDrafts) {
+        return (
+          <BlogPost post={<CafeBelle />} frontMatter={cafeBelleFrontmatter} />
+        );
+      }
     default:
       return <div>Oops! Project not found.</div>;
   }
