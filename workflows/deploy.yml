@@ -31,13 +31,13 @@ jobs:
 
       # 5. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
+        uses: peaceiris/actions-gh-pages@v4
         with:
           # GitHub token
-          personal_token: ${{ secrets.GITHUB_TOKEN }}
-
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           # The folder containing your exported static files
           publish_dir: ./static-export
+          cname: strelsov.me
 
           # Optionally set the target branch
           # (defaults to "gh-pages")
