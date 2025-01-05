@@ -4,7 +4,6 @@ import fs from "fs-extra";
 import fetch from "node-fetch";
 import path from "path";
 
-// 1) Define the routes to export
 const ROUTES_TO_EXPORT = [
   "/",
   "/bio",
@@ -12,8 +11,6 @@ const ROUTES_TO_EXPORT = [
   "/projects/earth",
   "/projects/cafe-belle",
 ];
-
-// 2) Export directory
 const EXPORT_DIR = path.join(process.cwd(), "static-export");
 
 async function runCommand(command, args = [], options = {}) {
@@ -31,7 +28,9 @@ async function buildRemixApp() {
   await runCommand("npx", ["remix", "vite:build"]);
 }
 
+// We declare this at module level so we can reference it in stopServer.
 let serverProcess;
+
 async function startServer() {
   console.log("🚀 Starting Remix server on http://localhost:3000...");
 
@@ -58,6 +57,9 @@ async function startServer() {
     });
 
     serverProcess.on("close", (code) => {
+      // If the server closed before we set `serverStarted = true`,
+      // then we never got "http://localhost:3000" in stdout,
+      // meaning it died early and we should reject.
       if (!serverStarted) {
         reject(new Error(`Remix server closed prematurely with code ${code}`));
       }
@@ -67,8 +69,18 @@ async function startServer() {
 
 async function stopServer() {
   console.log("🛑 Stopping Remix server...");
+
   if (serverProcess) {
-    serverProcess.kill();
+    // Send a SIGTERM (the default is SIGTERM anyway, but let's be explicit)
+    serverProcess.kill("SIGTERM");
+
+    // Wait for the 'close' event so we know the process is really done
+    await new Promise((resolve) => {
+      serverProcess.on("close", (code) => {
+        console.log(`🛑 Remix server closed with code ${code}`);
+        resolve();
+      });
+    });
   }
 }
 
@@ -96,7 +108,7 @@ async function exportRoutes() {
   console.log(`   Copying ${clientAssetsSrc} => ${clientAssetsDest}`);
   await fs.copy(clientAssetsSrc, clientAssetsDest);
 
-  // If you have flags/, images/, etc. in build/client, copy them too:
+  // Copy flags/ if exists
   const flagsSrc = path.join(process.cwd(), "build", "client", "flags");
   const flagsDest = path.join(EXPORT_DIR, "flags");
   if (await fs.pathExists(flagsSrc)) {
@@ -104,14 +116,13 @@ async function exportRoutes() {
     await fs.copy(flagsSrc, flagsDest);
   }
 
+  // Copy images/ if exists
   const imagesSrc = path.join(process.cwd(), "build", "client", "images");
   const imagesDest = path.join(EXPORT_DIR, "images");
   if (await fs.pathExists(imagesSrc)) {
     console.log(`   Copying ${imagesSrc} => ${imagesDest}`);
     await fs.copy(imagesSrc, imagesDest);
   }
-
-  // If you need the server "assets" or other files, you can do similar steps.
 
   // Fetch each route's HTML and save
   for (const routePath of ROUTES_TO_EXPORT) {
@@ -136,7 +147,11 @@ async function exportRoutes() {
     await exportRoutes();
   } catch (error) {
     console.error("Error during static export:", error);
-  } finally {
+    // If there's an error, we still want to attempt stopping the server
     await stopServer();
+    process.exit(1);
   }
+
+  // Finally, stop the server gracefully
+  await stopServer();
 })();

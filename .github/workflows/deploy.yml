@@ -24,16 +24,12 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      # 4. Build your Remix app
-      - name: Build Remix app
-        run: yarn build
-
-      # 5. Export your static site
+      # 4. Export your static site
       #    (Runs your script that creates the `static-export` folder)
       - name: Export static site
         run: yarn static
 
-      # 6. Deploy to GitHub Pages
+      # 5. Deploy to GitHub Pages
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
