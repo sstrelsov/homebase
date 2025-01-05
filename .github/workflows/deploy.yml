@@ -37,7 +37,7 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           # The folder containing your exported static files
           publish_dir: ./static-export
-          cname: strelsov.me
+          cname: www.strelsov.me
 
           # If you want to preserve existing build history,
           # or force push, or control concurrency, etc.
