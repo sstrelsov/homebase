@@ -1,0 +1,1 @@
+import{j as s}from"./index-7zqVQZSl.js";import{u as i,s as l}from"./hooks-CiuIyPzu.js";function c({size:a,className:e="",style:t,children:o,...n}){const r=i(l);return s.jsx("a",{className:`text-inherit underline ${e}`,style:{textDecorationColor:r,textDecorationLine:"underline",textUnderlineOffset:"0.15em",...t},...n,children:o})}export{c as H};

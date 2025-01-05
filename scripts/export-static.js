@@ -1,0 +1,142 @@
+#!/usr/bin/env node
+import { spawn } from "child_process";
+import fs from "fs-extra";
+import fetch from "node-fetch";
+import path from "path";
+
+// 1) Define the routes to export
+const ROUTES_TO_EXPORT = [
+  "/",
+  "/bio",
+  "/projects",
+  "/projects/earth",
+  "/projects/cafe-belle",
+];
+
+// 2) Export directory
+const EXPORT_DIR = path.join(process.cwd(), "static-export");
+
+async function runCommand(command, args = [], options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: "inherit", ...options });
+    child.on("close", (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`Command failed: ${command} ${args.join(" ")}`));
+    });
+  });
+}
+
+async function buildRemixApp() {
+  console.log("🏗  Building Remix app with `remix vite:build`...");
+  await runCommand("npx", ["remix", "vite:build"]);
+}
+
+let serverProcess;
+async function startServer() {
+  console.log("🚀 Starting Remix server on http://localhost:3000...");
+
+  serverProcess = spawn("npx", ["remix-serve", "build/server/index.js"], {
+    stdio: "pipe",
+    env: { ...process.env, PORT: "3000" },
+  });
+
+  return new Promise((resolve, reject) => {
+    let serverStarted = false;
+
+    serverProcess.stdout.on("data", (data) => {
+      const message = data.toString().trim();
+      console.log("[server]", message);
+
+      if (message.includes("[remix-serve] http://localhost:3000")) {
+        serverStarted = true;
+        resolve();
+      }
+    });
+
+    serverProcess.stderr.on("data", (data) => {
+      console.error("[server error]", data.toString());
+    });
+
+    serverProcess.on("close", (code) => {
+      if (!serverStarted) {
+        reject(new Error(`Remix server closed prematurely with code ${code}`));
+      }
+    });
+  });
+}
+
+async function stopServer() {
+  console.log("🛑 Stopping Remix server...");
+  if (serverProcess) {
+    serverProcess.kill();
+  }
+}
+
+async function fetchHTML(routePath) {
+  const url = `http://localhost:3000${routePath}`;
+  console.log(`   Fetching: ${url}`);
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to fetch ${url}: ${res.status} ${res.statusText}`);
+  }
+  return res.text();
+}
+
+async function exportRoutes() {
+  console.log(`📂 Clearing output directory: ${EXPORT_DIR}`);
+  await fs.remove(EXPORT_DIR);
+  await fs.mkdir(EXPORT_DIR);
+
+  console.log(`   Copying public/ => ${EXPORT_DIR}`);
+  await fs.copy(path.join(process.cwd(), "public"), EXPORT_DIR);
+
+  // Copy the client assets => /assets
+  const clientAssetsSrc = path.join(process.cwd(), "build", "client", "assets");
+  const clientAssetsDest = path.join(EXPORT_DIR, "assets");
+  console.log(`   Copying ${clientAssetsSrc} => ${clientAssetsDest}`);
+  await fs.copy(clientAssetsSrc, clientAssetsDest);
+
+  // If you have flags/, images/, etc. in build/client, copy them too:
+  const flagsSrc = path.join(process.cwd(), "build", "client", "flags");
+  const flagsDest = path.join(EXPORT_DIR, "flags");
+  if (await fs.pathExists(flagsSrc)) {
+    console.log(`   Copying ${flagsSrc} => ${flagsDest}`);
+    await fs.copy(flagsSrc, flagsDest);
+  }
+
+  const imagesSrc = path.join(process.cwd(), "build", "client", "images");
+  const imagesDest = path.join(EXPORT_DIR, "images");
+  if (await fs.pathExists(imagesSrc)) {
+    console.log(`   Copying ${imagesSrc} => ${imagesDest}`);
+    await fs.copy(imagesSrc, imagesDest);
+  }
+
+  // If you need the server "assets" or other files, you can do similar steps.
+
+  // Fetch each route's HTML and save
+  for (const routePath of ROUTES_TO_EXPORT) {
+    const html = await fetchHTML(routePath);
+    const filePath =
+      routePath === "/"
+        ? path.join(EXPORT_DIR, "index.html")
+        : path.join(EXPORT_DIR, routePath, "index.html");
+
+    await fs.ensureDir(path.dirname(filePath));
+    await fs.writeFile(filePath, html);
+    console.log(`   Wrote: ${filePath}`);
+  }
+
+  console.log("✅ Static export complete!");
+}
+
+(async function main() {
+  try {
+    await buildRemixApp();
+    await startServer();
+    await exportRoutes();
+  } catch (error) {
+    console.error("Error during static export:", error);
+  } finally {
+    await stopServer();
+  }
+})();

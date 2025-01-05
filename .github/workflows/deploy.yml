@@ -1,9 +1,9 @@
 name: Deploy Remix to GitHub Pages
 
 on:
-  # Trigger on push to main (adjust branch as needed)
   push:
-    branches: ["remix"]
+    branches:
+      - remix
 
 jobs:
   build-and-deploy:
@@ -14,7 +14,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
 
-      # 2. Use the correct Node version (adjust to your needs)
+      # 2. Use the correct Node version
       - name: Use Node 20
         uses: actions/setup-node@v2
         with:
@@ -24,27 +24,29 @@ jobs:
       - name: Install dependencies
         run: yarn install
 
-      # 4. Build your Remix project
+      # 4. Build your Remix app
       - name: Build Remix app
         run: yarn build
 
-      # 5. Generate static files with remix-ssg
-      #    - This step depends on how you configured remix-ssg.
-      #    - You might have a script in your package.json like "generate": "remix-ssg"
-      - name: Generate static site
-        run: yarn generate
+      # 5. Export your static site
+      #    (Runs your script that creates the `static-export` folder)
+      - name: Export static site
+        run: yarn static
 
       # 6. Deploy to GitHub Pages
-      #
-      #    This uses the peaceiris/actions-gh-pages action:
-      #       https://github.com/peaceiris/actions-gh-pages
-      #    The 'publish_dir' should be the output folder that remix-ssg generates,
-      #    which might be "public" or "build" depending on your setup.
-      #
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
         with:
           # GitHub token
           personal_token: ${{ secrets.GITHUB_TOKEN }}
-          # The folder that contains your generated static files
-          publish_dir: ./build
+
+          # The folder containing your exported static files
+          publish_dir: ./static-export
+
+          # Optionally set the target branch
+          # (defaults to "gh-pages")
+          # publish_branch: gh-pages
+
+          # If you want to preserve existing build history,
+          # or force push, or control concurrency, etc.
+          # see https://github.com/peaceiris/actions-gh-pages
