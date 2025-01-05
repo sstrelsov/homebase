@@ -2,7 +2,7 @@
 import gsap from "gsap";
 import React, { useEffect } from "react";
 import * as THREE from "three";
-import { DotInfo } from "~/earthTypes";
+import { DotInfo } from "~/types/earthTypes";
 import { getCountryCentroid } from "~/utils/earthMath";
 import useAtOrAboveBreakpoint from "../../../utils/useAtOrAboveBreakpoint";
 import { RotateControllerHandle } from "./RotateController";

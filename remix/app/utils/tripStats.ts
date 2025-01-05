@@ -1,4 +1,4 @@
-import { Trip } from "~/earthTypes";
+import { Trip } from "~/types/earthTypes";
 
 const EARTH_RADIUS = 3958.8; // Earth radius in miles
 

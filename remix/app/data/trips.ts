@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { Trip } from "~/earthTypes";
+import { Trip } from "~/types/earthTypes";
 
 export const trips: Trip[] = [
   // 2023

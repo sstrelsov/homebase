@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { v4 as uuidV4 } from "uuid";
-import { ArcLocation, CityLocation, Trip } from "~/earthTypes";
+import { ArcLocation, CityLocation, Trip } from "~/types/earthTypes";
 /**
  * Convert latitude & longitude to a THREE.Vector3 on a sphere.
  * @param lat   latitude in degrees

@@ -24,7 +24,7 @@ export default function ProjectSlugRoute() {
     case "cafe-belle":
       if (showDrafts) {
         return (
-          <BlogPost post={<CafeBelle />} frontMatter={cafeBelleFrontmatter} />
+          <BlogPost post={<CafeBelle />} frontmatter={cafeBelleFrontmatter} />
         );
       }
     default:

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AllArcsBehavior, ArcLocation } from "~/earthTypes";
+import { AllArcsBehavior, ArcLocation } from "~/types/earthTypes";
 import { buildAllArcs } from "~/utils/arcs";
 
 export interface AllArcsStaticMeshProps {

@@ -1,6 +1,6 @@
 // useLandDotsData.ts
 import { useEffect, useState } from "react";
-import { DotInfo } from "~/earthTypes";
+import { DotInfo } from "~/types/earthTypes";
 
 /**
  * A simple custom hook to fetch DotInfo[] from a given URL.

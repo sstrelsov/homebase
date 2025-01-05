@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { ArcLocation } from "~/earthTypes";
+import { ArcLocation } from "~/types/earthTypes";
 import Arc from "./ArcLight";
 
 export interface ArcGroupProps {

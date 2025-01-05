@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { BufferAttribute, Color } from "three";
-import { DotInfo } from "~/earthTypes";
+import { DotInfo } from "~/types/earthTypes";
 
 export interface LandDotsProps {
   dots: DotInfo[];

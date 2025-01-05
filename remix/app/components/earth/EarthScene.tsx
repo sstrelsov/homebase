@@ -4,7 +4,7 @@ import { Canvas } from "@react-three/fiber";
 import { Suspense, useRef } from "react";
 import * as THREE from "three";
 import { trips } from "~/data/trips";
-import { CityLocation } from "~/earthTypes";
+import { CityLocation } from "~/types/earthTypes";
 import { flattenAllTrips, getArcsFromLegs } from "~/utils/arcs";
 import useAtOrAboveBreakpoint from "~/utils/useAtOrAboveBreakpoint";
 import FocusController from "./controllers/FocusController";

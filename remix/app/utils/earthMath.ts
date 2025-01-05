@@ -1,5 +1,5 @@
 import * as THREE from "three";
-import { DotInfo } from "~/earthTypes";
+import { DotInfo } from "~/types/earthTypes";
 
 interface GetCountryCentroidProps {
   isoA3: string;

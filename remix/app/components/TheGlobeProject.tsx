@@ -2,7 +2,7 @@ import { useTheme } from "@nextui-org/use-theme";
 import { useEffect, useState } from "react";
 import { ClientOnly } from "remix-utils/client-only";
 import { trips } from "~/data/trips";
-import { CityLocation } from "~/earthTypes";
+import { CityLocation } from "~/types/earthTypes";
 import { flattenAllIsos, flattenAllTrips, getArcCities } from "~/utils/arcs";
 import CountryButtons from "./CountryButtons";
 import EarthScene from "./earth/EarthScene";
