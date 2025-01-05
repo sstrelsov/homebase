@@ -69,19 +69,19 @@ async function startServer() {
 
 async function stopServer() {
   console.log("🛑 Stopping Remix server...");
+  if (!serverProcess) return;
 
-  if (serverProcess) {
-    // Send a SIGTERM (the default is SIGTERM anyway, but let's be explicit)
-    serverProcess.kill("SIGTERM");
-
-    // Wait for the 'close' event so we know the process is really done
-    await new Promise((resolve) => {
-      serverProcess.on("close", (code) => {
-        console.log(`🛑 Remix server closed with code ${code}`);
-        resolve();
-      });
+  // "tree-kill" kills the entire process group, not just the top-level child.
+  await new Promise((resolve) => {
+    kill(serverProcess.pid, "SIGTERM", (err) => {
+      if (err) {
+        console.error("Failed to kill Remix server with tree-kill:", err);
+      } else {
+        console.log("🛑 Remix server killed via tree-kill");
+      }
+      resolve();
     });
-  }
+  });
 }
 
 async function fetchHTML(routePath) {
