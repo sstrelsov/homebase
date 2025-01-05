@@ -5,8 +5,29 @@ import useAtOrAboveBreakpoint from "~/utils/useAtOrAboveBreakpoint";
 
 export const meta: MetaFunction = () => {
   return [
-    { title: "New Remix App" },
-    { name: "description", content: "Welcome to Remix!" },
+    { title: "Spencer Strelsov" },
+    {
+      name: "description",
+      content:
+        "Personal site for Spencer, a PM at Thomson Reuters who builds AI for lawyers.",
+    },
+
+    // -- Open Graph Meta Tags (for Facebook, Slack, iMessage, etc.) --
+    { property: "og:title", content: "Spencer Strelsov" },
+    {
+      property: "og:description",
+      content:
+        "Sr. Product Manager at Thomson Reuters, building AI for lawyers & journalists.",
+    },
+    { property: "og:type", content: "website" },
+    { property: "og:url", content: "https://www.strelsov.me" },
+    {
+      property: "og:image",
+      content: "/images/strelsov-landing.png",
+    },
+
+    // (Optional) If you want a “site name” to show in some link previews
+    { property: "og:site_name", content: "Spencer Strelsov" },
   ];
 };
 
