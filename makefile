@@ -9,8 +9,8 @@ deploy: build deploy-worktree clean
 
 # 1) Build your app
 build:
-	@echo "Running npm build..."
-	npm run build
+	@echo "Running bun build..."
+	bun run build
 
 # 2) Deploy using a separate worktree with NO history preservation
 deploy-worktree:

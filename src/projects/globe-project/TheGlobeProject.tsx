@@ -1,15 +1,9 @@
 import { useTheme } from "@nextui-org/use-theme";
 import { useEffect, useState } from "react";
-import EarthScene from "../../components/earth/EarthScene";
+import { CityLocation, EarthScene, getArcCities } from "the-globe";
 import TravelStatsCard from "../../components/TravelStatsCard";
 import { trips } from "../../data/trips";
-
-import { CityLocation } from "../../types/earthTypes";
-import {
-  flattenAllIsos,
-  flattenAllTrips,
-  getArcCities,
-} from "../../utils/arcs";
+import { flattenAllIsos, flattenAllTrips } from "../../utils/tripArcs";
 import CountryButtons from "./CountryButtons";
 
 const TheGlobeProject = () => {
@@ -101,6 +95,7 @@ const TheGlobeProject = () => {
       {/* Full-screen Earth in the background */}
       <div className="absolute inset-0 pointer-events-auto">
         <EarthScene
+          arcs={flattenAllTrips(trips)}
           spotlightCountries={spotlightCountries}
           focusIso={focusOnCountry}
           spotlightCities={spotlightCities}
