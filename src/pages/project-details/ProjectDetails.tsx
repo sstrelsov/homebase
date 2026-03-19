@@ -1,4 +1,4 @@
-import { useLocation, useParams } from "react-router-dom";
+import { useParams, useSearch } from "@tanstack/react-router";
 import CafeBelle from "../../content/CafeBelle.mdx";
 import TheGlobeProject from "../../projects/globe-project/TheGlobeProject";
 import PostTemplate from "../../templates/PostTemplate";
@@ -6,12 +6,8 @@ import { components } from "../../utils/mdx";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
 
 const ProjectDetails = () => {
-  const { projectSlug } = useParams();
-  const location = useLocation();
-
-  // Check query parameter
-  const queryParams = new URLSearchParams(location.search);
-  const showDrafts = queryParams.get("showDrafts") === "true";
+  const { projectSlug } = useParams({ from: "/projects/$projectSlug" });
+  const { showDrafts } = useSearch({ from: "/projects/$projectSlug" });
   const isSmUp = useAtOrAboveBreakpoint("sm");
   const isMdUp = useAtOrAboveBreakpoint("md");
   const isLgUp = useAtOrAboveBreakpoint("lg");
