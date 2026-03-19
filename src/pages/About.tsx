@@ -1,6 +1,6 @@
 import HomebaseLink from "../components/HomebaseLink";
 
-const BioPage = () => {
+const AboutPage = () => {
   return (
     <div className="flex flex-col gap-4 max-w-sm sm:max-w-lg h-full px-8 xs:px-4 justify-center">
       <p className="text-md xs:text-lg sm:text-xl md:text-2xl">
@@ -32,4 +32,4 @@ const BioPage = () => {
     </div>
   );
 };
-export default BioPage;
+export default AboutPage;

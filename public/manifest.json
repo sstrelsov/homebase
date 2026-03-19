@@ -3,24 +3,24 @@
   "name": "Spencer Strelsov's Website",
   "icons": [
     {
-      "src": "favicon-dark.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon",
+      "src": "favicon-dark-32.png",
+      "sizes": "32x32",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "favicon-light.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
-      "type": "image/x-icon",
+      "src": "favicon-light-32.png",
+      "sizes": "32x32",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "homebase-logo-dark.png",
+      "src": "homebase-logo-dark-192.png",
       "type": "image/png",
       "sizes": "192x192"
     },
     {
-      "src": "homebase-logo.png",
+      "src": "homebase-logo-192.png",
       "type": "image/png",
       "sizes": "192x192"
     }

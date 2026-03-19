@@ -3,11 +3,14 @@ import {
   createRootRoute,
   createRoute,
   createRouter,
+  HeadContent,
   lazyRouteComponent,
   stripSearchParams,
 } from "@tanstack/react-router";
 import App from "./App";
 import ProjectsTable from "./components/table/ProjectsTable";
+
+export { HeadContent };
 
 const rootRoute = createRootRoute({
   component: App,
@@ -18,12 +21,18 @@ const homeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
   component: lazyRouteComponent(() => import("./pages/Landing")),
+  head: () => ({
+    meta: [{ title: "Spencer" }],
+  }),
 });
 
-const bioRoute = createRoute({
+const aboutRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/bio",
-  component: lazyRouteComponent(() => import("./pages/Bio")),
+  path: "/about",
+  component: lazyRouteComponent(() => import("./pages/About")),
+  head: () => ({
+    meta: [{ title: "About | Spencer" }],
+  }),
 });
 
 const projectsRoute = createRoute({
@@ -40,6 +49,9 @@ const projectsRoute = createRoute({
   search: {
     middlewares: [stripSearchParams({ showDrafts: false })],
   },
+  head: () => ({
+    meta: [{ title: "Projects | Spencer" }],
+  }),
 });
 
 const projectsIndexRoute = createRoute({
@@ -54,11 +66,18 @@ const projectDetailRoute = createRoute({
   component: lazyRouteComponent(
     () => import("./pages/project-details/ProjectDetails"),
   ),
+  head: ({ params }) => ({
+    meta: [
+      {
+        title: `${params.projectSlug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())} | Spencer`,
+      },
+    ],
+  }),
 });
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
-  bioRoute,
+  aboutRoute,
   projectsRoute.addChildren([projectsIndexRoute, projectDetailRoute]),
 ]);
 
