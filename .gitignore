@@ -24,3 +24,4 @@ npm-debug.log*
 .temp_build/
 
 homebase.code-workspace
+references/
