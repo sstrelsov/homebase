@@ -29,7 +29,7 @@ const NavigationBar = () => {
       </NavbarBrand>
       <NavbarContent className="flex gap-4" justify="center">
         <NavbarItem>
-          <NavLink to={RoutePath.BIO}>Bio</NavLink>
+          <NavLink to={RoutePath.ABOUT}>About</NavLink>
         </NavbarItem>
         <NavbarItem>
           <NavLink to={RoutePath.PROJECTS}>Projects</NavLink>
