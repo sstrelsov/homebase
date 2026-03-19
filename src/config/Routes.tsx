@@ -6,7 +6,7 @@ import ProjectsTable from "../components/table/ProjectsTable";
 const LandingPage = lazy(() => import("../pages/Landing"));
 const ProjectsPage = lazy(() => import("../pages/Projects"));
 const ProjectDetails = lazy(
-  () => import("../pages/project-details/ProjectDetails")
+  () => import("../pages/project-details/ProjectDetails"),
 );
 const BioPage = lazy(() => import("../pages/Bio"));
 

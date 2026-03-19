@@ -1,7 +1,9 @@
-import { Theme, useTheme } from "@nextui-org/use-theme";
-import React, {
+import { type Theme, useTheme } from "@nextui-org/use-theme";
+import type React from "react";
+import {
   createContext,
-  ReactNode,
+  type ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useState,
@@ -40,6 +42,7 @@ function genRandomColor(mode: Theme): string {
     } else if (mode === "light" && brightness < 0.4) {
       return color; // Darker color for light mode
     }
+    // biome-ignore lint/correctness/noConstantCondition: intentional retry loop for color generation
   } while (true);
 }
 
@@ -67,14 +70,14 @@ export const ColorProvider: React.FC<ColorProviderProps> = ({ children }) => {
   /**
    * Function to set a random link color based on the current mode.
    */
-  const setRandomColor = (mode: Theme) => {
+  const setRandomColor = useCallback((mode: Theme) => {
     setLinkColor(genRandomColor(mode));
-  };
+  }, []);
 
   // Update the color whenever the theme changes
   useEffect(() => {
-    setRandomColor(theme); // Use current theme from NextUI
-  }, [theme]);
+    setRandomColor(theme);
+  }, [theme, setRandomColor]);
 
   return (
     <ColorContext.Provider value={{ linkColor, setRandomColor }}>

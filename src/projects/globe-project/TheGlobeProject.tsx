@@ -1,6 +1,6 @@
 import { useTheme } from "@nextui-org/use-theme";
 import { useEffect, useState } from "react";
-import { CityLocation, EarthScene, getArcCities } from "the-globe";
+import { type CityLocation, EarthScene, getArcCities } from "the-globe";
 import TravelStatsCard from "../../components/TravelStatsCard";
 import { trips } from "../../data/trips";
 import { flattenAllIsos, flattenAllTrips } from "../../utils/tripArcs";
@@ -32,7 +32,7 @@ const TheGlobeProject = () => {
 
   // Earth camera focus
   const [focusOnCountry, setFocusOnCountry] = useState<string | undefined>(
-    undefined
+    undefined,
   );
   /**
    * On country stat click, show or hide the flags and set the spotlight countries.
@@ -67,7 +67,7 @@ const TheGlobeProject = () => {
 
   const handleCityStatClick = () => {
     console.log("Clicked city stats");
-    if (!!spotlightCities) {
+    if (spotlightCities) {
       setSpotlightCities(undefined);
     } else {
       setSpotlightCities(cities);
@@ -79,7 +79,7 @@ const TheGlobeProject = () => {
   };
 
   const handleMilesStatClick = () => {
-    if (!!spotlightMiles) {
+    if (spotlightMiles) {
       setSpotlightMiles(undefined);
     } else {
       setSpotlightMiles(cities);

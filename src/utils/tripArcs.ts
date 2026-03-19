@@ -1,5 +1,5 @@
-import { ArcLocation, getArcsFromLegs } from "the-globe";
-import { Trip } from "../types/tripTypes";
+import { type ArcLocation, getArcsFromLegs } from "the-globe";
+import type { Trip } from "../types/tripTypes";
 
 /**
  * Get arcs from a single trip.

@@ -1,4 +1,4 @@
-import { Trip } from "../types/tripTypes";
+import type { Trip } from "../types/tripTypes";
 
 const EARTH_RADIUS = 3958.8; // Earth radius in miles
 
@@ -14,7 +14,7 @@ const haversineMiles = (
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number => {
   const toRad = (value: number) => (value * Math.PI) / 180;
 
@@ -38,7 +38,7 @@ const haversineMiles = (
 const filterTripsByYear = (trips: Trip[], year?: number): Trip[] => {
   if (!year) return trips;
   return trips.filter(
-    (trip) => new Date(trip.startDate || "").getFullYear() === year
+    (trip) => new Date(trip.startDate || "").getFullYear() === year,
   );
 };
 
@@ -73,7 +73,7 @@ export const getCountriesTraveled = ({
 
   for (const trip of filteredTrips) {
     if (Array.isArray(trip.countries)) {
-      trip.countries.forEach((iso) => countrySet.add(iso));
+      for (const iso of trip.countries) countrySet.add(iso);
     }
   }
 
@@ -92,7 +92,7 @@ export const getCitiesTraveled = ({
 
   for (const trip of filteredTrips) {
     if (Array.isArray(trip.legs)) {
-      trip.legs.forEach((leg) => citySet.add(leg?.name || ""));
+      for (const leg of trip.legs) citySet.add(leg?.name || "");
     }
   }
 

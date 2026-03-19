@@ -1,4 +1,4 @@
-import { AnchorHTMLAttributes } from "react";
+import type { AnchorHTMLAttributes } from "react";
 import { useLinkColor } from "../utils/ColorContext";
 
 interface HomebaseLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {

@@ -1,4 +1,4 @@
-import { CityLocation } from "the-globe";
+import type { CityLocation } from "the-globe";
 
 export interface Trip {
   /** A unique ID or short slug for this trip */

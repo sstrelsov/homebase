@@ -11,7 +11,7 @@ const rootElement = document.getElementById("root");
 
 if (!rootElement) {
   throw new Error(
-    "Failed to find the 'root' element. Make sure index.html has a <div id='root'></div>."
+    "Failed to find the 'root' element. Make sure index.html has a <div id='root'></div>.",
   );
 }
 const root = ReactDOM.createRoot(rootElement);
@@ -22,7 +22,7 @@ root.render(
         <App />
       </Providers>
     </HashRouter>
-  </StrictMode>
+  </StrictMode>,
 );
 
 // Log performance metrics or send them to an analytics endpoint
