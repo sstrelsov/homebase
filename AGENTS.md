@@ -1,4 +1,4 @@
-# Homebase — Personal Portfolio Site
+# Homebase — Personal Site
 
 ## Philosophy
 
