@@ -4,6 +4,7 @@ import {
   createRoute,
   createRouter,
   lazyRouteComponent,
+  stripSearchParams,
 } from "@tanstack/react-router";
 import App from "./App";
 import ProjectsTable from "./components/table/ProjectsTable";
@@ -29,9 +30,16 @@ const projectsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/projects",
   component: lazyRouteComponent(() => import("./pages/Projects")),
-  validateSearch: (search: Record<string, unknown>) => ({
-    showDrafts: search.showDrafts === true || search.showDrafts === "true",
-  }),
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { showDrafts?: boolean } => {
+    const showDrafts =
+      search.showDrafts === true || search.showDrafts === "true";
+    return showDrafts ? { showDrafts: true } : {};
+  },
+  search: {
+    middlewares: [stripSearchParams({ showDrafts: false })],
+  },
 });
 
 const projectsIndexRoute = createRoute({
@@ -44,7 +52,7 @@ const projectDetailRoute = createRoute({
   getParentRoute: () => projectsRoute,
   path: "$projectSlug",
   component: lazyRouteComponent(
-    () => import("./pages/project-details/ProjectDetails")
+    () => import("./pages/project-details/ProjectDetails"),
   ),
 });
 

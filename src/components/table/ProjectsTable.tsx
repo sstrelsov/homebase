@@ -19,7 +19,7 @@ const ProjectsTable = () => {
   const visibleProjects = useMemo(
     () =>
       showDrafts ? projects : projects.filter((project) => !project.isDraft),
-    [showDrafts]
+    [showDrafts],
   );
 
   const handleRowAction = (slug: string) => {

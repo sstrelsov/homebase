@@ -17,7 +17,7 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <StrictMode>
     <RouterProvider router={router} />
-  </StrictMode>
+  </StrictMode>,
 );
 
 // Log performance metrics or send them to an analytics endpoint
