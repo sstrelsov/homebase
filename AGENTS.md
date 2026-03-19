@@ -9,7 +9,7 @@
 
 ## Project Overview
 
-Homebase is the source for [strelsov.me](https://strelsov.me) — a personal website built with:
+Homebase is the source for [spencerstrelsov.com](https://spencerstrelsov.com) — a personal website built with:
 
 - **React 18** + **TypeScript** + **Vite**
 - **Bun** as the package manager and script runner

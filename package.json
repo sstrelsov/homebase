@@ -2,7 +2,7 @@
   "name": "homebase",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://strelsov.me",
+  "homepage": "https://spencerstrelsov.com",
   "dependencies": {
     "@mdx-js/react": "^3.1.0",
     "@mdx-js/rollup": "^3.1.0",
