@@ -1,6 +1,6 @@
 // src/config/Routes.tsx
 import { Route, Routes } from "react-router-dom";
-import { renderRoutes, ROUTES } from "../config/Routes";
+import { ROUTES, renderRoutes } from "../config/Routes";
 
 export const AppRouter = () => {
   return (

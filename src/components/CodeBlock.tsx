@@ -1,5 +1,5 @@
 import { useTheme } from "@nextui-org/use-theme";
-import React from "react";
+import type React from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 

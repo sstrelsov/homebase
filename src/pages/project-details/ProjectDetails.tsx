@@ -4,6 +4,7 @@ import TheGlobeProject from "../../projects/globe-project/TheGlobeProject";
 import PostTemplate from "../../templates/PostTemplate";
 import { components } from "../../utils/mdx";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
+
 const ProjectDetails = () => {
   const { projectSlug } = useParams();
   const location = useLocation();
@@ -22,22 +23,21 @@ const ProjectDetails = () => {
       if (showDrafts) {
         return (
           <PostTemplate
-            children={
-              <CafeBelle
-                components={components}
-                isSmUp={isSmUp}
-                isMdUp={isMdUp}
-                isLgUp={isLgUp}
-                isXLgUp={isXLgUp}
-              />
-            }
             meta={{
               title: "A Conversation at Cafe Belle",
               date: "12-30-24",
               author: "Spencer Strelsov",
               imageSrc: "/images/cafe-belle-g-3200.jpg",
             }}
-          />
+          >
+            <CafeBelle
+              components={components}
+              isSmUp={isSmUp}
+              isMdUp={isMdUp}
+              isLgUp={isLgUp}
+              isXLgUp={isXLgUp}
+            />
+          </PostTemplate>
         );
       }
       return <div>Oops! Project not found.</div>;

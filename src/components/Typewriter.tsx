@@ -21,7 +21,7 @@ function findPrefixOverlap(a: string, b: string): number {
 
 function preserveTrailingNewlinesInOverlap(
   currentPhrase: string,
-  rawOverlapLength: number
+  rawOverlapLength: number,
 ) {
   if (rawOverlapLength >= currentPhrase.length) return rawOverlapLength;
   const leftover = currentPhrase.slice(rawOverlapLength);
@@ -50,7 +50,7 @@ const Typewriter = ({
     setPhase("typing");
     setIndex(0);
     setCharIndex(0);
-  }, [phrases]);
+  }, []);
 
   const isLastPhrase = !loop && index === phrases.length - 1;
 
@@ -61,7 +61,7 @@ const Typewriter = ({
   if (preserveTrailingNewlines) {
     overlapLength = preserveTrailingNewlinesInOverlap(
       currentPhrase,
-      overlapLength
+      overlapLength,
     );
   }
 
@@ -116,8 +116,6 @@ const Typewriter = ({
     period,
     typingSpeed,
     deletingSpeed,
-    index,
-    nextPhrase,
     isLastPhrase,
     loop,
     phrases.length,

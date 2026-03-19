@@ -59,8 +59,8 @@ const LandingPage = () => {
           period={isHoriztonal ? 1000 : undefined}
           deletingSpeed={isHoriztonal ? 50 : 70}
           phrases={isHoriztonal ? accumulatingPhrases : cyclingPhrases}
-          loop={isHoriztonal ? false : true}
-          preserveTrailingNewlines={isHoriztonal ? true : false}
+          loop={!isHoriztonal}
+          preserveTrailingNewlines={!!isHoriztonal}
         />
       </div>
     </div>
