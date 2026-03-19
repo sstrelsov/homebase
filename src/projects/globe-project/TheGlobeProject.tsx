@@ -66,7 +66,6 @@ const TheGlobeProject = () => {
   };
 
   const handleCityStatClick = () => {
-    console.log("Clicked city stats");
     if (spotlightCities) {
       setSpotlightCities(undefined);
     } else {

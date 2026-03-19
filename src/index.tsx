@@ -1,10 +1,9 @@
+import { RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import ReactDOM from "react-dom/client";
-import { HashRouter } from "react-router-dom";
-import App from "./App";
 import "./css/index.css";
-import { Providers } from "./Providers";
 import reportWebVitals from "./reportWebVitals";
+import { router } from "./router";
 
 // Safely get the root element from the DOM
 const rootElement = document.getElementById("root");
@@ -17,11 +16,7 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <StrictMode>
-    <HashRouter>
-      <Providers>
-        <App />
-      </Providers>
-    </HashRouter>
+    <RouterProvider router={router} />
   </StrictMode>,
 );
 

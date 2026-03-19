@@ -4,7 +4,7 @@ import {
   NavbarContent,
   NavbarItem,
 } from "@nextui-org/react";
-import { useLocation } from "react-router-dom";
+import { useLocation } from "@tanstack/react-router";
 import { RoutePath } from "../../config/Routes";
 import NavLink from "./NavLink";
 

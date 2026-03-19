@@ -8,32 +8,26 @@ import {
   TableHeader,
   TableRow,
 } from "@nextui-org/react";
-import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { columns, projects } from "../../data/projects-table";
 
 const ProjectsTable = () => {
   const navigate = useNavigate();
-  // React Router's built-in hook for reading/parsing the query string
-  const [searchParams] = useSearchParams();
+  const { showDrafts } = useSearch({ from: "/projects/" });
 
-  const [visibleProjects, setVisibleProjects] = useState(projects);
-
-  useEffect(() => {
-    // Reactively filter projects based on "showDrafts" query param
-    const showDrafts = searchParams.get("showDrafts") === "true";
-    const filteredProjects = showDrafts
-      ? projects
-      : projects.filter((project) => !project.isDraft);
-
-    setVisibleProjects(filteredProjects);
-  }, [searchParams]);
+  const visibleProjects = useMemo(
+    () =>
+      showDrafts ? projects : projects.filter((project) => !project.isDraft),
+    [showDrafts],
+  );
 
   const handleRowAction = (slug: string) => {
-    // Preserve all existing query parameters when navigating
-    const currentSearchString = searchParams.toString();
-    const destination = `/projects/${slug}${currentSearchString ? `?${currentSearchString}` : ""}`;
-    navigate(destination);
+    navigate({
+      to: "/projects/$projectSlug",
+      params: { projectSlug: slug },
+      search: { showDrafts },
+    });
   };
 
   return (
