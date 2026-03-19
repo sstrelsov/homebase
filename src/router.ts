@@ -1,5 +1,4 @@
 import {
-  createHashHistory,
   createRootRoute,
   createRoute,
   createRouter,
@@ -81,11 +80,8 @@ const routeTree = rootRoute.addChildren([
   projectsRoute.addChildren([projectsIndexRoute, projectDetailRoute]),
 ]);
 
-const hashHistory = createHashHistory();
-
 export const router = createRouter({
   routeTree,
-  history: hashHistory,
   defaultPreload: "intent",
 });
 
