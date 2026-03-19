@@ -21,7 +21,14 @@ const homeRoute = createRoute({
   path: "/",
   component: lazyRouteComponent(() => import("./pages/Landing")),
   head: () => ({
-    meta: [{ title: "Spencer" }],
+    meta: [
+      { title: "Spencer" },
+      {
+        name: "description",
+        content:
+          "Spencer Strelsov's personal site. Projects, writing, and contact.",
+      },
+    ],
   }),
 });
 
@@ -30,7 +37,14 @@ const aboutRoute = createRoute({
   path: "/about",
   component: lazyRouteComponent(() => import("./pages/About")),
   head: () => ({
-    meta: [{ title: "About | Spencer" }],
+    meta: [
+      { title: "About | Spencer" },
+      {
+        name: "description",
+        content:
+          "Sr. Product Manager at Thomson Reuters, leading R&D for CoCounsel. Former fullstack engineer at Casetext. Yale alumnus.",
+      },
+    ],
   }),
 });
 
@@ -49,7 +63,13 @@ const projectsRoute = createRoute({
     middlewares: [stripSearchParams({ showDrafts: false })],
   },
   head: () => ({
-    meta: [{ title: "Projects | Spencer" }],
+    meta: [
+      { title: "Projects | Spencer" },
+      {
+        name: "description",
+        content: "Side projects and experiments by Spencer Strelsov.",
+      },
+    ],
   }),
 });
 
