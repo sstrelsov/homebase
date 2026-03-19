@@ -1,4 +1,4 @@
-import { copyFileSync } from "node:fs";
+import { copyFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import mdx from "@mdx-js/rollup";
 import react from "@vitejs/plugin-react";
@@ -21,10 +21,17 @@ export default defineConfig({
       include: "**/*.svg?react",
     }),
     {
-      name: "spa-404-fallback",
+      name: "spa-fallback",
       closeBundle() {
         const outDir = resolve(__dirname, "build");
-        copyFileSync(resolve(outDir, "index.html"), resolve(outDir, "404.html"));
+        const index = resolve(outDir, "index.html");
+        // 404.html for unknown routes
+        copyFileSync(index, resolve(outDir, "404.html"));
+        // Static copies for known routes so GitHub Pages returns 200
+        for (const route of ["about", "projects"]) {
+          mkdirSync(resolve(outDir, route), { recursive: true });
+          copyFileSync(index, resolve(outDir, route, "index.html"));
+        }
       },
     },
   ],
