@@ -1,4 +1,4 @@
-import { Button } from "@nextui-org/react";
+import { Button } from "@nextui-org/button";
 import Flag from "react-flagpack";
 import useAtOrAboveBreakpoint from "../../utils/useAtOrAboveBreakpoint";
 

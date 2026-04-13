@@ -1,4 +1,4 @@
-import { NextUIProvider } from "@nextui-org/react";
+import { NextUIProvider } from "@nextui-org/system";
 import type React from "react";
 import { ColorProvider } from "./utils/ColorContext";
 export interface ProvidersProps {
