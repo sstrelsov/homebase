@@ -1,4 +1,4 @@
-const { nextui } = require("@nextui-org/react");
+const { nextui } = require("@nextui-org/theme");
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -14,9 +14,6 @@ module.exports = {
       },
       fontFamily: {
         sans: ["IBM Plex Sans", "sans-serif"],
-        special: "Special Elite",
-        serif: ["IBM Plex Serif", "serif"],
-        inter: ["Inter", "sans-serif"],
         code: [
           "source-code-pro",
           "Menlo",
