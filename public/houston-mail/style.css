@@ -1,0 +1,16 @@
+:root {
+  color-scheme: light dark;
+  font-family: system-ui, sans-serif;
+  line-height: 1.65;
+}
+body { margin: 0; background: #faf9f6; color: #252525; }
+main { max-width: 42rem; margin: auto; padding: 3rem 1.5rem 5rem; }
+a { color: inherit; text-underline-offset: 0.2em; }
+h1 { font-size: clamp(2rem, 6vw, 2.75rem); line-height: 1.15; margin: 2rem 0 0.5rem; }
+h2 { font-size: 1.1rem; margin: 2rem 0 0.5rem; }
+p { margin: 0.75rem 0; }
+.updated { font-size: 0.9rem; color: #606060; }
+@media (prefers-color-scheme: dark) {
+  body { background: #191919; color: #ecebe7; }
+  .updated { color: #b5b5b5; }
+}
