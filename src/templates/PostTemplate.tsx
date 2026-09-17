@@ -1,4 +1,5 @@
-import { Card, CardFooter, Image } from "@nextui-org/react";
+import { Card, CardFooter } from "@nextui-org/card";
+import { Image } from "@nextui-org/image";
 import useAtOrAboveBreakpoint from "../utils/useAtOrAboveBreakpoint";
 
 interface BlogTemplateProps {

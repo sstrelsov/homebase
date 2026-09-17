@@ -37,5 +37,21 @@ export default defineConfig({
   ],
   build: {
     outDir: "build",
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "vendor-nextui": [
+            "@nextui-org/system",
+            "@nextui-org/theme",
+            "@nextui-org/navbar",
+            "@nextui-org/card",
+            "@nextui-org/button",
+            "@nextui-org/table",
+            "@nextui-org/image",
+          ],
+          "vendor-router": ["@tanstack/react-router"],
+        },
+      },
+    },
   },
 });
