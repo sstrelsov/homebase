@@ -11,14 +11,15 @@ const NEON = "#39ff14";
 // Without one, every CARTO tile is an "API KEY REQUIRED" watermark, so we
 // fall back to Esri's keyless dark canvas (native tiles stop at zoom 16).
 const CARTO_KEY = import.meta.env.VITE_CARTO_API_KEY;
+const OSM =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const TILES = CARTO_KEY
   ? {
       url: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`,
       options: {
         subdomains: "abcd",
         maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+        attribution: `${OSM} &copy; <a href="https://carto.com/attributions">CARTO</a>`,
       },
     }
   : {
@@ -26,9 +27,14 @@ const TILES = CARTO_KEY
       options: {
         maxZoom: 19,
         maxNativeZoom: 16,
-        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>',
+        attribution: `Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, HERE, Garmin, ${OSM}, and the GIS user community`,
       },
     };
+if (!CARTO_KEY) {
+  console.info(
+    "VITE_CARTO_API_KEY is not set; using Esri fallback tiles. See .env.example.",
+  );
+}
 
 /** Points along a gentle arc from a to b, so each hop reads as a jump. */
 function hopArc([aLat, aLng]: LatLng, [bLat, bLng]: LatLng): LatLng[] {
@@ -76,11 +82,6 @@ const HeightsMap = ({ places, stops, glowing }: HeightsMapProps) => {
     }).fitBounds(L.latLngBounds(places.map((p) => p.at)), {
       padding: [18, 18],
     });
-    if (!CARTO_KEY) {
-      console.info(
-        "VITE_CARTO_API_KEY is not set; using Esri fallback tiles. See .env.example.",
-      );
-    }
     L.tileLayer(TILES.url, TILES.options).addTo(m);
     for (const place of places) {
       dots.current.set(
