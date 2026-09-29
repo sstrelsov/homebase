@@ -15,6 +15,10 @@ API_PORT=3999 # vite.config.mts proxies /stached-api here
 WEB_PORT=5190
 HTTPS_PORT=8443
 DATA=.phone
+# A local-only password and puzzle; the real ones live on the Studio. Point
+# PUZZLES_FILE at a private copy to test a real puzzle.
+PASSWORD="${STACHE_PASSWORD:-test}"
+PUZZLES="$PWD/${PUZZLES_FILE:-stached-api/puzzles.example.json}"
 PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 
 for tool in bun node tailscale initdb pg_ctl createdb; do
@@ -48,7 +52,7 @@ createdb -h localhost -p "$PG_PORT" -U postgres stached
 (
   cd stached-api
   DATABASE_URL="postgres://postgres@localhost:$PG_PORT/stached" \
-    STACHE_PASSWORD=stache SESSION_SECRET=phone \
+    STACHE_PASSWORD="$PASSWORD" SESSION_SECRET=phone PUZZLES_FILE="$PUZZLES" \
     ALLOWED_ORIGINS="http://localhost:$WEB_PORT" PORT="$API_PORT" \
     exec bun server.ts
 ) &
@@ -68,5 +72,5 @@ sleep 2
 echo
 bunx qrcode --small "$url"
 echo "  $url"
-echo "  Tailscale on, password stache. Ctrl-C to stop."
+echo "  Tailscale on, password $PASSWORD. Ctrl-C to stop."
 wait

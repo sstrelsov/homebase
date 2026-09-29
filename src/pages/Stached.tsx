@@ -18,7 +18,7 @@ import styles from "../stached/stached.module.css";
 
 function status({ play }: Today) {
   if (!play) return null;
-  if (!play.finished) return "Game on. The clock's running!";
+  if (!play.finished) return "Game in progress";
   const stache =
     play.stachedMs === null
       ? "No stache"

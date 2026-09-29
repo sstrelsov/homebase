@@ -8,7 +8,6 @@
 // so) counts for at most CLOCK_GRACE_MS.
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
-import puzzles from "./puzzles.json";
 
 const PASSWORD = env("STACHE_PASSWORD");
 const SECRET = env("SESSION_SECRET");
@@ -18,6 +17,11 @@ const CLOCK_GRACE_MS = 15_000;
 // Color slots for the non-stache groups, easiest first, like Connections.
 // Each theme paints them its own way.
 const COLORS = ["1", "2", "3", "4"];
+// The real puzzles live outside this public repo (on the Studio, next to the
+// password); puzzles.example.json is a made-up one for local testing.
+const puzzles: Omit<Puzzle, "id">[] = await Bun.file(
+  env("PUZZLES_FILE"),
+).json();
 
 interface Group {
   title: string;
@@ -57,7 +61,7 @@ function checkPuzzles() {
   const dates = puzzles.map((p) => p.date);
   if (new Set(dates).size !== dates.length)
     throw new Error("Two puzzles share a date");
-  for (const { date, groups } of puzzles as Omit<Puzzle, "id">[]) {
+  for (const { date, groups } of puzzles) {
     const words = groups.flatMap((g) => g.words);
     if (groups.some((g) => g.words.length !== 4))
       throw new Error(`${date}: every group needs four words`);
@@ -373,7 +377,7 @@ function cors(req: Request): Record<string, string> {
 
 checkPuzzles();
 await sql.unsafe(await Bun.file(new URL("schema.sql", import.meta.url)).text());
-// Postgres mirrors puzzles.json. Editing or dropping a puzzle that people have
+// Postgres mirrors the puzzles file. Editing or dropping a puzzle that people have
 // played wipes their games: scores from the old words wouldn't mean anything
 // against the new ones.
 const dropped = await sql`

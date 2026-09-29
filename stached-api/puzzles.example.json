@@ -1,0 +1,24 @@
+[
+  {
+    "date": "2026-01-01",
+    "groups": [
+      {
+        "title": "Breakfast",
+        "words": ["Waffle", "Bagel", "Omelet", "Pancake"]
+      },
+      {
+        "title": "Shades of blue",
+        "words": ["Navy", "Teal", "Azure", "Cobalt"]
+      },
+      {
+        "title": "___ball",
+        "words": ["Basket", "Foot", "Meat", "Snow"]
+      },
+      {
+        "title": "Mustache styles",
+        "words": ["Walrus", "Handlebar", "Horseshoe", "Chevron"],
+        "stache": true
+      }
+    ]
+  }
+]

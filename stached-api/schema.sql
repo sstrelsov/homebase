@@ -6,7 +6,7 @@ create table if not exists users (
 
 create unique index if not exists users_name_key on users (lower(name));
 
--- Mirrors puzzles.json, synced on every boot.
+-- Mirrors the puzzles file (PUZZLES_FILE), synced on every boot.
 create table if not exists puzzles (
   id serial primary key,
   date date not null unique,
