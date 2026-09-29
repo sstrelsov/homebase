@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync } from "node:fs";
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import mdx from "@mdx-js/rollup";
 import react from "@vitejs/plugin-react";
@@ -31,6 +31,17 @@ export default defineConfig({
         for (const route of ["about", "projects"]) {
           mkdirSync(resolve(outDir, route), { recursive: true });
           copyFileSync(index, resolve(outDir, route, "index.html"));
+        }
+        // Unlisted routes: noindex in the static HTML, before any JS runs
+        for (const route of ["mustache"]) {
+          mkdirSync(resolve(outDir, route), { recursive: true });
+          writeFileSync(
+            resolve(outDir, route, "index.html"),
+            readFileSync(index, "utf8").replace(
+              "<head>",
+              '<head>\n    <meta name="robots" content="noindex, nofollow" />',
+            ),
+          );
         }
       },
     },

@@ -1,0 +1,170 @@
+/* The 1984 logo: a CRT screen with scanlines, a vignette, and a faint flicker */
+.crt {
+  aspect-ratio: 400 / 184;
+  box-shadow: inset 0 0 40px rgba(57, 255, 20, 0.08);
+  animation: flicker 5s steps(1) infinite;
+}
+
+.crt svg {
+  filter: blur(0.35px) saturate(1.2);
+}
+
+.scanlines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.75)),
+    repeating-linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.35) 0 1px,
+      transparent 1px 3px
+    );
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  41% {
+    opacity: 0.93;
+  }
+  42% {
+    opacity: 1;
+  }
+  77% {
+    opacity: 0.96;
+  }
+}
+
+/* Broadcast arcs pulse outward, innermost first */
+.broadcast {
+  animation: broadcast 1.8s ease-in-out infinite;
+}
+
+@keyframes broadcast {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+/* Red and blue fringes, with a quick glitch every few seconds */
+.fringeRed,
+.fringeBlue {
+  mix-blend-mode: screen;
+  opacity: 0.85;
+  animation: 4.5s steps(1) infinite;
+}
+
+.fringeRed {
+  transform: translateX(-2.5px);
+  animation-name: glitch-red;
+}
+
+.fringeBlue {
+  transform: translateX(2.5px);
+  animation-name: glitch-blue;
+}
+
+@keyframes glitch-red {
+  0%,
+  100% {
+    transform: translateX(-2.5px);
+  }
+  62% {
+    transform: translate(-9px, 1px);
+  }
+  64% {
+    transform: translateX(-2.5px);
+  }
+}
+
+@keyframes glitch-blue {
+  0%,
+  100% {
+    transform: translateX(2.5px);
+  }
+  62% {
+    transform: translate(8px, -1px);
+  }
+  64% {
+    transform: translateX(2.5px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glowing,
+  .crt,
+  .broadcast,
+  .fringeRed,
+  .fringeBlue {
+    animation: none;
+  }
+}
+
+/* The Leaflet map: dark tiles, neon hops, and Gerald */
+.map {
+  background: #000;
+  box-shadow: 0 0 0 1px rgba(57, 255, 20, 0.25);
+}
+
+.map :global(.leaflet-control-attribution) {
+  background: rgba(0, 0, 0, 0.6);
+  color: #777;
+  font-size: 9px;
+}
+
+.map :global(.leaflet-control-attribution a) {
+  color: #999;
+}
+
+.hop {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  filter: drop-shadow(0 0 4px #39ff14);
+  animation: hop 1.6s ease-in-out forwards;
+}
+
+@keyframes hop {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.gerald svg {
+  width: 100%;
+  height: 100%;
+  fill: #fffdf2;
+  filter: drop-shadow(0 0 3px #fffdf2) drop-shadow(0 0 6px #39ff14);
+}
+
+.glowing svg {
+  animation: gerald-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes gerald-glow {
+  50% {
+    filter: drop-shadow(0 0 6px #fffdf2) drop-shadow(0 0 18px #39ff14)
+      drop-shadow(0 0 30px #39ff14);
+  }
+}
+
+.label {
+  background: rgba(0, 0, 0, 0.75);
+  border: 1px solid rgba(57, 255, 20, 0.4);
+  border-radius: 4px;
+  box-shadow: none;
+  color: #e8ffe0;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 1px 5px;
+}
+
+.label::before {
+  display: none;
+}
