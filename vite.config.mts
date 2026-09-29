@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import mdx from "@mdx-js/rollup";
@@ -38,13 +39,19 @@ export default defineConfig({
         }
         // Stached is unlisted: noindex in the static HTML, before any JS runs,
         // plus its own title and preview card for when the link is shared.
+        // A fingerprint in the image URL, so apps that cached an old card fetch
+        // the new picture.
+        const image = createHash("sha256")
+          .update(readFileSync(resolve(__dirname, "public/images/stached-og.png")))
+          .digest("hex")
+          .slice(0, 8);
         const stached = `
     <meta name="robots" content="noindex, nofollow" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Stached" />
-    <meta property="og:description" content="Find the groups. Get the stache." />
+    <meta property="og:description" content="Got ’stache?" />
     <meta property="og:url" content="${SITE}/stached" />
-    <meta property="og:image" content="${SITE}/images/stached-og.png" />
+    <meta property="og:image" content="${SITE}/images/stached-og.png?v=${image}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />`;
@@ -56,7 +63,7 @@ export default defineConfig({
             .replace(/<title>.*<\/title>/, "<title>Stached</title>")
             .replace(
               /<meta\s+name="description"\s+content="[^"]*"\s*\/>/,
-              '<meta name="description" content="Find the groups. Get the stache." />',
+              '<meta name="description" content="Got ’stache?" />',
             ),
         );
       },
