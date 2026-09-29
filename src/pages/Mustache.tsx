@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import HeightsMap from "../components/HeightsMap";
 import HumanTyping from "../components/HumanTyping";
+import RetroMustache from "../components/RetroMustache";
 import {
   type Choice,
   FINALE,
@@ -61,6 +62,7 @@ const MustachePage = () => {
       </div>
 
       <div className="text-lg sm:text-xl leading-relaxed max-w-xl space-y-6">
+        <RetroMustache />
         {trail.map((step, i) => {
           const isCurrent = i === trail.length - 1;
           const next = trail[i + 1];
