@@ -64,7 +64,14 @@ phone-preview:
 	./scripts/phone.sh --preview
 
 # Ship the Stached API to the Studio: check out the branch you're on here, pull
-# it there, and restart the API (launchd brings it back; it runs as
-# sstrelsov-personal, so no sudo).
+# it there, and restart the API. Under launchd, killing it is enough (it runs as
+# sstrelsov-personal, so no sudo); before the daemons are installed it runs in a
+# tmux session, which is restarted instead.
 deploy-stached:
-	ssh personal-studio 'set -e; cd ~/dev/homebase && git fetch -q origin && git checkout -q $(CURRENT_BRANCH) && git pull -q --ff-only && git log --oneline -1 && pkill -f "stached/api.env" && sleep 3 && curl -sf http://127.0.0.1:3999/health && echo " healthy"'
+	ssh personal-studio 'set -e; export PATH=/opt/homebrew/bin:$$PATH; C=$$HOME/.config/stached; \
+	  cd ~/dev/homebase && git fetch -q origin && git checkout -q $(CURRENT_BRANCH) && git pull -q --ff-only && git log --oneline -1; \
+	  if tmux has-session -t stached-api 2>/dev/null; then \
+	    tmux kill-session -t stached-api; \
+	    tmux new-session -d -s stached-api "cd ~/dev/homebase/stached-api && bun --env-file=$$C/api.env server.ts 2>&1 | tee -a $$C/api.log"; \
+	  else pkill -f "stached/api.env"; fi; \
+	  sleep 3; curl -sf http://127.0.0.1:3999/health && echo " healthy"'
