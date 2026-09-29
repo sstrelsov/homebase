@@ -61,6 +61,7 @@ const Login = ({ onSignIn }: LoginProps) => {
           spellCheck={false}
           enterKeyHint="next"
           maxLength={24}
+          placeholder="e.g. Spencer"
           required
           className={styles.input}
         />
