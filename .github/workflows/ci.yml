@@ -28,6 +28,8 @@ jobs:
       - run: bun run lint
 
       - run: bun run build
+        env:
+          VITE_CARTO_API_KEY: ${{ secrets.VITE_CARTO_API_KEY }}
 
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name == 'push'

@@ -7,6 +7,29 @@ import { type LatLng, MUSTACHE_PATH, type Place } from "../data/mustacheStory";
 const HOP_MS = 1600;
 const NEON = "#39ff14";
 
+// CARTO basemaps need a (free) API key — https://carto.com/basemaps/apikey.
+// Without one, every CARTO tile is an "API KEY REQUIRED" watermark, so we
+// fall back to Esri's keyless dark canvas (native tiles stop at zoom 16).
+const CARTO_KEY = import.meta.env.VITE_CARTO_API_KEY;
+const TILES = CARTO_KEY
+  ? {
+      url: `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?key=${CARTO_KEY}`,
+      options: {
+        subdomains: "abcd",
+        maxZoom: 19,
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      },
+    }
+  : {
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}",
+      options: {
+        maxZoom: 19,
+        maxNativeZoom: 16,
+        attribution: 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>',
+      },
+    };
+
 /** Points along a gentle arc from a to b, so each hop reads as a jump. */
 function hopArc([aLat, aLng]: LatLng, [bLat, bLng]: LatLng): LatLng[] {
   const bend = 0.25;
@@ -53,15 +76,12 @@ const HeightsMap = ({ places, stops, glowing }: HeightsMapProps) => {
     }).fitBounds(L.latLngBounds(places.map((p) => p.at)), {
       padding: [18, 18],
     });
-    L.tileLayer(
-      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
-      {
-        subdomains: "abcd",
-        maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
-      },
-    ).addTo(m);
+    if (!CARTO_KEY) {
+      console.info(
+        "VITE_CARTO_API_KEY is not set; using Esri fallback tiles. See .env.example.",
+      );
+    }
+    L.tileLayer(TILES.url, TILES.options).addTo(m);
     for (const place of places) {
       dots.current.set(
         place,
