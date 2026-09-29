@@ -5,7 +5,8 @@ const API =
   import.meta.env.VITE_STACHED_API ??
   (import.meta.env.DEV ? "/stached-api" : "https://stached-api.up.railway.app");
 
-export type Color = "yellow" | "green" | "blue" | "purple" | "stache";
+/** A group's color slot: 1–4 by difficulty, or the stache. Themes paint them. */
+export type Color = "1" | "2" | "3" | "4" | "stache";
 
 export interface Group {
   title: string;
@@ -128,22 +129,6 @@ export function saveSession(session: Session | null) {
     // Private mode: the session lasts as long as the tab.
   }
 }
-
-export const COLOR_HEX: Record<Color, string> = {
-  yellow: "#ffe14d",
-  green: "#39ff14",
-  blue: "#05d9e8",
-  purple: "#b967ff",
-  stache: "#ff2a6d",
-};
-
-export const COLOR_EMOJI: Record<Color, string> = {
-  yellow: "🟨",
-  green: "🟩",
-  blue: "🟦",
-  purple: "🟪",
-  stache: "🟥",
-};
 
 /** 42_300 → "0:42", or "0:42.3" with tenths. */
 export function formatTime(ms: number, tenths = false) {

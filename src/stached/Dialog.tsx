@@ -29,7 +29,7 @@ const Dialog = ({ open, onClose, title, children }: DialogProps) => {
     >
       <div className="p-5 space-y-5">
         <header className="flex items-center justify-between gap-4">
-          <h2 className={`${styles.title} text-sm`}>{title}</h2>
+          <h2 className={`${styles.title} text-lg`}>{title}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -39,6 +39,7 @@ const Dialog = ({ open, onClose, title, children }: DialogProps) => {
             ×
           </button>
         </header>
+        <div className={`${styles.stripes} -mt-2 w-28`} />
         {children}
       </div>
     </dialog>

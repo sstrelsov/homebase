@@ -39,7 +39,7 @@ createdb -h localhost -p "$PG_PORT" -U postgres stached
 (
   cd stached-api
   DATABASE_URL="postgres://postgres@localhost:$PG_PORT/stached" \
-    STACHE_PASSWORD=//stache SESSION_SECRET=phone \
+    STACHE_PASSWORD=stache SESSION_SECRET=phone \
     ALLOWED_ORIGINS="http://localhost:$WEB_PORT" PORT="$API_PORT" \
     exec bun server.ts
 ) &
@@ -54,5 +54,5 @@ sleep 2
 echo
 bunx qrcode --small "$url"
 echo "  $url"
-echo "  Tailscale on, password //stache. Ctrl-C to stop."
+echo "  Tailscale on, password stache. Ctrl-C to stop."
 wait

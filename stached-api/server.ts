@@ -15,8 +15,9 @@ const SECRET = env("SESSION_SECRET");
 const ORIGINS = env("ALLOWED_ORIGINS").split(",");
 const MAX_MISTAKES = 4;
 const CLOCK_GRACE_MS = 15_000;
-// Non-stache groups get these in order, easiest first, like Connections.
-const COLORS = ["yellow", "green", "blue", "purple"];
+// Color slots for the non-stache groups, easiest first, like Connections.
+// Each theme paints them its own way.
+const COLORS = ["1", "2", "3", "4"];
 
 interface Group {
   title: string;

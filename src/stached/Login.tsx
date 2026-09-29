@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
-import { MUSTACHE_PATH } from "../components/RetroMustache";
 import { api, type Session } from "./api";
+import { MUSTACHE_PATH } from "./Logo";
 import styles from "./stached.module.css";
 
 interface LoginProps {
@@ -44,7 +44,8 @@ const Login = ({ onSignIn }: LoginProps) => {
         >
           <path d={MUSTACHE_PATH} />
         </svg>
-        <h1 className={`${styles.title} text-[28px]`}>Stached</h1>
+        <h1 className={`${styles.title} text-[30px]`}>Stached</h1>
+        <div className={`${styles.stripes} w-40`} />
         <p className={styles.label}>
           Insert name to play<span className={styles.blink}>_</span>
         </p>
@@ -84,7 +85,7 @@ const Login = ({ onSignIn }: LoginProps) => {
       <p
         role="alert"
         key={attempt}
-        className={`${styles.pixel} ${styles.hot} min-h-4 text-center text-[10px] ${error ? styles.shake : ""}`}
+        className={`${styles.display} ${styles.alert} min-h-4 text-center text-[10px] ${error ? styles.shake : ""}`}
       >
         {error}
       </p>

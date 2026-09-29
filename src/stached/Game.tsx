@@ -6,16 +6,15 @@ import {
   useRef,
   useState,
 } from "react";
-import { MUSTACHE_PATH } from "../components/RetroMustache";
 import {
   api,
-  COLOR_HEX,
   formatDate,
   formatTime,
   type Group,
   type Play,
   type Today,
 } from "./api";
+import Logo, { MUSTACHE_PATH } from "./Logo";
 import ResultsDialog from "./ResultsDialog";
 import styles from "./stached.module.css";
 import { useStacheClock } from "./useStacheClock";
@@ -41,7 +40,46 @@ function barsFor(play: Play): Group[] {
   return [...play.solved, ...missed];
 }
 
-/** Shrinks a word until it fits its tile. */
+const VOWEL = /[aeiouy]/i;
+const LETTER = /[a-z]/i;
+const DIGRAPHS = ["ch", "ck", "gh", "ph", "sh", "th", "wh"];
+
+/**
+ * Puts a soft hyphen at one syllable break in each long word, nearest its
+ * middle: weight|lifting, l'appar|tement. Rough English rules are plenty for
+ * a word that only breaks when it would otherwise be too small to read.
+ */
+function softHyphenate(text: string) {
+  return text
+    .split(" ")
+    .map((word) => {
+      if (word.length < 9) return word;
+      const vowels = [...word].flatMap((c, i) => (VOWEL.test(c) ? [i] : []));
+      const breaks = vowels.slice(1).flatMap((next, k) => {
+        const cluster = word.slice(vowels[k] + 1, next);
+        if (!cluster || ![...cluster].every((c) => LETTER.test(c))) return [];
+        if (cluster.length === 1) return [next - 1]; // ta|ble
+        const digraph = DIGRAPHS.includes(cluster.slice(-2).toLowerCase());
+        return [next - (digraph ? 2 : 1)]; // weight|lifting, rea|ching
+      });
+      const fair = breaks.filter((i) => i >= 3 && word.length - i >= 3);
+      if (!fair.length) return word;
+      const middle = word.length / 2;
+      const at = fair.reduce((a, b) =>
+        Math.abs(b - middle) < Math.abs(a - middle) ? b : a,
+      );
+      return `${word.slice(0, at)}\u00ad${word.slice(at)}`;
+    })
+    .join(" ");
+}
+
+// Whole words down to 15px; after that, long words may break at their hyphen.
+const FIT_STEPS = [
+  { hyphens: "none", min: 15 },
+  { hyphens: "manual", min: 11 },
+];
+
+/** Shrinks a word until it fits its tile, breaking long ones if it must. */
 const FitWord = ({ word }: { word: string }) => {
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -51,14 +89,15 @@ const FitWord = ({ word }: { word: string }) => {
     if (!span || !tile) return;
     const shrink = () => {
       const room = tile.clientHeight - 8;
-      let size = 26;
-      span.style.fontSize = `${size}px`;
-      while (
-        size > 11 &&
-        (span.scrollWidth > span.clientWidth || span.offsetHeight > room)
-      ) {
-        size -= 1;
-        span.style.fontSize = `${size}px`;
+      const fits = () =>
+        span.scrollWidth <= span.clientWidth && span.offsetHeight <= room;
+      for (const { hyphens, min } of FIT_STEPS) {
+        span.style.setProperty("hyphens", hyphens);
+        span.style.setProperty("-webkit-hyphens", hyphens);
+        for (let size = 26; size >= min; size--) {
+          span.style.fontSize = `${size}px`;
+          if (fits()) return;
+        }
       }
     };
     shrink();
@@ -70,7 +109,7 @@ const FitWord = ({ word }: { word: string }) => {
 
   return (
     <span ref={ref} className={styles.word}>
-      {word}
+      {softHyphenate(word)}
     </span>
   );
 };
@@ -176,7 +215,7 @@ const Game = ({
         setSelected([]);
         if (group.color === "stache") {
           setStached(true);
-          await sleep(2200);
+          await sleep(2600);
           setStached(false);
         }
       } else if (next.result === "repeat") {
@@ -219,18 +258,18 @@ const Game = ({
         <button
           type="button"
           onClick={onHome}
-          className={`${styles.pixel} -ml-1 py-2 pr-3 text-[10px]`}
+          className={`${styles.display} -ml-1 py-2 pr-3 text-[11px]`}
         >
           ‹ Home
         </button>
         <div className="flex flex-col items-center gap-1.5">
-          <span className={`${styles.title} text-sm`}>Stached</span>
+          <span className={`${styles.title} text-base`}>Stached</span>
           <span className={styles.label}>{formatDate(puzzle.date)}</span>
         </div>
         <button
           type="button"
           onClick={onRules}
-          className={`${styles.pixel} -mr-1 py-2 pl-3 text-[10px]`}
+          className={`${styles.display} -mr-1 py-2 pl-3 text-[11px]`}
         >
           Rules
         </button>
@@ -240,7 +279,7 @@ const Game = ({
         <div>
           <p className={styles.label}>Stache time</p>
           <p
-            className={`text-[36px] leading-none tabular-nums ${play.stachedMs === null ? "" : styles.hot}`}
+            className={`${styles.clock} ${play.stachedMs === null ? "" : styles.stacheText}`}
           >
             {clock === null ? "—" : formatTime(clock, play.stachedMs !== null)}
           </p>
@@ -286,8 +325,8 @@ const Game = ({
               initial={{ scale: 0.8, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 420, damping: 18 }}
-              className={`${styles.bar} ${group.color === "stache" ? styles.stacheBar : ""}`}
-              style={{ "--color": COLOR_HEX[group.color] } as CSSProperties}
+              data-color={group.color}
+              className={styles.bar}
             >
               <span className={styles.barTitle}>
                 {group.color === "stache" && <Mustache className="w-7" />}
@@ -318,9 +357,17 @@ const Game = ({
 
         {stached && (
           <div role="status" className={styles.stacheFlash}>
-            <Mustache />
-            <p className={`${styles.title} text-2xl`}>Stached!</p>
-            <p className={`text-5xl ${styles.hot}`}>
+            <Logo intro />
+            <p
+              className={`${styles.title} ${styles.rise} text-[28px]`}
+              style={{ animationDelay: "0.9s" }}
+            >
+              Stached!
+            </p>
+            <p
+              className={`${styles.clock} ${styles.stacheText} ${styles.rise}`}
+              style={{ animationDelay: "1.1s", fontSize: 44 }}
+            >
               {formatTime(play.stachedMs ?? 0, true)}
             </p>
           </div>
@@ -329,11 +376,7 @@ const Game = ({
 
       {over ? (
         <div className="grid grid-cols-2 gap-3">
-          <button
-            type="button"
-            onClick={onHome}
-            className={`${styles.button} ${styles.secondary}`}
-          >
+          <button type="button" onClick={onHome} className={styles.button}>
             Home
           </button>
           <button
@@ -350,7 +393,7 @@ const Game = ({
             type="button"
             onClick={() => setOrder(shuffle)}
             disabled={busy}
-            className={`${styles.button} ${styles.secondary}`}
+            className={styles.button}
           >
             Shuffle
           </button>
@@ -358,7 +401,7 @@ const Game = ({
             type="button"
             onClick={() => setSelected([])}
             disabled={busy || selected.length === 0}
-            className={`${styles.button} ${styles.secondary}`}
+            className={styles.button}
           >
             Deselect
           </button>

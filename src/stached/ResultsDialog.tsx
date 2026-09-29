@@ -1,7 +1,5 @@
-import { type CSSProperties, useState } from "react";
+import { useContext, useState } from "react";
 import {
-  COLOR_EMOJI,
-  COLOR_HEX,
   formatDate,
   formatTime,
   type Play,
@@ -10,6 +8,7 @@ import {
 } from "./api";
 import Dialog from "./Dialog";
 import styles from "./stached.module.css";
+import { shareEmoji, ThemeContext } from "./theme";
 
 interface ResultsDialogProps {
   open: boolean;
@@ -37,6 +36,7 @@ const ResultsDialog = ({
   board,
   player,
 }: ResultsDialogProps) => {
+  const theme = useContext(ThemeContext);
   const [shared, setShared] = useState(false);
   const grid = play.grid ?? [];
 
@@ -46,7 +46,9 @@ const ResultsDialog = ({
       play.stachedMs === null
         ? "No stache"
         : `Stache time ${formatTime(play.stachedMs, true)}`,
-      ...grid.map((row) => row.map((color) => COLOR_EMOJI[color]).join("")),
+      ...grid.map((row) =>
+        row.map((color) => shareEmoji(theme, color)).join(""),
+      ),
     ].join("\n");
     const url = `${window.location.origin}/stached`;
     try {
@@ -68,7 +70,7 @@ const ResultsDialog = ({
       <div className="grid grid-cols-2 gap-3 text-center">
         <div className={`${styles.panel} p-3`}>
           <p className={styles.label}>Stache time</p>
-          <p className={`text-4xl ${styles.hot}`}>
+          <p className={`text-4xl ${styles.stacheText}`}>
             {play.stachedMs === null ? "—" : formatTime(play.stachedMs, true)}
           </p>
         </div>
@@ -90,7 +92,7 @@ const ResultsDialog = ({
                 // biome-ignore lint/suspicious/noArrayIndexKey: same as above
                 key={j}
                 className={styles.swatch}
-                style={{ "--color": COLOR_HEX[color] } as CSSProperties}
+                data-color={color}
               />
             ))}
           </div>
@@ -107,7 +109,7 @@ const ResultsDialog = ({
 
       <section className="space-y-2">
         <h3 className={styles.label}>Today's scoreboard</h3>
-        <ol className="text-[22px] leading-tight">
+        <ol className="text-[19px] leading-tight">
           {board.map((score, i) => (
             <li
               key={score.name}
@@ -119,7 +121,7 @@ const ResultsDialog = ({
             >
               <span className="w-6 opacity-50">{i + 1}</span>
               <span className="flex-1 truncate">{score.name}</span>
-              <span className={styles.hot}>
+              <span className={styles.stacheText}>
                 {score.stachedMs === null
                   ? "—"
                   : formatTime(score.stachedMs, true)}
@@ -135,7 +137,7 @@ const ResultsDialog = ({
       <button
         type="button"
         onClick={onHome}
-        className={`${styles.button} ${styles.secondary} w-full`}
+        className={`${styles.button} w-full`}
       >
         Home
       </button>

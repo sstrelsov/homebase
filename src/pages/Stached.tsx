@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import RetroMustache from "../components/RetroMustache";
 import {
   ApiError,
   api,
@@ -13,8 +12,16 @@ import {
 import Crawl from "../stached/Crawl";
 import Game from "../stached/Game";
 import Login from "../stached/Login";
+import Logo from "../stached/Logo";
 import RulesDialog from "../stached/RulesDialog";
+import SettingsDialog from "../stached/SettingsDialog";
 import styles from "../stached/stached.module.css";
+import {
+  loadTheme,
+  saveTheme,
+  type Theme,
+  ThemeContext,
+} from "../stached/theme";
 
 function status(today: Today) {
   const { puzzle, play } = today;
@@ -30,14 +37,16 @@ function status(today: Today) {
 interface ArcadeProps {
   session: Session;
   onSignOut: () => void;
+  onTheme: (theme: Theme) => void;
 }
 
 /** Signed in: the logo and its two buttons, or the game itself. */
-const Arcade = ({ session, onSignOut }: ArcadeProps) => {
+const Arcade = ({ session, onSignOut, onTheme }: ArcadeProps) => {
   const [today, setToday] = useState<Today | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   // The logo powers on once, not every time you come back from a game.
   const [intro, setIntro] = useState(true);
 
@@ -93,26 +102,24 @@ const Arcade = ({ session, onSignOut }: ArcadeProps) => {
 
   return (
     <div className="flex min-h-[calc(100dvh-40px)] flex-col gap-7 pt-4">
-      <div className={intro ? styles.powerOn : undefined}>
-        <RetroMustache />
-      </div>
+      <Logo intro={intro} />
       <div
         className={`${rise} flex flex-col items-center gap-3`}
-        style={{ animationDelay: "0.8s" }}
+        style={{ animationDelay: "1.1s" }}
       >
-        <h1 className={`${styles.title} text-[26px]`}>Stached</h1>
+        <h1 className={`${styles.title} text-[32px]`}>Stached</h1>
         <p className={styles.label}>
           {today ? formatDate(today.puzzle.date) : " "}
         </p>
       </div>
       <div
         className={`${rise} grid grid-cols-2 gap-3`}
-        style={{ animationDelay: "1s" }}
+        style={{ animationDelay: "1.3s" }}
       >
         <button
           type="button"
           onClick={() => setRulesOpen(true)}
-          className={`${styles.button} ${styles.secondary}`}
+          className={styles.button}
         >
           Rules
         </button>
@@ -127,35 +134,50 @@ const Arcade = ({ session, onSignOut }: ArcadeProps) => {
       </div>
       <div
         className={`${rise} flex flex-col items-center gap-4 text-center`}
-        style={{ animationDelay: "1.2s" }}
+        style={{ animationDelay: "1.5s" }}
       >
         {error ? (
           <button
             type="button"
             onClick={load}
-            className={`${styles.label} ${styles.hot}`}
+            className={`${styles.label} ${styles.alert}`}
           >
             {error}. Tap to retry
           </button>
         ) : (
           <p className={styles.label}>{today ? status(today) : "Loading…"}</p>
         )}
-        <button
-          type="button"
-          onClick={onSignOut}
-          className={`${styles.label} underline underline-offset-4`}
-        >
-          Not {session.name}? Switch player
-        </button>
+        <div className="flex flex-col items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setSettingsOpen(true)}
+            className={`${styles.label} underline underline-offset-4`}
+          >
+            Settings
+          </button>
+          <button
+            type="button"
+            onClick={onSignOut}
+            className={`${styles.label} underline underline-offset-4`}
+          >
+            Not {session.name}? Switch player
+          </button>
+        </div>
       </div>
       <Crawl />
       {rules}
+      <SettingsDialog
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        onTheme={onTheme}
+      />
     </div>
   );
 };
 
 const StachedPage = () => {
   const [session, setSession] = useState(loadSession);
+  const [theme, setTheme] = useState(loadTheme);
 
   const signIn = (next: Session) => {
     saveSession(next);
@@ -167,16 +189,29 @@ const StachedPage = () => {
     setSession(null);
   }, []);
 
+  const chooseTheme = (next: Theme) => {
+    saveTheme(next);
+    setTheme(next);
+  };
+
   return (
-    <div className={`self-start w-full ${styles.arcade}`}>
-      <div className="mx-auto w-full max-w-md px-4 pt-4 pb-6">
-        {session ? (
-          <Arcade key={session.token} session={session} onSignOut={signOut} />
-        ) : (
-          <Login onSignIn={signIn} />
-        )}
+    <ThemeContext.Provider value={theme}>
+      <div data-theme={theme} className={`self-start w-full ${styles.arcade}`}>
+        <div aria-hidden="true" className={styles.crt} />
+        <div className="mx-auto w-full max-w-md px-4 pt-4 pb-6">
+          {session ? (
+            <Arcade
+              key={session.token}
+              session={session}
+              onSignOut={signOut}
+              onTheme={chooseTheme}
+            />
+          ) : (
+            <Login onSignIn={signIn} />
+          )}
+        </div>
       </div>
-    </div>
+    </ThemeContext.Provider>
   );
 };
 
