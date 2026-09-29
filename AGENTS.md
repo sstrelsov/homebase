@@ -67,7 +67,7 @@ The API runs on the Studio as `sstrelsov-personal` (`ssh personal-studio`), from
 
 ### Link previews
 
-The Open Graph tags (title, description, `public/images/stached-og.png`) are written into `build/stached/index.html` at build time, with absolute URLs from `STACHED_SITE` (default `https://www.spencerstrelsov.com`). The dev server doesn't serve them.
+The Open Graph tags (title, description, `public/images/stached-og.png`) are written into `build/stached/index.html` at build time, with absolute URLs from `STACHED_SITE` (default `https://spencerstrelsov.com`, where GitHub Pages serves the site; `www` redirects there). The dev server doesn't serve them.
 
 - **Before it's live:** `make phone-preview` builds with `STACHED_SITE` pointed at this Mac and serves the build. Paste the printed `…ts.net:8443/stached/` link (trailing slash, as GitHub Pages serves it) into an iMessage thread on the phone; iMessage fetches previews from the sending phone, so Tailscale is enough. Slack, Discord and the like fetch from their own servers and can't reach a tailnet URL.
-- **Once live:** paste `https://www.spencerstrelsov.com/stached` anywhere, or inspect it with a preview checker such as opengraph.xyz. Apps cache previews per URL; add `?v=2` to see a change.
+- **Once live:** paste `https://spencerstrelsov.com/stached` anywhere, or inspect it with a preview checker such as opengraph.xyz. Apps cache previews per URL; add `?v=2` to see a change.

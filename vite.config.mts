@@ -9,7 +9,7 @@ import viteTsconfigPaths from "vite-tsconfig-paths";
 
 // Absolute base for link-preview URLs. `make phone-preview` points it at this
 // Mac so a phone can fetch the preview before the site is live.
-const SITE = process.env.STACHED_SITE ?? "https://www.spencerstrelsov.com";
+const SITE = process.env.STACHED_SITE ?? "https://spencerstrelsov.com";
 const STACHED_DESCRIPTION = "Got ’stache?";
 
 // https://vitejs.dev/config/
