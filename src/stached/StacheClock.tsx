@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, type Play } from "./api";
+import { api, formatTime, type Play } from "./api";
+import styles from "./stached.module.css";
 
 const HEARTBEAT_MS = 5000;
 
@@ -7,13 +8,19 @@ const HEARTBEAT_MS = 5000;
 const inFront = () =>
   document.visibilityState === "visible" && document.hasFocus();
 
+interface StacheClockProps {
+  token: string;
+  puzzleId: number;
+  play: Play;
+}
+
 /**
- * The stache clock in ms, or null once there's no stache left to time. It
- * runs only while the board is mounted and the tab is in front: switching
- * apps, locking the phone, or going back home pauses it. The server keeps the
- * real count; this shows it ticking between check-ins.
+ * The stache clock: it runs only while the board is mounted and the tab is in
+ * front, so switching apps, locking the phone, or going back home pauses it.
+ * The server keeps the real count; this shows it ticking between check-ins,
+ * in its own component so the board doesn't re-render with every tick.
  */
-export function useStacheClock(token: string, puzzleId: number, play: Play) {
+const StacheClock = ({ token, puzzleId, play }: StacheClockProps) => {
   const running = play.stachedMs === null && !play.finished;
   // Clock time as of `at` (a performance.now()), or frozen while `at` is null.
   const [base, setBase] = useState<{ ms: number; at: number | null }>(() => ({
@@ -71,7 +78,18 @@ export function useStacheClock(token: string, puzzleId: number, play: Play) {
     };
   }, [running, token, puzzleId]);
 
-  if (play.stachedMs !== null) return play.stachedMs;
-  if (play.finished) return null;
-  return base.at === null ? base.ms : base.ms + now - base.at;
-}
+  // A rebase can land between ticks, after `now`: hold still until the next.
+  const ticking =
+    base.at === null ? base.ms : base.ms + Math.max(0, now - base.at);
+
+  // Once stopped: the stache time with tenths, or a dash if there's none.
+  return (
+    <p
+      className={`${styles.clock} ${play.stachedMs === null ? "" : styles.stacheText}`}
+    >
+      {formatTime(running ? ticking : play.stachedMs, !running)}
+    </p>
+  );
+};
+
+export default StacheClock;

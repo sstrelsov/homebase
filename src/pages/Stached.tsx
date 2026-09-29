@@ -22,7 +22,7 @@ function status({ play }: Today) {
   const stache =
     play.stachedMs === null
       ? "No stache"
-      : `Stached in ${formatTime(play.stachedMs, true)}`;
+      : `Stached in ${formatTime(play.stachedMs)}`;
   return `${stache} · ${play.completed ? "Solved" : "Missed"}`;
 }
 
@@ -58,8 +58,9 @@ const SignedIn = ({ session, onSignOut }: SignedInProps) => {
   const play = async () => {
     if (!today) return;
     try {
-      if (!today.play)
-        setToday(await api.start(session.token, today.puzzle.id));
+      // Starts the game, or picks it up from the server's copy, which may have
+      // moved on since this screen last looked.
+      setToday(await api.start(session.token, today.puzzle.id));
       setIntro(false);
       setPlaying(true);
     } catch (err) {
@@ -77,7 +78,8 @@ const SignedIn = ({ session, onSignOut }: SignedInProps) => {
         <Game
           token={session.token}
           player={session.name}
-          today={today}
+          puzzle={today.puzzle}
+          board={today.board}
           play={today.play}
           onToday={setToday}
           onHome={() => setPlaying(false)}
@@ -89,6 +91,7 @@ const SignedIn = ({ session, onSignOut }: SignedInProps) => {
   }
 
   const rise = intro ? styles.rise : "";
+  const note = today ? status(today) : "Loading…";
 
   return (
     <div className="flex min-h-[calc(100dvh-40px)] flex-col gap-7 pt-4">
@@ -135,9 +138,7 @@ const SignedIn = ({ session, onSignOut }: SignedInProps) => {
             {error}. Tap to retry
           </button>
         ) : (
-          (!today || status(today)) && (
-            <p className={styles.label}>{today ? status(today) : "Loading…"}</p>
-          )
+          note && <p className={styles.label}>{note}</p>
         )}
         <button
           type="button"

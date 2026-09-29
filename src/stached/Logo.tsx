@@ -1,9 +1,16 @@
-import { useId } from "react";
+import { type SVGProps, useId } from "react";
 import styles from "./logo.module.css";
 
 /** Gerald, drawn in a 200 x 64 box. */
-export const MUSTACHE_PATH =
+const MUSTACHE_PATH =
   "M100 30c-8-14-26-20-42-12-12 6-18 20-32 22-10 1-18-5-22-12 2 18 16 32 36 34 22 2 44-8 60-24 16 16 38 26 60 24 20-2 34-16 36-34-4 7-12 13-22 12-14-2-20-16-32-22-16-8-34-2-42 12z";
+
+/** Plain Gerald, cropped close: for lives and the stache bar. */
+export const Mustache = (props: SVGProps<SVGSVGElement>) => (
+  <svg viewBox="0 12 200 54" aria-hidden="true" {...props}>
+    <path d={MUSTACHE_PATH} />
+  </svg>
+);
 
 const CENTER = { x: 200, y: 92 };
 
@@ -18,8 +25,8 @@ function arc(r: number, from: number, to: number) {
 
 // Broadcast arcs above and below Gerald, innermost first.
 const ARCS = [
-  { r: 62, width: 9 },
-  { r: 84, width: 7 },
+  { r: 62, width: 9, color: "var(--c1)" },
+  { r: 84, width: 7, color: "var(--c2)" },
 ];
 
 // Color bands behind Gerald, top to bottom (the group colors, 4 to 1), with
@@ -79,14 +86,11 @@ const Logo = ({ intro = false }: LogoProps) => {
         })}
 
         <g className={styles.arcs}>
-          {ARCS.map(({ r, width }, i) => (
+          {ARCS.map(({ r, width, color }, i) => (
             <g
               key={r}
               className={styles.broadcast}
-              style={{
-                animationDelay: `${i * 0.25}s`,
-                stroke: i ? "var(--c2)" : "var(--c1)",
-              }}
+              style={{ animationDelay: `${i * 0.25}s`, stroke: color }}
               strokeWidth={width}
             >
               <path d={arc(r, 232, 308)} />

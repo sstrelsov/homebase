@@ -6,11 +6,18 @@ import {
   useRef,
   useState,
 } from "react";
-import { api, formatTime, type Group, type Play, type Today } from "./api";
-import Logo, { MUSTACHE_PATH } from "./Logo";
+import {
+  api,
+  formatTime,
+  type Group,
+  type Play,
+  type Score,
+  type Today,
+} from "./api";
+import Logo, { Mustache } from "./Logo";
 import ResultsDialog from "./ResultsDialog";
+import StacheClock from "./StacheClock";
 import styles from "./stached.module.css";
-import { useStacheClock } from "./useStacheClock";
 
 const PRAISE = ["Perfect!", "Great!", "Solid!", "Phew!"];
 // How long a wrong guess stays selected, so you can see what missed.
@@ -109,16 +116,11 @@ const FitWord = ({ word }: { word: string }) => {
   );
 };
 
-const Mustache = ({ className }: { className?: string }) => (
-  <svg viewBox="0 12 200 54" aria-hidden="true" className={className}>
-    <path d={MUSTACHE_PATH} />
-  </svg>
-);
-
 interface GameProps {
   token: string;
   player: string;
-  today: Today;
+  puzzle: Today["puzzle"];
+  board: Score[];
   play: Play;
   onToday: (today: Today) => void;
   onHome: () => void;
@@ -128,13 +130,13 @@ interface GameProps {
 const Game = ({
   token,
   player,
-  today,
+  puzzle,
+  board,
   play,
   onToday,
   onHome,
   onRules,
 }: GameProps) => {
-  const { puzzle, board } = today;
   const [bars, setBars] = useState(() => barsFor(play));
   const [order, setOrder] = useState(() =>
     shuffle(puzzle.words.filter((w) => !bars.some((g) => g.words.includes(w)))),
@@ -148,8 +150,6 @@ const Game = ({
   const [resultsOpen, setResultsOpen] = useState(play.finished);
   const [scope, animate] = useAnimate();
   const toastTimer = useRef<number>(undefined);
-
-  const clock = useStacheClock(token, puzzle.id, play);
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
@@ -180,18 +180,25 @@ const Game = ({
     await sleep(450);
   };
 
+  const clearMiss = async () => {
+    await sleep(MISS_LINGER_MS);
+    setSelected([]);
+  };
+
+  const alreadyGuessed = () => {
+    say("Already guessed!");
+    return clearMiss();
+  };
+
   const submit = async () => {
     const key = (words: string[]) => [...words].sort().join("|");
     setBusy(true);
-    if (play.guesses.some((g) => key(g) === key(selected))) {
-      say("Already guessed!");
-      await sleep(MISS_LINGER_MS);
-      setSelected([]);
-      setBusy(false);
-      return;
-    }
-
     try {
+      if (play.guesses.some((g) => key(g) === key(selected))) {
+        await alreadyGuessed();
+        return;
+      }
+
       // Tiles hop in grid order while the server checks the guess.
       const [next] = await Promise.all([
         api.guess(
@@ -219,9 +226,7 @@ const Game = ({
           setStached(false);
         }
       } else if (next.result === "repeat") {
-        say("Already guessed!");
-        await sleep(MISS_LINGER_MS);
-        setSelected([]);
+        await alreadyGuessed();
       } else {
         if (next.result === "one_away") say("One away…");
         await animate(
@@ -230,13 +235,11 @@ const Game = ({
           { duration: 0.45 },
         );
         setMistakes(result.mistakes);
-        await sleep(MISS_LINGER_MS);
-        setSelected([]);
+        await clearMiss();
       }
 
       if (result.finished) {
-        setSelected([]);
-        if (result.completed) say(PRAISE[result.mistakes] ?? "Phew!");
+        if (result.completed) say(PRAISE[result.mistakes]);
         else {
           say("Game over");
           await sleep(900);
@@ -279,11 +282,7 @@ const Game = ({
       <div className="flex items-end justify-between">
         <div>
           <p className={styles.label}>Stache time</p>
-          <p
-            className={`${styles.clock} ${play.stachedMs === null ? "" : styles.stacheText}`}
-          >
-            {clock === null ? "—" : formatTime(clock, play.stachedMs !== null)}
-          </p>
+          <StacheClock token={token} puzzleId={puzzle.id} play={play} />
         </div>
         <div className="flex flex-col items-end gap-2 pb-1">
           <p className={styles.label}>Lives</p>
@@ -293,16 +292,12 @@ const Game = ({
             className="flex gap-1.5"
           >
             {Array.from({ length: puzzle.maxMistakes }, (_, i) => (
-              <svg
+              <Mustache
                 // biome-ignore lint/suspicious/noArrayIndexKey: lives are positional
                 key={i}
-                viewBox="0 12 200 54"
-                aria-hidden="true"
                 className={styles.life}
                 data-lost={i >= lives || undefined}
-              >
-                <path d={MUSTACHE_PATH} />
-              </svg>
+              />
             ))}
           </div>
         </div>
@@ -369,7 +364,7 @@ const Game = ({
               className={`${styles.clock} ${styles.stacheText} ${styles.rise}`}
               style={{ animationDelay: "1.1s", fontSize: 44 }}
             >
-              {formatTime(play.stachedMs ?? 0, true)}
+              {formatTime(play.stachedMs)}
             </p>
           </div>
         )}

@@ -39,8 +39,8 @@ Static SPA on GitHub Pages. `make deploy` builds to `build/`, then force-pushes 
 
 Unlisted Connections-style game. The page lives in `src/pages/Stached.tsx` and `src/stached/`; its backend is `stached-api/`, a dependency-free Bun server with Postgres, deployed to Railway on Spencer's personal account (not the Nexus Black workspace).
 
-- **Puzzles** live in `stached-api/puzzles.json`, one per date, and are upserted into Postgres on every boot. The game serves the latest puzzle dated on or before today (America/New_York). Each puzzle needs exactly one group with `"stache": true`; non-stache groups get color slots 1–4 in file order, so list them easiest first, so list them easiest first.
-- **Editing a puzzle that people have played clears their plays** for it on the next deploy.
+- **Puzzles** live in `stached-api/puzzles.json`, one per date, and Postgres mirrors the file on every boot. The game serves the latest puzzle dated on or before today (America/New_York). Each puzzle needs exactly one group with `"stache": true`; non-stache groups get color slots 1–4 in file order, so list them easiest first.
+- **Editing or removing a puzzle that people have played clears their plays** for it on the next deploy.
 - **Env:** `DATABASE_URL`, `STACHE_PASSWORD` (the shared sign-in password), `SESSION_SECRET`, `ALLOWED_ORIGINS` (comma-separated).
 - **Clock:** stache time counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; a silence longer than that is capped at 15 seconds, so a phone that sleeps mid-game isn't charged for the nap.
 - **Look:** a 1984 TV-station ident, always dark. The palette sits at the top of `src/stached/stached.module.css`; the logo is `src/stached/Logo.tsx`.

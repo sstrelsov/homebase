@@ -33,29 +33,30 @@
 }
 
 /* Group colors, set on anything with data-color */
+.stached [data-color] {
+  --on-color: #120c04;
+}
+
 .stached [data-color="1"] {
   --color: var(--c1);
-  --on-color: #120c04;
 }
 
 .stached [data-color="2"] {
   --color: var(--c2);
-  --on-color: #120c04;
 }
 
 .stached [data-color="3"] {
   --color: var(--c3);
-  --on-color: #120c04;
 }
 
 .stached [data-color="4"] {
   --color: var(--c4);
-  --on-color: #fff4d6;
+  --on-color: var(--face);
 }
 
 .stached [data-color="stache"] {
   --color: var(--gold);
-  --on-color: #fff4d6;
+  --on-color: var(--face);
 }
 
 /* An old TV over everything: phosphor columns and dim corners */
@@ -83,11 +84,7 @@
 }
 
 .title {
-  font-family: var(--display);
-  font-style: italic;
-  font-weight: 900;
-  font-stretch: 125%;
-  text-transform: uppercase;
+  composes: display;
   color: var(--ink);
   text-shadow:
     -2px 0 var(--red),
@@ -174,6 +171,7 @@
 }
 
 .button {
+  composes: display;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -184,13 +182,8 @@
   border-radius: 8px;
   background: transparent;
   color: var(--ink);
-  font-family: var(--display);
-  font-style: italic;
-  font-weight: 900;
-  font-stretch: 125%;
   font-size: 13px;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
   user-select: none;
   -webkit-user-select: none;
   box-shadow:
@@ -252,16 +245,6 @@
   from {
     opacity: 0;
     transform: translateY(14px);
-  }
-}
-
-.blink {
-  animation: blink 1s steps(1) infinite;
-}
-
-@keyframes blink {
-  50% {
-    opacity: 0;
   }
 }
 
@@ -382,15 +365,11 @@
 }
 
 .barTitle {
+  composes: display;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--display);
-  font-style: italic;
-  font-weight: 900;
-  font-stretch: 125%;
   font-size: 13px;
-  text-transform: uppercase;
 }
 
 .barWords {
@@ -401,8 +380,9 @@
   text-transform: uppercase;
 }
 
-/* The stache group: the logo's bands, with outlined type on top */
-.bar[data-color="stache"] {
+/* The stache group: the logo's bands, on its bar and its results squares */
+.bar[data-color="stache"],
+.swatch[data-color="stache"] {
   background: linear-gradient(
     to bottom,
     var(--c4) 0 24%,
@@ -413,6 +393,10 @@
     var(--bg) 0 75.5%,
     var(--c1) 0
   );
+}
+
+/* Outlined type on top of the bands */
+.bar[data-color="stache"] {
   text-shadow:
     0 0 2px #000,
     1.5px 1.5px 0 #000,
@@ -477,6 +461,7 @@
 
 /* One away, already guessed, game over: big enough to catch mid-tap */
 .toast {
+  composes: display;
   position: absolute;
   top: 10px;
   left: 50%;
@@ -486,12 +471,7 @@
   border-radius: 8px;
   background: var(--ink);
   color: var(--bg);
-  font-family: var(--display);
-  font-style: italic;
-  font-weight: 900;
-  font-stretch: 125%;
   font-size: 15px;
-  text-transform: uppercase;
   white-space: nowrap;
   box-shadow:
     -3px 0 0 var(--red),
@@ -582,7 +562,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rise,
-  .blink,
   .bar[data-color="stache"],
   .life[data-lost],
   .dialog[open],

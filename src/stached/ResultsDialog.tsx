@@ -53,7 +53,7 @@ const ResultsDialog = ({
       `Stached #${puzzle.id} · ${formatDate(puzzle.date)}`,
       play.stachedMs === null
         ? "No stache"
-        : `Stache time ${formatTime(play.stachedMs, true)}`,
+        : `Stache time ${formatTime(play.stachedMs)}`,
       ...grid.map((row) => row.map((color) => SHARE_EMOJI[color]).join("")),
     ].join("\n");
     const url = `${window.location.origin}/stached`;
@@ -77,7 +77,7 @@ const ResultsDialog = ({
         <div className={`${styles.panel} p-3`}>
           <p className={styles.label}>Stache time</p>
           <p className={`text-4xl ${styles.stacheText}`}>
-            {play.stachedMs === null ? "—" : formatTime(play.stachedMs, true)}
+            {formatTime(play.stachedMs)}
           </p>
         </div>
         <div className={`${styles.panel} p-3`}>
@@ -120,17 +120,13 @@ const ResultsDialog = ({
             <li
               key={score.name}
               className={`flex items-baseline gap-3 py-1 ${styles.rule} ${
-                score.name.toLowerCase() === player.toLowerCase()
-                  ? styles.me
-                  : ""
+                score.name === player ? styles.me : ""
               }`}
             >
               <span className="w-6 opacity-50">{i + 1}</span>
               <span className="flex-1 truncate">{score.name}</span>
               <span className={styles.stacheText}>
-                {score.stachedMs === null
-                  ? "—"
-                  : formatTime(score.stachedMs, true)}
+                {formatTime(score.stachedMs)}
               </span>
               <span className="w-8 text-right" title="Solved the board">
                 {score.completed ? "✓" : "✗"}

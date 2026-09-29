@@ -31,7 +31,6 @@ export interface Play {
 export interface Score {
   name: string;
   completed: boolean;
-  mistakes: number;
   stachedMs: number | null;
 }
 
@@ -130,8 +129,9 @@ export function saveSession(session: Session | null) {
   }
 }
 
-/** 42_300 → "0:42", or "0:42.3" with tenths. */
-export function formatTime(ms: number, tenths = false) {
+/** 42_300 → "0:42.3", or "0:42" without tenths. No time is a dash. */
+export function formatTime(ms: number | null, tenths = true) {
+  if (ms === null) return "—";
   const seconds = Math.floor(ms / 1000);
   const clock = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   return tenths ? `${clock}.${Math.floor((ms % 1000) / 100)}` : clock;
