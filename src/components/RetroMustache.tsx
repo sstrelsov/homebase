@@ -1,6 +1,6 @@
 import { useId } from "react";
 import styles from "../css/mustache.module.css";
-import { MUSTACHE } from "./HeightsMap";
+import { MUSTACHE_PATH } from "../data/mustacheStory";
 
 const NEON = "#39ff14";
 const CENTER = { x: 200, y: 92 };
@@ -48,7 +48,7 @@ const RetroMustache = () => {
           </filter>
           <path
             id={gerald}
-            d={MUSTACHE}
+            d={MUSTACHE_PATH}
             transform={`translate(${CENTER.x - 121} ${CENTER.y - 53}) scale(1.21)`}
           />
         </defs>

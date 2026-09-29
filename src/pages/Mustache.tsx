@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import HeightsMap from "../components/HeightsMap";
 import HumanTyping from "../components/HumanTyping";
 import RetroMustache from "../components/RetroMustache";
@@ -7,23 +7,29 @@ import {
   FINALE,
   FIRST_PASSAGE,
   type PassageId,
-  type Point,
-  START,
+  PLACES,
   STORY,
 } from "../data/mustacheStory";
-import { useLinkColor } from "../utils/ColorContext";
 
-interface Step {
-  passage: PassageId;
-  via?: Choice;
-}
+const NEON = "#39ff14";
+const ALL_PLACES = Object.values(PLACES);
 
 const MustachePage = () => {
-  const { linkColor } = useLinkColor();
-  const [trail, setTrail] = useState<Step[]>([{ passage: FIRST_PASSAGE }]);
+  const [trail, setTrail] = useState<PassageId[]>([FIRST_PASSAGE]);
   const [typed, setTyped] = useState(false);
   // Bumped on each new walk so the typing restarts from scratch.
   const [run, setRun] = useState(0);
+
+  // This page is dark mode only; put the site's theme back on the way out.
+  useEffect(() => {
+    const root = document.documentElement;
+    const previous = root.className;
+    root.classList.remove("light");
+    root.classList.add("dark");
+    return () => {
+      root.className = previous;
+    };
+  }, []);
 
   const finishTyping = useCallback(() => setTyped(true), []);
 
@@ -31,76 +37,68 @@ const MustachePage = () => {
     setTyped(false);
     if (choice.next === FIRST_PASSAGE) {
       setRun((r) => r + 1);
-      setTrail([{ passage: FIRST_PASSAGE }]);
+      setTrail([FIRST_PASSAGE]);
     } else {
-      setTrail((t) => [...t, { passage: choice.next, via: choice }]);
+      setTrail((t) => [...t, choice.next]);
     }
   };
-
-  const walks: Point[][] = [];
-  let at = START;
-  for (const { via } of trail) {
-    if (via?.walk.length) {
-      walks.push([at, ...via.walk]);
-      at = via.walk[via.walk.length - 1];
-    }
-  }
 
   const current = trail[trail.length - 1];
 
   return (
-    <div className="self-start w-full max-w-5xl px-6 pt-20 md:pt-24 pb-24 grid gap-6 md:gap-12 md:grid-cols-[minmax(0,24rem)_minmax(0,1fr)]">
-      <div className="sticky top-16 md:top-24 z-10 self-start bg-background py-2">
-        <div className="max-w-[17rem] md:max-w-none mx-auto">
-          <HeightsMap
-            walks={walks}
-            at={at}
-            glowing={current.passage === FINALE}
-            color={linkColor}
-          />
-        </div>
+    <div className="self-start w-full max-w-md mx-auto px-5 pt-20 pb-24 text-lg leading-relaxed space-y-6">
+      {/* The site nav is see-through; give it a solid band here. */}
+      <div
+        aria-hidden
+        className="fixed inset-x-0 top-0 h-16 z-40 bg-background"
+      />
+      <RetroMustache />
+
+      <div className="sticky top-16 z-10 -mx-5 px-5 py-2 bg-background">
+        <HeightsMap
+          places={ALL_PLACES}
+          stops={trail.map((id) => STORY[id].place)}
+          glowing={current === FINALE}
+        />
       </div>
 
-      <div className="text-lg sm:text-xl leading-relaxed max-w-xl space-y-6">
-        <RetroMustache />
-        {trail.map((step, i) => {
-          const isCurrent = i === trail.length - 1;
-          const next = trail[i + 1];
-          return (
-            <section key={`${run}-${step.passage}`} className="space-y-6">
-              {isCurrent ? (
-                <HumanTyping
-                  text={STORY[step.passage].text}
-                  onDone={finishTyping}
-                />
-              ) : (
-                <p className="whitespace-pre-line">
-                  {STORY[step.passage].text}
-                </p>
-              )}
-              {next?.via && (
-                <p className="italic opacity-50">→ {next.via.label}</p>
-              )}
-            </section>
-          );
-        })}
+      {trail.map((id, i) => {
+        const next = trail[i + 1];
+        return (
+          <section key={`${run}-${id}`} className="space-y-6">
+            {i === trail.length - 1 ? (
+              <HumanTyping
+                text={STORY[id].text}
+                cursorColor={NEON}
+                onDone={finishTyping}
+              />
+            ) : (
+              <p className="whitespace-pre-line">{STORY[id].text}</p>
+            )}
+            {next && (
+              <p className="italic opacity-50">
+                → {STORY[id].choices.find((c) => c.next === next)?.label}
+              </p>
+            )}
+          </section>
+        );
+      })}
 
-        {typed && (
-          <nav aria-label="Where next?" className="flex flex-col gap-2">
-            {STORY[current.passage].choices.map((choice) => (
-              <button
-                key={choice.label}
-                type="button"
-                onClick={() => choose(choice)}
-                className="text-left underline-offset-4 hover:underline"
-                style={{ color: linkColor }}
-              >
-                → {choice.label}
-              </button>
-            ))}
-          </nav>
-        )}
-      </div>
+      {typed && (
+        <nav aria-label="Where next?" className="flex flex-col gap-3">
+          {STORY[current].choices.map((choice) => (
+            <button
+              key={choice.label}
+              type="button"
+              onClick={() => choose(choice)}
+              className="text-left underline-offset-4 active:underline"
+              style={{ color: NEON, textShadow: `0 0 8px ${NEON}66` }}
+            >
+              → {choice.label}
+            </button>
+          ))}
+        </nav>
+      )}
     </div>
   );
 };

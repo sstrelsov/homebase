@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "../css/typewriter.module.css";
-import { useLinkColor } from "../utils/ColorContext";
 
 interface Keystroke {
   /** Text on screen after this keystroke. */
@@ -78,12 +77,12 @@ function planKeystrokes(text: string): Keystroke[] {
 
 interface HumanTypingProps {
   text: string;
+  cursorColor: string;
   onDone: () => void;
 }
 
 /** Types text out like a person would. Click to skip ahead. */
-const HumanTyping = ({ text, onDone }: HumanTypingProps) => {
-  const { linkColor } = useLinkColor();
+const HumanTyping = ({ text, cursorColor, onDone }: HumanTypingProps) => {
   const strokes = useMemo(() => planKeystrokes(text), [text]);
   const [step, setStep] = useState(0);
   const cursorRef = useRef<HTMLSpanElement>(null);
@@ -117,7 +116,7 @@ const HumanTyping = ({ text, onDone }: HumanTypingProps) => {
           <span
             ref={cursorRef}
             className={`border-r-[2.5px] solid ml-[1.8px] ${styles.blink}`}
-            style={{ borderColor: linkColor }}
+            style={{ borderColor: cursorColor }}
           />
         )}
       </p>

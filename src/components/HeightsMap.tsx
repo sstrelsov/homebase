@@ -1,230 +1,179 @@
-import { useLayoutEffect, useRef } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { useEffect, useRef } from "react";
 import styles from "../css/mustache.module.css";
-import { PARK_X, type Point, START, X, Y } from "../data/mustacheStory";
+import { type LatLng, MUSTACHE_PATH, type Place } from "../data/mustacheStory";
 
-export const MUSTACHE =
-  "M100 30c-8-14-26-20-42-12-12 6-18 20-32 22-10 1-18-5-22-12 2 18 16 32 36 34 22 2 44-8 60-24 16 16 38 26 60 24 20-2 34-16 36-34-4 7-12 13-22 12-14-2-20-16-32-22-16-8-34-2-42 12z";
+const HOP_MS = 1600;
+const NEON = "#39ff14";
 
-const WALK_SECONDS = 1.6;
-
-const toPath = (points: Point[]) =>
-  points.map(([x, y], i) => `${i ? "L" : "M"}${x} ${y}`).join(" ");
-
-const FRUIT = new Set(["cranberry", "orange", "pineapple"]);
-const TOP = Y.middagh - 10;
-const BOTTOM = Y.remsen + 8;
-const EAST = X.clinton + 6;
-
-interface HeightsMapProps {
-  /** Every walk so far, each starting where the last one ended. */
-  walks: Point[][];
-  at: Point;
-  glowing: boolean;
-  color: string;
+/** Points along a gentle arc from a to b, so each hop reads as a jump. */
+function hopArc([aLat, aLng]: LatLng, [bLat, bLng]: LatLng): LatLng[] {
+  const bend = 0.25;
+  const cLat = (aLat + bLat) / 2 + (bLng - aLng) * bend;
+  const cLng = (aLng + bLng) / 2 - (bLat - aLat) * bend;
+  return Array.from({ length: 41 }, (_, i) => {
+    const t = i / 40;
+    const u = 1 - t;
+    return [
+      u * u * aLat + 2 * u * t * cLat + t * t * bLat,
+      u * u * aLng + 2 * u * t * cLng + t * t * bLng,
+    ];
+  });
 }
 
-const HeightsMap = ({ walks, at, glowing, color }: HeightsMapProps) => {
-  const motionRef = useRef<SVGAnimateMotionElement>(null);
-  const latest = walks.at(-1);
+const geraldIcon = L.divIcon({
+  className: styles.gerald,
+  html: `<svg viewBox="0 0 200 80"><path d="${MUSTACHE_PATH}"/></svg>`,
+  iconSize: [34, 14],
+  iconAnchor: [17, 7],
+});
 
-  // A freshly mounted animateMotion only runs when started by hand.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: start each new walk
-  useLayoutEffect(() => {
-    motionRef.current?.beginElement();
-  }, [walks.length]);
+interface HeightsMapProps {
+  /** Every place on the walk, shown dim until Gerald visits. */
+  places: Place[];
+  /** Where Gerald has been, in order. The last one is where he stands. */
+  stops: Place[];
+  glowing: boolean;
+}
+
+const HeightsMap = ({ places, stops, glowing }: HeightsMapProps) => {
+  const container = useRef<HTMLDivElement>(null);
+  const map = useRef<L.Map>(null);
+  const gerald = useRef<L.Marker>(null);
+  const hops = useRef<L.LayerGroup>(null);
+  const dots = useRef(new Map<Place, L.CircleMarker>());
+  const hopsDrawn = useRef(0);
+
+  useEffect(() => {
+    if (!container.current) return;
+    const m = L.map(container.current, {
+      zoomControl: false,
+      scrollWheelZoom: false,
+    }).fitBounds(L.latLngBounds(places.map((p) => p.at)), {
+      padding: [18, 18],
+    });
+    L.tileLayer(
+      "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      {
+        subdomains: "abcd",
+        maxZoom: 19,
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
+      },
+    ).addTo(m);
+    for (const place of places) {
+      dots.current.set(
+        place,
+        L.circleMarker(place.at, {
+          radius: 4,
+          color: NEON,
+          weight: 1,
+          opacity: 0.35,
+          fillOpacity: 0.15,
+        }).addTo(m),
+      );
+    }
+    hops.current = L.layerGroup().addTo(m);
+    gerald.current = L.marker(places[0].at, {
+      icon: geraldIcon,
+      interactive: false,
+      zIndexOffset: 1000,
+    }).addTo(m);
+    map.current = m;
+    return () => {
+      m.remove();
+      dots.current.clear();
+      hopsDrawn.current = 0;
+    };
+  }, [places]);
+
+  // Light up the places Gerald has visited, and name the one he's at.
+  useEffect(() => {
+    const visited = new Set(stops);
+    const here = stops[stops.length - 1];
+    for (const [place, dot] of dots.current) {
+      const seen = visited.has(place);
+      dot.setStyle({
+        opacity: seen ? 1 : 0.35,
+        fillOpacity: seen ? 0.9 : 0.15,
+      });
+      dot.unbindTooltip();
+      if (place === here) {
+        dot.bindTooltip(place.name, {
+          permanent: true,
+          direction: "right",
+          offset: [8, 0],
+          className: styles.label,
+        });
+      }
+    }
+  }, [stops]);
+
+  // Draw the newest hop and walk Gerald along it.
+  useEffect(() => {
+    const m = map.current;
+    const marker = gerald.current;
+    const layer = hops.current;
+    if (!m || !marker || !layer) return;
+
+    // A new walk: back to the start.
+    if (stops.length - 1 < hopsDrawn.current) {
+      layer.clearLayers();
+      hopsDrawn.current = 0;
+      marker.setLatLng(stops[0].at);
+      m.flyToBounds(L.latLngBounds(places.map((p) => p.at)), {
+        padding: [18, 18],
+        duration: 1,
+      });
+      return;
+    }
+    if (stops.length - 1 === hopsDrawn.current) return;
+
+    const from = stops[stops.length - 2].at;
+    const to = stops[stops.length - 1].at;
+    const arc = hopArc(from, to);
+    const line = L.polyline(arc, {
+      color: NEON,
+      weight: 3,
+      className: styles.hop,
+      interactive: false,
+    }).addTo(layer);
+    line.getElement()?.setAttribute("pathLength", "1");
+    hopsDrawn.current = stops.length - 1;
+
+    m.flyToBounds(L.latLngBounds([from, to]), {
+      padding: [56, 56],
+      maxZoom: 17,
+      duration: 1,
+    });
+
+    let frame = 0;
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min((now - start) / HOP_MS, 1);
+      const eased = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+      marker.setLatLng(arc[Math.round(eased * (arc.length - 1))]);
+      if (t < 1) frame = requestAnimationFrame(step);
+    };
+    frame = requestAnimationFrame(step);
+    return () => {
+      cancelAnimationFrame(frame);
+      marker.setLatLng(to);
+    };
+  }, [places, stops]);
+
+  useEffect(() => {
+    gerald.current?.getElement()?.classList.toggle(styles.glowing, glowing);
+  }, [glowing]);
 
   return (
-    <svg
-      viewBox="0 0 320 336"
+    <div
+      ref={container}
+      className={`h-[38vh] w-full overflow-hidden rounded-xl ${styles.map}`}
       role="img"
       aria-label="A map of Brooklyn Heights showing Gerald's walk"
-      className="w-full select-none"
-    >
-      <g fill="currentColor" fontSize="9" letterSpacing="0.04em">
-        {/* East River, Manhattan beyond it, and the piers of Brooklyn Bridge Park */}
-        <rect x="0" y="0" width="42" height="332" opacity="0.07" />
-        {[70, 150, 230, 300].map((y) => (
-          <path
-            key={y}
-            d={`M8 ${y} q4 -3 8 0 t8 0 t8 0`}
-            fill="none"
-            stroke="currentColor"
-            opacity="0.3"
-          />
-        ))}
-        <text
-          x="18"
-          y="200"
-          opacity="0.5"
-          transform="rotate(-90 18 200)"
-          textAnchor="middle"
-        >
-          east river
-        </text>
-        <rect x="42" y={TOP} width="24" height="270" opacity="0.05" />
-        {[48, 122, 192, 262].map((y) => (
-          <rect key={y} x="26" y={y} width="18" height="12" opacity="0.08" />
-        ))}
-
-        {/* Lady Liberty, off to the southwest */}
-        <path d="M18 312l2 5h5l-4 3 2 5-5-3-5 3 2-5-4-3h5z" opacity="0.45" />
-        <text x="6" y="335" fontSize="7.5" opacity="0.5">
-          liberty
-        </text>
-
-        {/* The Brooklyn Bridge, just north of the Heights */}
-        <g fill="none" stroke="currentColor" opacity="0.4">
-          <path d="M0 18H118" />
-          <path d="M30 6V18M85 6V18" strokeWidth="2" />
-          <path d="M0 10Q15 16 30 6Q57 20 85 6Q102 15 118 18" />
-        </g>
-        <text x="124" y="20" opacity="0.5">
-          brooklyn bridge
-        </text>
-      </g>
-
-      {/* Streets */}
-      <g stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-        {Object.entries(X)
-          .filter(([name]) => name !== "promenade")
-          .map(([name, x]) => (
-            <line
-              key={name}
-              x1={x}
-              y1={TOP}
-              x2={x}
-              y2={BOTTOM}
-              opacity="0.22"
-            />
-          ))}
-        {Object.entries(Y).map(([name, y]) => (
-          <line
-            key={name}
-            x1={y >= Y.clark ? X.promenade : X.columbiaHeights}
-            y1={y}
-            x2={EAST}
-            y2={y}
-            opacity="0.22"
-          />
-        ))}
-        <line
-          x1={X.promenade}
-          y1={Y.orange}
-          x2={X.promenade}
-          y2={Y.remsen}
-          strokeWidth="2.5"
-          strokeDasharray="0.5 5"
-          opacity="0.5"
-        />
-        <line
-          x1={X.columbiaHeights}
-          y1={Y.middagh}
-          x2={PARK_X}
-          y2={Y.middagh}
-          strokeDasharray="2 2"
-          opacity="0.4"
-        />
-      </g>
-
-      {/* Street names */}
-      <g fill="currentColor" fontSize="9" letterSpacing="0.04em" opacity="0.55">
-        {Object.entries(Y).map(([name, y]) => (
-          <text
-            key={name}
-            x={EAST + 5}
-            y={y + 2.5}
-            fontStyle={FRUIT.has(name) ? "italic" : undefined}
-          >
-            {name}
-          </text>
-        ))}
-        {Object.entries(X)
-          .filter(([name]) => name !== "promenade")
-          .map(([name, x]) => (
-            <text
-              key={name}
-              x={x}
-              y={BOTTOM + 12}
-              fontSize="7.5"
-              textAnchor="middle"
-            >
-              {name === "columbiaHeights" ? "columbia hts" : name}
-            </text>
-          ))}
-        <text
-          x={X.promenade - 5}
-          y={(Y.orange + Y.clark) / 2}
-          transform={`rotate(-90 ${X.promenade - 5} ${(Y.orange + Y.clark) / 2})`}
-          textAnchor="middle"
-        >
-          promenade
-        </text>
-        <text x="58" y={Y.middagh - 4} fontSize="7.5">
-          squibb bridge
-        </text>
-        <circle
-          cx={START[0]}
-          cy={START[1]}
-          r="3"
-          fill="none"
-          stroke="currentColor"
-        />
-        <text x={START[0] + 5} y={START[1] - 5} fontSize="7.5">
-          st. george
-        </text>
-      </g>
-
-      {/* Gerald's route so far */}
-      <g
-        fill="none"
-        stroke={color}
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      >
-        {walks.map((walk) => (
-          <path
-            key={toPath(walk)}
-            d={toPath(walk)}
-            pathLength={1}
-            className={styles.draw}
-            style={{ animationDuration: `${WALK_SECONDS}s` }}
-          />
-        ))}
-      </g>
-
-      {glowing && (
-        <circle
-          cx={at[0]}
-          cy={at[1]}
-          r="14"
-          fill={color}
-          className={styles.glow}
-        />
-      )}
-
-      {/* Gerald */}
-      <g
-        key={walks.length}
-        transform={latest ? undefined : `translate(${at[0]} ${at[1]})`}
-      >
-        {latest && (
-          <animateMotion
-            ref={motionRef}
-            path={toPath(latest)}
-            dur={`${WALK_SECONDS}s`}
-            begin="indefinite"
-            fill="freeze"
-            calcMode="linear"
-          />
-        )}
-        <path
-          d={MUSTACHE}
-          transform="translate(-12 -6) scale(0.12)"
-          fill={color}
-        />
-      </g>
-    </svg>
+    />
   );
 };
 
