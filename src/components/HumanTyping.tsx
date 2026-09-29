@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import styles from "../css/typewriter.module.css";
+import Cursor from "./Cursor";
 
 interface Keystroke {
   /** Text on screen after this keystroke. */
@@ -112,13 +112,7 @@ const HumanTyping = ({ text, cursorColor, onDone }: HumanTypingProps) => {
       <p className="sr-only">{text}</p>
       <p aria-hidden className="whitespace-pre-line">
         {shown}
-        {!done && (
-          <span
-            ref={cursorRef}
-            className={`border-r-[2.5px] solid ml-[1.8px] ${styles.blink}`}
-            style={{ borderColor: cursorColor }}
-          />
-        )}
+        {!done && <Cursor ref={cursorRef} color={cursorColor} />}
       </p>
     </div>
   );

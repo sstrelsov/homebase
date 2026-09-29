@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import styles from "../css/typewriter.module.css";
 import { useLinkColor } from "../utils/ColorContext";
+import Cursor from "./Cursor";
 
 interface TypewriterProps {
   phrases: string[];
@@ -135,10 +135,7 @@ const Typewriter = ({
   return (
     <div>
       {renderWithLineBreaks(display)}
-      <span
-        className={`inline-block w-[2.5px] h-[1em] ml-[1.8px] align-text-bottom ${styles.blink}`}
-        style={{ backgroundColor: linkColor }}
-      />
+      <Cursor color={linkColor} />
     </div>
   );
 };

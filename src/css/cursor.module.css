@@ -1,0 +1,10 @@
+/* A hard on/off blink on opacity, which the compositor animates without repaints */
+.blink {
+  animation: blink 0.9s step-end infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}

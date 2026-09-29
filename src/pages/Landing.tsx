@@ -1,7 +1,43 @@
 import { useTheme } from "@nextui-org/use-theme";
+import type { ComponentProps } from "react";
 import Typewriter from "../components/Typewriter";
 import { useLinkColor } from "../utils/ColorContext";
 import useAtOrAboveBreakpoint from "../utils/useAtOrAboveBreakpoint";
+
+// Keep in sync with the headshot preload in index.html.
+// Sizes match the button's w-52, sm:w-60, and xl:w-72.
+const HEADSHOT_SIZES =
+  "(min-width: 1280px) 288px, (min-width: 640px) 240px, 208px";
+const headshotSrcSet = (format: "avif" | "webp") =>
+  [416, 480, 576]
+    .map((w) => `/images/strelsov-headshot-${w}w.${format} ${w}w`)
+    .join(", ");
+
+/** Every copy picks the same file for the viewport, so it downloads once. */
+const Headshot = ({
+  alt,
+  ...props
+}: ComponentProps<"img"> & { alt: string }) => (
+  <picture>
+    <source
+      type="image/avif"
+      srcSet={headshotSrcSet("avif")}
+      sizes={HEADSHOT_SIZES}
+    />
+    <source
+      type="image/webp"
+      srcSet={headshotSrcSet("webp")}
+      sizes={HEADSHOT_SIZES}
+    />
+    <img
+      src="/images/strelsov-headshot-416w.webp"
+      alt={alt}
+      width={416}
+      height={530}
+      {...props}
+    />
+  </picture>
+);
 
 const LandingPage = () => {
   const { theme, setTheme } = useTheme();
@@ -37,30 +73,19 @@ const LandingPage = () => {
       <button
         type="button"
         aria-label="Toggle theme"
-        className="relative cursor-pointer transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95 xl:w-72 sm:w-60 w-52 p-0 bg-transparent border-0"
+        className="relative transition-transform duration-300 ease-in-out hover:scale-105 active:scale-95 xl:w-72 sm:w-60 w-52"
         onClick={handleImageClick}
       >
-        <div className="absolute inset-0 overflow-hidden rounded-xl before:content-[''] before:absolute before:inset-[-5%] before:bg-[url('/images/strelsov-headshot-416w.webp')] before:bg-cover before:bg-center before:blur-[20px] before:scale-105" />
-        <picture className="relative block">
-          <source
-            type="image/avif"
-            srcSet="/images/strelsov-headshot-416w.avif 416w, /images/strelsov-headshot-480w.avif 480w, /images/strelsov-headshot-576w.avif 576w"
-            sizes="(min-width: 1280px) 288px, (min-width: 640px) 240px, 208px"
-          />
-          <source
-            type="image/webp"
-            srcSet="/images/strelsov-headshot-416w.webp 416w, /images/strelsov-headshot-480w.webp 480w, /images/strelsov-headshot-576w.webp 576w"
-            sizes="(min-width: 1280px) 288px, (min-width: 640px) 240px, 208px"
-          />
-          <img
-            src="/images/strelsov-headshot-416w.webp"
-            alt="Spencer Strelsov Headshot"
-            width={416}
-            height={530}
-            fetchPriority="high"
-            className="relative rounded-xl w-full h-auto"
-          />
-        </picture>
+        <Headshot
+          alt="Spencer Strelsov Headshot"
+          fetchPriority="high"
+          className="relative z-10 w-full h-auto rounded-large"
+        />
+        {/* A blurred copy behind it makes the soft glow */}
+        <Headshot
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover rounded-large blur-lg scale-105 saturate-150 opacity-30 translate-y-1"
+        />
       </button>
       <div className="flex-1 text-left text-2xl sm:text-3xl leading-relaxed xl:max-w-[30rem] xl:max-h-[25rem] xl:content-start">
         <Typewriter
