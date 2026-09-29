@@ -13,6 +13,8 @@ import styles from "./stached.module.css";
 import { useStacheClock } from "./useStacheClock";
 
 const PRAISE = ["Perfect!", "Great!", "Solid!", "Phew!"];
+// How long a wrong guess stays selected, so you can see what missed.
+const MISS_LINGER_MS = 700;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -180,12 +182,15 @@ const Game = ({
 
   const submit = async () => {
     const key = (words: string[]) => [...words].sort().join("|");
+    setBusy(true);
     if (play.guesses.some((g) => key(g) === key(selected))) {
+      say("Already guessed!");
+      await sleep(MISS_LINGER_MS);
       setSelected([]);
-      return say("Already guessed!");
+      setBusy(false);
+      return;
     }
 
-    setBusy(true);
     try {
       // Tiles hop in grid order while the server checks the guess.
       const [next] = await Promise.all([
@@ -214,8 +219,9 @@ const Game = ({
           setStached(false);
         }
       } else if (next.result === "repeat") {
-        setSelected([]);
         say("Already guessed!");
+        await sleep(MISS_LINGER_MS);
+        setSelected([]);
       } else {
         if (next.result === "one_away") say("One away…");
         await animate(
@@ -223,8 +229,9 @@ const Game = ({
           { x: [0, -9, 9, -7, 7, -3, 3, 0] },
           { duration: 0.45 },
         );
-        setSelected([]);
         setMistakes(result.mistakes);
+        await sleep(MISS_LINGER_MS);
+        setSelected([]);
       }
 
       if (result.finished) {
