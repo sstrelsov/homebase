@@ -1,6 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { api, type Session } from "./api";
-import { MUSTACHE_PATH } from "./Logo";
+import Logo from "./Logo";
 import styles from "./stached.module.css";
 
 interface LoginProps {
@@ -35,18 +35,22 @@ const Login = ({ onSignIn }: LoginProps) => {
   };
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-5 pt-4">
-      <div className="flex flex-col items-center gap-4 pb-2">
-        <svg
-          viewBox="0 12 200 54"
-          aria-hidden="true"
-          className={`w-20 ${styles.mark}`}
+    <form onSubmit={submit} className="flex flex-col gap-5">
+      {/* A compact ident, so the form still clears the keyboard */}
+      <div className="flex flex-col items-center gap-3 pb-1">
+        <div className="w-3/5">
+          <Logo intro />
+        </div>
+        <h1
+          className={`${styles.title} ${styles.rise} text-[30px]`}
+          style={{ animationDelay: "0.9s" }}
         >
-          <path d={MUSTACHE_PATH} />
-        </svg>
-        <h1 className={`${styles.title} text-[30px]`}>Stached</h1>
-        <div className={`${styles.stripes} w-40`} />
-        <p className={styles.label}>
+          Stached
+        </h1>
+        <p
+          className={`${styles.label} ${styles.rise}`}
+          style={{ animationDelay: "1.1s" }}
+        >
           Insert name to play<span className={styles.blink}>_</span>
         </p>
       </div>

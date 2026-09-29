@@ -5,7 +5,7 @@ const API =
   import.meta.env.VITE_STACHED_API ??
   (import.meta.env.DEV ? "/stached-api" : "https://stached-api.up.railway.app");
 
-/** A group's color slot: 1–4 by difficulty, or the stache. Themes paint them. */
+/** A group's color slot: 1–4 by difficulty, or the stache. */
 export type Color = "1" | "2" | "3" | "4" | "stache";
 
 export interface Group {
@@ -78,7 +78,7 @@ async function request<T>(
       body: body === undefined ? undefined : JSON.stringify(body),
     });
   } catch {
-    throw new ApiError(0, "Can't reach the arcade");
+    throw new ApiError(0, "Lost the signal");
   }
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new ApiError(res.status, data.error ?? "Something broke");

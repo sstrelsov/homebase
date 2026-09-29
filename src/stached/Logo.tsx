@@ -22,22 +22,19 @@ const ARCS = [
   { r: 84, width: 7 },
 ];
 
-// Color bands behind Gerald in the 1984 themes, top to bottom: the theme's
-// color slots 4 to 1, with slanted ends.
+// Color bands behind Gerald, top to bottom (the group colors, 4 to 1), with
+// slanted ends.
 const BANDS = ["--c4", "--c3", "--c2", "--c1"];
 const BAND = { height: 9, gap: 3, left: 12, right: 388, slant: 5 };
 const BANDS_TOP =
   CENTER.y - (BANDS.length * (BAND.height + BAND.gap) - BAND.gap) / 2;
 
 interface LogoProps {
-  /** Play the reveal: a CRT powering on, or a station ident wiping in. */
+  /** Play the station-ident reveal: bands wipe in, Gerald flickers on. */
   intro?: boolean;
 }
 
-/**
- * Gerald as an 80s logo. In the arcade theme he's on a CRT screen; in the
- * 1984 themes he's a TV-station ident with color bands. See logo.module.css.
- */
+/** Gerald as a 1984 TV-station ident: broadcast arcs, color bands, a glow. */
 const Logo = ({ intro = false }: LogoProps) => {
   // SVG url(#id) references need plain characters.
   const id = useId().replace(/[^\w-]/g, "");
@@ -45,71 +42,68 @@ const Logo = ({ intro = false }: LogoProps) => {
   const gerald = `${id}-gerald`;
 
   return (
-    <div className={`${styles.screen} ${intro ? styles.ident : ""}`}>
-      <svg
-        viewBox="0 0 400 184"
-        role="img"
-        aria-label="Stached: Gerald the mustache"
-        className={styles.logo}
-      >
-        <defs>
-          <filter id={bloom} x="-30%" y="-30%" width="160%" height="160%">
-            <feGaussianBlur stdDeviation="5" result="soft" />
-            <feMerge>
-              <feMergeNode in="soft" />
-              <feMergeNode in="soft" />
-              <feMergeNode in="SourceGraphic" />
-            </feMerge>
-          </filter>
-          <path
-            id={gerald}
-            d={MUSTACHE_PATH}
-            transform={`translate(${CENTER.x - 121} ${CENTER.y - 53}) scale(1.21)`}
-          />
-        </defs>
+    <svg
+      viewBox="0 0 400 184"
+      role="img"
+      aria-label="Stached: Gerald the mustache"
+      className={`${styles.logo} ${intro ? styles.ident : ""}`}
+    >
+      <defs>
+        <filter id={bloom} x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="5" result="soft" />
+          <feMerge>
+            <feMergeNode in="soft" />
+            <feMergeNode in="soft" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+        <path
+          id={gerald}
+          d={MUSTACHE_PATH}
+          transform={`translate(${CENTER.x - 121} ${CENTER.y - 53}) scale(1.21)`}
+        />
+      </defs>
 
-        <g filter={`url(#${bloom})`} className={styles.glow}>
-          {BANDS.map((color, i) => {
-            const y = BANDS_TOP + i * (BAND.height + BAND.gap);
-            const { left, right, slant, height } = BAND;
-            return (
-              <polygon
-                key={color}
-                className={styles.stripe}
-                style={{ fill: `var(${color})`, animationDelay: `${i * 70}ms` }}
-                points={`${left + slant},${y} ${right + slant},${y} ${right},${y + height} ${left},${y + height}`}
-              />
-            );
-          })}
+      <g filter={`url(#${bloom})`}>
+        {BANDS.map((color, i) => {
+          const y = BANDS_TOP + i * (BAND.height + BAND.gap);
+          const { left, right, slant, height } = BAND;
+          return (
+            <polygon
+              key={color}
+              className={styles.stripe}
+              style={{ fill: `var(${color})`, animationDelay: `${i * 70}ms` }}
+              points={`${left + slant},${y} ${right + slant},${y} ${right},${y + height} ${left},${y + height}`}
+            />
+          );
+        })}
 
-          <g className={styles.arcs}>
-            {ARCS.map(({ r, width }, i) => (
-              <g
-                key={r}
-                className={styles.broadcast}
-                style={{
-                  animationDelay: `${i * 0.25}s`,
-                  stroke: i ? "var(--arc-outer)" : "var(--arc-inner)",
-                }}
-                strokeWidth={width}
-              >
-                <path d={arc(r, 232, 308)} />
-                <path d={arc(r, 52, 128)} />
-              </g>
-            ))}
-          </g>
-
-          <g className={styles.gerald}>
-            {/* A sliver of background between Gerald and the stripes */}
-            <use href={`#${gerald}`} className={styles.cutout} />
-            <use href={`#${gerald}`} className={styles.fringeRed} />
-            <use href={`#${gerald}`} className={styles.fringeBlue} />
-            <use href={`#${gerald}`} className={styles.face} />
-          </g>
+        <g className={styles.arcs}>
+          {ARCS.map(({ r, width }, i) => (
+            <g
+              key={r}
+              className={styles.broadcast}
+              style={{
+                animationDelay: `${i * 0.25}s`,
+                stroke: i ? "var(--c2)" : "var(--c1)",
+              }}
+              strokeWidth={width}
+            >
+              <path d={arc(r, 232, 308)} />
+              <path d={arc(r, 52, 128)} />
+            </g>
+          ))}
         </g>
-      </svg>
-      <div aria-hidden="true" className={styles.scanlines} />
-    </div>
+
+        <g className={styles.gerald}>
+          {/* A sliver of background between Gerald and the stripes */}
+          <use href={`#${gerald}`} className={styles.cutout} />
+          <use href={`#${gerald}`} className={styles.fringeRed} />
+          <use href={`#${gerald}`} className={styles.fringeBlue} />
+          <use href={`#${gerald}`} className={styles.face} />
+        </g>
+      </g>
+    </svg>
   );
 };
 

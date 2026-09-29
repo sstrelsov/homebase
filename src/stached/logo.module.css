@@ -1,28 +1,15 @@
-/* The logo in each theme. Colors come from the .arcade theme variables. */
-.screen {
-  position: relative;
-}
-
+/* The 1984 station ident. Colors come from the .stached palette. */
 .logo {
   display: block;
   width: 100%;
   overflow: visible;
 }
 
-.scanlines {
-  display: none;
-}
-
 .arcs {
   fill: none;
 }
 
-.stripe {
-  display: none;
-}
-
 .cutout {
-  display: none;
   fill: var(--bg);
   stroke: var(--bg);
   stroke-width: 7;
@@ -33,16 +20,6 @@
   fill: var(--face);
 }
 
-@keyframes broadcast {
-  0%,
-  100% {
-    opacity: 0.35;
-  }
-  40% {
-    opacity: 1;
-  }
-}
-
 /* Two color fringes, offset like a misaligned tube */
 .fringeRed,
 .fringeBlue {
@@ -51,13 +28,23 @@
 }
 
 .fringeRed {
-  fill: var(--fringe-a);
+  fill: var(--red);
   transform: translateX(-2.5px);
 }
 
 .fringeBlue {
-  fill: var(--fringe-b);
+  fill: var(--blue);
   transform: translateX(2.5px);
+}
+
+@keyframes broadcast {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  40% {
+    opacity: 1;
+  }
 }
 
 @keyframes glitch-red {
@@ -86,6 +73,12 @@
   }
 }
 
+@keyframes wipe {
+  from {
+    transform: scaleX(0);
+  }
+}
+
 @keyframes flicker-on {
   0% {
     opacity: 0;
@@ -108,105 +101,10 @@
   }
 }
 
-/* Arcade: Gerald on a CRT, with scanlines, a vignette and a faint flicker.
-   The reveal is the tube powering on. */
-:global([data-theme="arcade"]) .screen {
-  aspect-ratio: 400 / 184;
-  overflow: hidden;
-  border-radius: 16px;
-  background: #000;
-  box-shadow: inset 0 0 40px rgba(57, 255, 20, 0.08);
-}
-
-:global([data-theme="arcade"]) .logo {
-  filter: blur(0.35px) saturate(1.2);
-}
-
-:global([data-theme="arcade"]) .scanlines {
-  display: block;
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background:
-    radial-gradient(ellipse at center, transparent 50%, rgba(0, 0, 0, 0.75)),
-    repeating-linear-gradient(
-      to bottom,
-      rgba(0, 0, 0, 0.35) 0 1px,
-      transparent 1px 3px
-    );
-}
-
-@keyframes tube-flicker {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  41% {
-    opacity: 0.93;
-  }
-  42% {
-    opacity: 1;
-  }
-  77% {
-    opacity: 0.96;
-  }
-}
-
-@keyframes power-on {
-  0% {
-    opacity: 0;
-    transform: scale(0.02, 0.004);
-    filter: brightness(8);
-  }
-  15% {
-    opacity: 1;
-    transform: scale(1, 0.008);
-    filter: brightness(6);
-  }
-  45% {
-    transform: scale(1, 0.008);
-    filter: brightness(4);
-  }
-  75% {
-    transform: scale(1, 1.04);
-    filter: brightness(1.6);
-  }
-  100% {
-    transform: scale(1, 1);
-    filter: brightness(1);
-  }
-}
-
-/* 1984: Gerald floats over color bands. The reveal is a station ident:
-   bands wipe in, Gerald flickers on, the arcs start up. */
-:global([data-theme="broadcast"]) .stripe,
-:global([data-theme="daylight"]) .stripe,
-:global([data-theme="broadcast"]) .cutout,
-:global([data-theme="daylight"]) .cutout {
-  display: inline;
-}
-
-@keyframes wipe {
-  from {
-    transform: scaleX(0);
-  }
-}
-
 @keyframes arcs-on {
   from {
     opacity: 0;
   }
-}
-
-/* Daylight is print, not a glowing tube. */
-:global([data-theme="daylight"]) .glow {
-  filter: none;
-}
-
-:global([data-theme="daylight"]) .fringeRed,
-:global([data-theme="daylight"]) .fringeBlue {
-  mix-blend-mode: multiply;
-  opacity: 0.7;
 }
 
 /* All the motion, for everyone who hasn't asked for less of it */
@@ -225,33 +123,18 @@
     animation: glitch-blue 4.5s steps(1) infinite;
   }
 
-  :global([data-theme="arcade"]) .screen {
-    animation: tube-flicker 5s steps(1) infinite;
-  }
-
-  /* Arcade reveal: the tube powers on */
-  :global([data-theme="arcade"]) .ident {
-    transform-origin: center;
-    animation:
-      power-on 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both,
-      tube-flicker 5s steps(1) 0.9s infinite;
-  }
-
-  /* 1984 reveal: bands wipe in, Gerald flickers on, the arcs start up */
-  :global([data-theme="broadcast"]) .ident .stripe,
-  :global([data-theme="daylight"]) .ident .stripe {
+  /* The reveal: bands wipe in, Gerald flickers on, the arcs start up */
+  .ident .stripe {
     transform-box: fill-box;
     transform-origin: left;
     animation: wipe 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   }
 
-  :global([data-theme="broadcast"]) .ident .gerald,
-  :global([data-theme="daylight"]) .ident .gerald {
+  .ident .gerald {
     animation: flicker-on 0.7s steps(1) 0.45s both;
   }
 
-  :global([data-theme="broadcast"]) .ident .arcs,
-  :global([data-theme="daylight"]) .ident .arcs {
+  .ident .arcs {
     animation: arcs-on 0.4s ease-out 1s both;
   }
 }

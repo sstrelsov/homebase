@@ -1,5 +1,6 @@
-import { useContext, useState } from "react";
+import { useState } from "react";
 import {
+  type Color,
   formatDate,
   formatTime,
   type Play,
@@ -8,7 +9,15 @@ import {
 } from "./api";
 import Dialog from "./Dialog";
 import styles from "./stached.module.css";
-import { shareEmoji, ThemeContext } from "./theme";
+
+// Share squares in the board's colors; the stache group is Gerald.
+const SHARE_EMOJI: Record<Color, string> = {
+  "1": "🟨",
+  "2": "🟧",
+  "3": "🟥",
+  "4": "🟦",
+  stache: "🥸",
+};
 
 interface ResultsDialogProps {
   open: boolean;
@@ -36,7 +45,6 @@ const ResultsDialog = ({
   board,
   player,
 }: ResultsDialogProps) => {
-  const theme = useContext(ThemeContext);
   const [shared, setShared] = useState(false);
   const grid = play.grid ?? [];
 
@@ -46,9 +54,7 @@ const ResultsDialog = ({
       play.stachedMs === null
         ? "No stache"
         : `Stache time ${formatTime(play.stachedMs, true)}`,
-      ...grid.map((row) =>
-        row.map((color) => shareEmoji(theme, color)).join(""),
-      ),
+      ...grid.map((row) => row.map((color) => SHARE_EMOJI[color]).join("")),
     ].join("\n");
     const url = `${window.location.origin}/stached`;
     try {

@@ -1,207 +1,65 @@
-/* Stached wears one of three themes, set with data-theme on .arcade:
-   arcade (the original neon CRT), broadcast (a 1984 TV-station ident) and
-   daylight (1984 in print). Each theme sets the same variables and the rules
-   below only use those. A nested [data-theme], like a preview in the theme
-   picker, re-themes its own subtree. */
-
-.arcade[data-theme="arcade"],
-.arcade [data-theme="arcade"] {
-  --display: "Press Start 2P", monospace;
-  --display-style: normal;
-  --display-weight: 400;
-  --display-stretch: 100%;
-  --label-weight: 400;
-  --label-stretch: 100%;
-  --label-tracking: 0.08em;
-  --text: "VT323", monospace;
-  --text-weight: 400;
-  --word-stretch: 100%;
-  --crawl-font: "VT323", monospace;
-  --crawl-weight: 400;
-
-  --bg: #000;
-  --ink: #fffdf2;
-  --face: #fffdf2;
-  --muted: rgba(255, 253, 242, 0.55);
-  --line: rgba(255, 253, 242, 0.14);
-  --accent: #05d9e8;
-  --me: #39ff14;
-  --fringe-a: #ff2a6d;
-  --fringe-b: #05d9e8;
-  --arc-inner: #39ff14;
-  --arc-outer: #39ff14;
-  --c1: #ffe14d;
-  --c2: #39ff14;
-  --c3: #05d9e8;
-  --c4: #b967ff;
-  --on-c4: #120c04;
-  --c-stache: #ff2a6d;
-  --stache-text: #ff2a6d;
-  --stache-glow: 0 0 12px rgba(255, 42, 109, 0.55);
-  --tile: #15121f;
-  --tile-line: rgba(5, 217, 232, 0.3);
-  --tile-shadow: none;
-  --input-bg: #050805;
-  --input-fg: #39ff14;
-  --input-line: rgba(57, 255, 20, 0.45);
-  --input-glow: 0 0 6px rgba(57, 255, 20, 0.5);
-  --primary: #ff2a6d;
-  --on-primary: #000;
-  --primary-edge: #9c0f3c;
-  --secondary: #05d9e8;
-  --title-glow: 0 0 14px rgba(255, 42, 109, 0.6);
-  --glow-mix: 50%;
-  --crawl: #ffe14d;
-  --dialog-bg: #07060c;
-  --backdrop: rgba(0, 0, 0, 0.72);
-}
-
-.arcade[data-theme="broadcast"],
-.arcade [data-theme="broadcast"],
-.arcade[data-theme="daylight"],
-.arcade [data-theme="daylight"] {
+/* Stached: a 1984 TV-station ident wrapped around a Connections board. Heavy
+   italic caps, warm phosphor cream, four broadcast colors, and an old TV's
+   glow and phosphor columns over everything. */
+.stached {
   --display: "Archivo", sans-serif;
-  --display-style: italic;
-  --display-weight: 900;
-  --display-stretch: 125%;
-  --label-weight: 800;
-  --label-stretch: 112%;
-  --label-tracking: 0.14em;
   --text: "Fredoka", sans-serif;
-  --text-weight: 500;
-  --word-stretch: 85%;
-  --crawl-font: "Archivo", sans-serif;
-  --crawl-weight: 800;
-}
 
-.arcade[data-theme="broadcast"],
-.arcade [data-theme="broadcast"] {
   --bg: #000;
   --ink: #fff1c9;
   --face: #fff4d6;
   --muted: rgba(255, 241, 201, 0.55);
   --line: rgba(255, 241, 201, 0.14);
-  --accent: #ffd23f;
-  --me: #ffd23f;
-  --fringe-a: #ff3b2f;
-  --fringe-b: #3d5bff;
-  --arc-inner: #ffd23f;
-  --arc-outer: #ff8c1a;
+  --gold: #ffd23f;
+  --red: #ff3b2f;
+  --blue: #3d5bff;
+  /* Group color slots, easiest first */
   --c1: #ffd23f;
   --c2: #ff8c1a;
   --c3: #ff3b2f;
   --c4: #3d5bff;
-  --on-c4: #fff4d6;
-  --c-stache: #ffd23f;
-  --stache-text: #ffd23f;
-  --stache-glow: 0 0 12px rgba(255, 210, 63, 0.6);
   --tile: #110e14;
-  --tile-line: rgba(255, 241, 201, 0.16);
-  --tile-shadow: none;
-  --input-bg: #110e14;
-  --input-fg: #fff1c9;
-  --input-line: rgba(255, 241, 201, 0.2);
-  --input-glow: none;
-  --primary: #ffd23f;
-  --on-primary: #1a1206;
-  --primary-edge: #ff8c1a;
-  --secondary: #fff1c9;
-  --title-glow:
-    0 0 2px rgba(255, 241, 201, 0.7), 0 0 14px rgba(255, 196, 90, 0.55);
-  --glow-mix: 50%;
-  --crawl: #ffd23f;
-  --dialog-bg: #0a0908;
-  --backdrop: rgba(0, 0, 0, 0.72);
-}
+  --glow: 0 0 2px rgba(255, 241, 201, 0.7), 0 0 14px rgba(255, 196, 90, 0.55);
 
-.arcade[data-theme="daylight"],
-.arcade [data-theme="daylight"] {
-  --bg: #f6eedb;
-  --ink: #1f1830;
-  --face: #1f1830;
-  --muted: rgba(31, 24, 48, 0.6);
-  --line: rgba(31, 24, 48, 0.14);
-  --accent: #2f45e0;
-  --me: #2f45e0;
-  --fringe-a: #e0311f;
-  --fringe-b: #2f45e0;
-  --arc-inner: #f5b700;
-  --arc-outer: #f57a00;
-  --c1: #f5b700;
-  --c2: #f57a00;
-  --c3: #e0311f;
-  --c4: #2f45e0;
-  --on-c4: #fff4d6;
-  --c-stache: #c2410c;
-  --stache-text: #c2410c;
-  --stache-glow: none;
-  --tile: #fffaf0;
-  --tile-line: rgba(31, 24, 48, 0.18);
-  --tile-shadow: 0 2px 0 rgba(31, 24, 48, 0.12);
-  --input-bg: #fffaf0;
-  --input-fg: #1f1830;
-  --input-line: rgba(31, 24, 48, 0.2);
-  --input-glow: none;
-  --primary: #f5b700;
-  --on-primary: #1a1206;
-  --primary-edge: #f57a00;
-  --secondary: #1f1830;
-  --title-glow: 0 0 0 transparent;
-  --glow-mix: 0%;
-  --crawl: #e0311f;
-  --dialog-bg: #fffaf0;
-  --backdrop: rgba(31, 24, 48, 0.45);
-}
-
-.arcade {
   position: relative;
   min-height: 100%;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--text);
-  font-weight: var(--text-weight);
-  /* The fonts differ wildly in size per pixel; match their cap heights so
-     one set of sizes suits every theme. */
-  font-size-adjust: cap-height 0.7;
+  font-weight: 500;
   /* No double-tap zoom, no grey tap flash: this page is all taps. */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
 
 /* Group colors, set on anything with data-color */
-.arcade [data-color="1"] {
+.stached [data-color="1"] {
   --color: var(--c1);
   --on-color: #120c04;
 }
 
-.arcade [data-color="2"] {
+.stached [data-color="2"] {
   --color: var(--c2);
   --on-color: #120c04;
 }
 
-.arcade [data-color="3"] {
+.stached [data-color="3"] {
   --color: var(--c3);
   --on-color: #120c04;
 }
 
-.arcade [data-color="4"] {
+.stached [data-color="4"] {
   --color: var(--c4);
-  --on-color: var(--on-c4);
+  --on-color: #fff4d6;
 }
 
-.arcade [data-color="stache"] {
-  --color: var(--c-stache);
-  --on-color: #120c04;
+.stached [data-color="stache"] {
+  --color: var(--gold);
+  --on-color: #fff4d6;
 }
 
-/* 1984 after dark: an old TV over everything, with phosphor columns and dim
-   corners. */
+/* An old TV over everything: phosphor columns and dim corners */
 .crt {
-  display: none;
-}
-
-.arcade[data-theme="broadcast"] .crt {
-  display: block;
   position: fixed;
   inset: 0;
   z-index: 50;
@@ -215,49 +73,50 @@
     );
 }
 
+/* Heavy, wide, italic caps: the ident face */
 .display {
   font-family: var(--display);
-  font-style: var(--display-style);
-  font-weight: var(--display-weight);
-  font-stretch: var(--display-stretch);
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 125%;
   text-transform: uppercase;
 }
 
 .title {
   font-family: var(--display);
-  font-style: var(--display-style);
-  font-weight: var(--display-weight);
-  font-stretch: var(--display-stretch);
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 125%;
   text-transform: uppercase;
   color: var(--ink);
   text-shadow:
-    -2px 0 var(--fringe-a),
-    2px 0 var(--fringe-b),
-    var(--title-glow);
+    -2px 0 var(--red),
+    2px 0 var(--blue),
+    var(--glow);
 }
 
 .label {
   font-family: var(--display);
-  font-style: var(--display-style);
-  font-weight: var(--label-weight);
-  font-stretch: var(--label-stretch);
+  font-style: italic;
+  font-weight: 800;
+  font-stretch: 112%;
   font-size: 10px;
-  letter-spacing: var(--label-tracking);
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--muted);
 }
 
 .stacheText {
-  color: var(--stache-text);
-  text-shadow: var(--stache-glow);
+  color: var(--gold);
+  text-shadow: 0 0 12px rgba(255, 210, 63, 0.6);
 }
 
 .alert {
-  color: var(--fringe-a);
+  color: var(--red);
 }
 
 .me {
-  color: var(--me);
+  color: var(--gold);
 }
 
 .panel {
@@ -270,17 +129,11 @@
 }
 
 .stacheBox {
-  border: 2px solid var(--c-stache);
+  border: 2px solid var(--gold);
   border-radius: 8px;
 }
 
-/* Gerald as a small mark, with the logo's fringes */
-.mark {
-  fill: var(--face);
-  filter: drop-shadow(-2px 0 var(--fringe-a)) drop-shadow(2px 0 var(--fringe-b));
-}
-
-/* The logo's four bands, as a divider (1984 themes only) */
+/* The logo's four bands, as a divider */
 .stripes {
   height: 14px;
   background: linear-gradient(
@@ -296,24 +149,19 @@
   transform: skewX(-20deg);
 }
 
-.arcade[data-theme="arcade"] .stripes {
-  display: none;
-}
-
 /* Inputs: 24px keeps iOS from zooming in on focus (it zooms below 16px). */
 .input {
   width: 100%;
   height: 52px;
   padding: 0 14px;
-  border: 2px solid var(--input-line);
+  border: 2px solid rgba(255, 241, 201, 0.2);
   border-radius: 8px;
-  background: var(--input-bg);
-  color: var(--input-fg);
-  caret-color: var(--accent);
+  background: var(--tile);
+  color: var(--ink);
+  caret-color: var(--gold);
   font-family: var(--text);
-  font-weight: var(--text-weight);
+  font-weight: 500;
   font-size: 24px;
-  text-shadow: var(--input-glow);
   outline: none;
   transition:
     border-color 0.15s,
@@ -321,8 +169,8 @@
 }
 
 .input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(255, 210, 63, 0.22);
 }
 
 .button {
@@ -332,22 +180,22 @@
   gap: 8px;
   min-height: 48px;
   padding: 0 8px;
-  border: 2px solid var(--secondary);
+  border: 2px solid var(--ink);
   border-radius: 8px;
   background: transparent;
-  color: var(--secondary);
+  color: var(--ink);
   font-family: var(--display);
-  font-style: var(--display-style);
-  font-weight: var(--display-weight);
-  font-stretch: var(--display-stretch);
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 125%;
   font-size: 13px;
   letter-spacing: 0.02em;
   text-transform: uppercase;
   user-select: none;
   -webkit-user-select: none;
   box-shadow:
-    0 4px 0 color-mix(in srgb, var(--secondary) 35%, transparent),
-    0 0 14px color-mix(in srgb, var(--secondary) 20%, transparent);
+    0 4px 0 rgba(255, 241, 201, 0.35),
+    0 0 14px rgba(255, 241, 201, 0.2);
   transition:
     transform 0.08s,
     opacity 0.15s,
@@ -363,18 +211,18 @@
 }
 
 .primary {
-  border-color: var(--primary);
-  background: var(--primary);
-  color: var(--on-primary);
+  border-color: var(--gold);
+  background: var(--gold);
+  color: #1a1206;
   box-shadow:
-    0 4px 0 var(--primary-edge),
-    0 0 18px color-mix(in srgb, var(--primary) var(--glow-mix), transparent);
+    0 4px 0 var(--c2),
+    0 0 18px rgba(255, 210, 63, 0.5);
 }
 
 .primary:active:not(:disabled) {
   box-shadow:
-    0 2px 0 var(--primary-edge),
-    0 0 18px color-mix(in srgb, var(--primary) var(--glow-mix), transparent);
+    0 2px 0 var(--c2),
+    0 0 18px rgba(255, 210, 63, 0.5);
 }
 
 .shake {
@@ -436,15 +284,14 @@
   left: 4%;
   right: 4%;
   transform-origin: 50% 0;
-  color: var(--crawl);
-  font-family: var(--crawl-font);
-  font-weight: var(--crawl-weight);
+  color: var(--gold);
+  font-family: var(--display);
+  font-weight: 800;
   font-size: 25px;
   line-height: 1.1;
   text-align: center;
   text-transform: uppercase;
-  text-shadow: 0 0 12px
-    color-mix(in srgb, var(--crawl) var(--glow-mix), transparent);
+  text-shadow: 0 0 12px rgba(255, 210, 63, 0.5);
   animation: crawl 50s linear infinite;
 }
 
@@ -482,11 +329,10 @@
   align-items: center;
   justify-content: center;
   padding: 4px;
-  border: 1px solid var(--tile-line);
+  border: 1px solid rgba(255, 241, 201, 0.16);
   border-radius: 7px;
   background: var(--tile);
   color: var(--ink);
-  box-shadow: var(--tile-shadow);
   text-align: center;
   text-transform: uppercase;
   user-select: none;
@@ -504,17 +350,18 @@
   background: var(--ink);
   color: var(--bg);
   box-shadow:
-    -3px 0 0 var(--fringe-a),
-    3px 0 0 var(--fringe-b),
-    0 0 16px color-mix(in srgb, var(--ink) var(--glow-mix), transparent);
+    -3px 0 0 var(--red),
+    3px 0 0 var(--blue),
+    0 0 16px rgba(255, 241, 201, 0.5);
 }
 
+/* Tile words: chunky, rounded, a little narrow so long ones fit */
 .word {
   display: block;
   width: 100%;
   font-family: var(--text);
   font-weight: 600;
-  font-stretch: var(--word-stretch);
+  font-stretch: 85%;
   line-height: 0.95;
   overflow-wrap: normal;
 }
@@ -531,8 +378,7 @@
   background: var(--color);
   color: var(--on-color);
   text-align: center;
-  box-shadow: 0 0 18px
-    color-mix(in srgb, var(--color) var(--glow-mix), transparent);
+  box-shadow: 0 0 18px color-mix(in srgb, var(--color) 50%, transparent);
 }
 
 .barTitle {
@@ -540,9 +386,9 @@
   align-items: center;
   gap: 8px;
   font-family: var(--display);
-  font-style: var(--display-style);
-  font-weight: var(--display-weight);
-  font-stretch: var(--display-stretch);
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 125%;
   font-size: 13px;
   text-transform: uppercase;
 }
@@ -555,18 +401,8 @@
   text-transform: uppercase;
 }
 
+/* The stache group: the logo's bands, with outlined type on top */
 .bar[data-color="stache"] {
-  animation: stache-glow 1.6s ease-in-out infinite;
-}
-
-.bar[data-color="stache"] svg {
-  fill: currentColor;
-}
-
-/* In the 1984 themes the stache group gets the logo's bands and outlined
-   type on top. */
-.arcade[data-theme="broadcast"] .bar[data-color="stache"],
-.arcade[data-theme="daylight"] .bar[data-color="stache"] {
   background: linear-gradient(
     to bottom,
     var(--c4) 0 24%,
@@ -577,25 +413,25 @@
     var(--bg) 0 75.5%,
     var(--c1) 0
   );
-  color: #fff4d6;
   text-shadow:
     0 0 2px #000,
     1.5px 1.5px 0 #000,
     -1.5px -1.5px 0 #000,
     1.5px -1.5px 0 #000,
     -1.5px 1.5px 0 #000;
+  animation: stache-glow 1.6s ease-in-out infinite;
 }
 
-.arcade[data-theme="broadcast"] .bar[data-color="stache"] svg,
-.arcade[data-theme="daylight"] .bar[data-color="stache"] svg {
+.bar[data-color="stache"] svg {
+  fill: currentColor;
   filter: drop-shadow(0 0 1px #000) drop-shadow(0 0 1px #000);
 }
 
 @keyframes stache-glow {
   50% {
     box-shadow:
-      0 0 26px color-mix(in srgb, var(--c-stache) var(--glow-mix), transparent),
-      0 0 48px color-mix(in srgb, var(--c-stache) var(--glow-mix), transparent);
+      0 0 26px rgba(255, 210, 63, 0.7),
+      0 0 48px rgba(255, 140, 26, 0.4);
   }
 }
 
@@ -604,9 +440,7 @@
   width: 26px;
   height: 9px;
   fill: var(--face);
-  filter: drop-shadow(
-    0 0 3px color-mix(in srgb, var(--fringe-a) var(--glow-mix), transparent)
-  );
+  filter: drop-shadow(0 0 3px rgba(255, 210, 63, 0.5));
   transition:
     opacity 0.3s,
     fill 0.3s;
@@ -633,9 +467,9 @@
 
 .clock {
   font-family: var(--display);
-  font-style: var(--display-style);
-  font-weight: var(--display-weight);
-  font-stretch: var(--display-stretch);
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 110%;
   font-size: 30px;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -653,15 +487,15 @@
   background: var(--ink);
   color: var(--bg);
   font-family: var(--display);
-  font-style: var(--display-style);
-  font-weight: var(--display-weight);
-  font-stretch: var(--display-stretch);
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 125%;
   font-size: 15px;
   text-transform: uppercase;
   white-space: nowrap;
   box-shadow:
-    -3px 0 0 var(--fringe-a),
-    3px 0 0 var(--fringe-b),
+    -3px 0 0 var(--red),
+    3px 0 0 var(--blue),
     0 8px 24px rgba(0, 0, 0, 0.35);
   pointer-events: none;
   animation: toast-in 0.25s cubic-bezier(0.3, 1.5, 0.5, 1);
@@ -687,8 +521,8 @@
   padding: 0 4%;
   background: radial-gradient(
     ellipse at center,
-    color-mix(in srgb, var(--bg) 98%, transparent) 45%,
-    color-mix(in srgb, var(--bg) 85%, transparent)
+    rgba(0, 0, 0, 0.98) 45%,
+    rgba(0, 0, 0, 0.85)
   );
   pointer-events: none;
   animation: flash-in 2.6s ease-out both;
@@ -714,13 +548,13 @@
   max-height: 86dvh;
   margin: auto;
   padding: 0;
-  border: 2px solid var(--accent);
+  border: 2px solid var(--gold);
   border-radius: 12px;
-  background: var(--dialog-bg);
+  background: #0a0908;
   color: var(--ink);
   font-family: var(--text);
-  font-weight: var(--text-weight);
-  box-shadow: 0 0 32px color-mix(in srgb, var(--accent) 30%, transparent);
+  font-weight: 500;
+  box-shadow: 0 0 32px rgba(255, 210, 63, 0.3);
   overscroll-behavior: contain;
 }
 
@@ -729,7 +563,7 @@
 }
 
 .dialog::backdrop {
-  background: var(--backdrop, rgba(0, 0, 0, 0.6));
+  background: rgba(0, 0, 0, 0.72);
 }
 
 @keyframes dialog-in {
@@ -744,28 +578,6 @@
   height: 22px;
   border-radius: 4px;
   background: var(--color);
-}
-
-/* A theme in the picker, drawn in its own colors and type */
-.themeCard {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  padding: 14px;
-  border: 2px solid var(--line);
-  border-radius: 10px;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--text);
-  font-weight: var(--text-weight);
-  font-size: 18px;
-  text-align: left;
-}
-
-.themeCard[aria-pressed="true"] {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

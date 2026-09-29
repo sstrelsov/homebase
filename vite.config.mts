@@ -6,7 +6,9 @@ import { defineConfig } from "vite";
 import svgr from "vite-plugin-svgr";
 import viteTsconfigPaths from "vite-tsconfig-paths";
 
-const SITE = "https://www.spencerstrelsov.com";
+// Absolute base for link-preview URLs. `make phone-preview` points it at this
+// Mac so a phone can fetch the preview before the site is live.
+const SITE = process.env.STACHED_SITE ?? "https://www.spencerstrelsov.com";
 
 // https://vitejs.dev/config/
 export default defineConfig({

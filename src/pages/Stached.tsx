@@ -14,14 +14,7 @@ import Game from "../stached/Game";
 import Login from "../stached/Login";
 import Logo from "../stached/Logo";
 import RulesDialog from "../stached/RulesDialog";
-import SettingsDialog from "../stached/SettingsDialog";
 import styles from "../stached/stached.module.css";
-import {
-  loadTheme,
-  saveTheme,
-  type Theme,
-  ThemeContext,
-} from "../stached/theme";
 
 function status(today: Today) {
   const { puzzle, play } = today;
@@ -34,19 +27,17 @@ function status(today: Today) {
   return `${stache} · ${play.completed ? "Solved" : "Missed"}`;
 }
 
-interface ArcadeProps {
+interface SignedInProps {
   session: Session;
   onSignOut: () => void;
-  onTheme: (theme: Theme) => void;
 }
 
 /** Signed in: the logo and its two buttons, or the game itself. */
-const Arcade = ({ session, onSignOut, onTheme }: ArcadeProps) => {
+const SignedIn = ({ session, onSignOut }: SignedInProps) => {
   const [today, setToday] = useState<Today | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
   // The logo powers on once, not every time you come back from a game.
   const [intro, setIntro] = useState(true);
 
@@ -147,37 +138,22 @@ const Arcade = ({ session, onSignOut, onTheme }: ArcadeProps) => {
         ) : (
           <p className={styles.label}>{today ? status(today) : "Loading…"}</p>
         )}
-        <div className="flex flex-col items-center gap-3">
-          <button
-            type="button"
-            onClick={() => setSettingsOpen(true)}
-            className={`${styles.label} underline underline-offset-4`}
-          >
-            Settings
-          </button>
-          <button
-            type="button"
-            onClick={onSignOut}
-            className={`${styles.label} underline underline-offset-4`}
-          >
-            Not {session.name}? Switch player
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={onSignOut}
+          className={`${styles.label} underline underline-offset-4`}
+        >
+          Not {session.name}? Switch player
+        </button>
       </div>
       <Crawl />
       {rules}
-      <SettingsDialog
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        onTheme={onTheme}
-      />
     </div>
   );
 };
 
 const StachedPage = () => {
   const [session, setSession] = useState(loadSession);
-  const [theme, setTheme] = useState(loadTheme);
 
   const signIn = (next: Session) => {
     saveSession(next);
@@ -189,29 +165,17 @@ const StachedPage = () => {
     setSession(null);
   }, []);
 
-  const chooseTheme = (next: Theme) => {
-    saveTheme(next);
-    setTheme(next);
-  };
-
   return (
-    <ThemeContext.Provider value={theme}>
-      <div data-theme={theme} className={`self-start w-full ${styles.arcade}`}>
-        <div aria-hidden="true" className={styles.crt} />
-        <div className="mx-auto w-full max-w-md px-4 pt-4 pb-6">
-          {session ? (
-            <Arcade
-              key={session.token}
-              session={session}
-              onSignOut={signOut}
-              onTheme={chooseTheme}
-            />
-          ) : (
-            <Login onSignIn={signIn} />
-          )}
-        </div>
+    <div className={`self-start w-full ${styles.stached}`}>
+      <div aria-hidden="true" className={styles.crt} />
+      <div className="mx-auto w-full max-w-md px-4 pt-4 pb-6">
+        {session ? (
+          <SignedIn key={session.token} session={session} onSignOut={signOut} />
+        ) : (
+          <Login onSignIn={signIn} />
+        )}
       </div>
-    </ThemeContext.Provider>
+    </div>
   );
 };
 

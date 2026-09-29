@@ -4,7 +4,7 @@ PUBLISHED_BRANCH = published
 WORKTREE_DIR    = ../published-branch
 CURRENT_BRANCH  = $(shell git rev-parse --abbrev-ref HEAD)
 
-.PHONY: deploy build deploy-worktree clean remove-worktree phone
+.PHONY: deploy build deploy-worktree clean remove-worktree phone phone-preview
 
 # Default target
 deploy: build deploy-worktree clean
@@ -58,3 +58,7 @@ remove-worktree:
 # with a QR code to scan. See scripts/phone.sh.
 phone:
 	./scripts/phone.sh
+
+# Same, but a production build, to see the link preview when you share it.
+phone-preview:
+	./scripts/phone.sh --preview

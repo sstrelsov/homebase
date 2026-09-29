@@ -2,8 +2,13 @@
 # `make phone`: play the site on your phone. Runs a throwaway Postgres, the
 # Stached API, and the dev server, puts them behind Tailscale Serve (HTTPS,
 # your tailnet only), and prints a QR code. Ctrl-C stops everything.
+#
+# `make phone-preview` (--preview) serves a production build instead, with its
+# link-preview tags pointing at this Mac, so pasting the link into iMessage on
+# the phone shows the real preview card.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+PREVIEW=$([ "${1:-}" = "--preview" ] && echo 1 || echo "")
 
 PG_PORT=5499
 API_PORT=3999 # vite.config.mts proxies /stached-api here
@@ -20,6 +25,10 @@ if tailscale serve status --json 2>/dev/null | grep -q "\"$HTTPS_PORT\""; then
   echo "       Free it with: tailscale serve --https=$HTTPS_PORT off" >&2
   exit 1
 fi
+
+host=$(tailscale status --self --json 2>/dev/null |
+  bun -e 'console.log(JSON.parse(await Bun.stdin.text()).Self.DNSName.replace(/\.$/, ""))')
+site="https://$host:$HTTPS_PORT"
 
 cleanup() {
   kill $(jobs -p) 2>/dev/null || true
@@ -43,12 +52,17 @@ createdb -h localhost -p "$PG_PORT" -U postgres stached
     ALLOWED_ORIGINS="http://localhost:$WEB_PORT" PORT="$API_PORT" \
     exec bun server.ts
 ) &
-node_modules/.bin/vite --host 127.0.0.1 --port "$WEB_PORT" --strictPort --logLevel warn &
+if [ -n "$PREVIEW" ]; then
+  echo "phone: building with link previews pointing at $site"
+  STACHED_SITE="$site" VITE_STACHED_API=/stached-api bun run build >/dev/null
+  node_modules/.bin/vite preview --host 127.0.0.1 --port "$WEB_PORT" --strictPort &
+else
+  node_modules/.bin/vite --host 127.0.0.1 --port "$WEB_PORT" --strictPort --logLevel warn &
+fi
 
 tailscale serve --bg --https="$HTTPS_PORT" "http://127.0.0.1:$WEB_PORT" >/dev/null 2>&1
-host=$(tailscale status --self --json 2>/dev/null |
-  bun -e 'console.log(JSON.parse(await Bun.stdin.text()).Self.DNSName.replace(/\.$/, ""))')
-url="https://$host:$HTTPS_PORT/stached"
+# GitHub Pages serves the copy with link-preview tags at /stached/.
+url="$site/stached${PREVIEW:+/}"
 
 sleep 2
 echo
