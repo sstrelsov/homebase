@@ -18,3 +18,42 @@
     animation: none;
   }
 }
+
+/* Gerald's route draws itself along the streets */
+.draw {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: draw ease-in-out forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* The finale: Gerald lights up the harbor */
+.glow {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: glow 1.8s ease-in-out infinite;
+}
+
+@keyframes glow {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1.3);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glow {
+    animation: none;
+    opacity: 0.3;
+  }
+}
