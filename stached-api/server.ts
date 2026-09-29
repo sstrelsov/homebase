@@ -332,6 +332,33 @@ async function route(req: Request): Promise<Response> {
   }
 }
 
+// On the Studio the API listens only on 127.0.0.1 and Cloudflare's tunnel is
+// its one way in, so Cloudflare's client address can be trusted there.
+// Anywhere else that header could be forged, so use the socket's address.
+const HOST = process.env.HOST ?? "0.0.0.0";
+const BEHIND_TUNNEL = HOST === "127.0.0.1";
+
+// Requests per client per minute. Sign-in is tight so the shared password
+// can't be guessed at speed; a game makes about 15 a minute.
+const LIMITS = { login: 10, api: 180 };
+const windows = new Map<string, { start: number; count: number }>();
+
+function overLimit(key: string, limit: number) {
+  const now = Date.now();
+  const window = windows.get(key);
+  if (!window || now - window.start >= 60_000) {
+    windows.set(key, { start: now, count: 1 });
+    return false;
+  }
+  return ++window.count > limit;
+}
+
+setInterval(() => {
+  const cutoff = Date.now() - 60_000;
+  for (const [key, window] of windows)
+    if (window.start < cutoff) windows.delete(key);
+}, 5 * 60_000);
+
 function cors(req: Request): Record<string, string> {
   const origin = req.headers.get("origin") ?? "";
   if (!ORIGINS.includes(origin)) return { vary: "origin" };
@@ -366,22 +393,41 @@ for (const { date, groups } of puzzles) {
 }
 
 const server = Bun.serve({
+  hostname: HOST,
   port: Number(process.env.PORT ?? 3000),
-  async fetch(req) {
-    const headers = cors(req);
+  maxRequestBodySize: 16 * 1024,
+  async fetch(req, server) {
+    const headers = {
+      ...cors(req),
+      "cache-control": "no-store",
+      "x-content-type-options": "nosniff",
+    };
     if (req.method === "OPTIONS")
       return new Response(null, { status: 204, headers });
+    const client =
+      (BEHIND_TUNNEL && req.headers.get("cf-connecting-ip")) ||
+      server.requestIP(req)?.address ||
+      "unknown";
+    const login = new URL(req.url).pathname === "/login";
     let res: Response;
-    try {
-      res = await route(req);
-    } catch (error) {
-      console.error(error);
-      res = fail(500, "Something broke");
-    }
+    if (
+      overLimit(
+        `${login ? "login" : "api"}:${client}`,
+        login ? LIMITS.login : LIMITS.api,
+      )
+    )
+      res = fail(429, "Too many tries. Wait a minute");
+    else
+      try {
+        res = await route(req);
+      } catch (error) {
+        console.error(error);
+        res = fail(500, "Something broke");
+      }
     for (const [name, value] of Object.entries(headers))
       res.headers.set(name, value);
     return res;
   },
 });
 
-console.log(`Stached API on :${server.port}`);
+console.log(`Stached API on ${HOST}:${server.port}`);

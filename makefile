@@ -4,7 +4,7 @@ PUBLISHED_BRANCH = published
 WORKTREE_DIR    = ../published-branch
 CURRENT_BRANCH  = $(shell git rev-parse --abbrev-ref HEAD)
 
-.PHONY: deploy build deploy-worktree clean remove-worktree phone phone-preview
+.PHONY: deploy build deploy-worktree clean remove-worktree phone phone-preview deploy-stached
 
 # Default target
 deploy: build deploy-worktree clean
@@ -62,3 +62,9 @@ phone:
 # Same, but a production build, to see the link preview when you share it.
 phone-preview:
 	./scripts/phone.sh --preview
+
+# Ship the Stached API to the Studio: check out the branch you're on here, pull
+# it there, and restart the API (launchd brings it back; it runs as
+# sstrelsov-personal, so no sudo).
+deploy-stached:
+	ssh personal-studio 'set -e; cd ~/dev/homebase && git fetch -q origin && git checkout -q $(CURRENT_BRANCH) && git pull -q --ff-only && git log --oneline -1 && pkill -f "stached/api.env" && sleep 3 && curl -sf http://127.0.0.1:3999/health && echo " healthy"'

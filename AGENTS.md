@@ -37,14 +37,24 @@ Static SPA on GitHub Pages. `make deploy` builds to `build/`, then force-pushes 
 
 ## Stached (`/stached`)
 
-Unlisted Connections-style game. The page lives in `src/pages/Stached.tsx` and `src/stached/`; its backend is `stached-api/`, a dependency-free Bun server with Postgres, deployed to Railway on Spencer's personal account (not the Nexus Black workspace).
+Unlisted Connections-style game. The page lives in `src/pages/Stached.tsx` and `src/stached/`; its backend is `stached-api/`, a dependency-free Bun server with Postgres, running on the Mac Studio behind Cloudflare at `https://api.spencerstrelsov.com` (see below).
 
 - **Puzzles** live in `stached-api/puzzles.json`, one per date, and Postgres mirrors the file on every boot. The game serves the latest puzzle dated on or before today (America/New_York). Each puzzle needs exactly one group with `"stache": true`; non-stache groups get color slots 1–4 in file order, so list them easiest first.
 - **Editing or removing a puzzle that people have played clears their plays** for it on the next deploy.
-- **Env:** `DATABASE_URL`, `STACHE_PASSWORD` (the shared sign-in password), `SESSION_SECRET`, `ALLOWED_ORIGINS` (comma-separated).
+- **Env:** `DATABASE_URL`, `STACHE_PASSWORD` (the shared sign-in password), `SESSION_SECRET`, `ALLOWED_ORIGINS` (comma-separated), `HOST` (bind address, default `0.0.0.0`), `PORT`.
+- **Limits:** 10 sign-ins and 180 other requests per client per minute, and 16 KB request bodies. The client is Cloudflare's `CF-Connecting-IP` only when `HOST=127.0.0.1`, because then the tunnel is the only way in.
 - **Clock:** stache time counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; a silence longer than that is capped at 15 seconds, so a phone that sleeps mid-game isn't charged for the nap.
 - **Look:** a 1984 TV-station ident, always dark. The palette sits at the top of `src/stached/stached.module.css`; the logo is `src/stached/Logo.tsx`.
 - **In dev**, the game calls `/stached-api`, which Vite proxies to a local API on port 3999. `VITE_STACHED_API` overrides that.
+
+## Production API (Mac Studio + Cloudflare Tunnel)
+
+The API runs on the Studio as `sstrelsov-personal` (`ssh personal-studio`), from a clone at `~/dev/homebase`. Nothing on the Studio is exposed directly: Postgres and the API listen on 127.0.0.1, and a Cloudflare Tunnel (outbound only) carries `api.spencerstrelsov.com` to `127.0.0.1:3999`. The domain's DNS is on Cloudflare (Porkbun is still the registrar). GitHub Pages and Porkbun email forwarding records are DNS-only.
+
+- **Files:** `~/.config/stached/` holds `api.env` (generated secrets, mode 600), `tunnel-token` (600), logs, and `launchd/` plists. Backups go to `~/backups/stached/` nightly at 4am, kept 14 days.
+- **Services:** LaunchDaemons `me.strelsov.stached.{postgres,api,tunnel,backup}`, installed once with `sudo ~/.config/stached/install-daemons.sh`. They start at boot with nobody logged in, which matters because a FileVault reboot leaves the Studio at the login window. After any reboot the game is down until the disk is unlocked.
+- **Deploy:** `make deploy-stached` pulls the branch on the Studio and restarts the API. The daemon runs as `sstrelsov-personal`, so killing it needs no sudo; launchd starts it again.
+- **Cloudflare:** a rate-limiting rule on `/login` sits in front of the app's own limits.
 
 ## Testing on your phone (`make phone`)
 

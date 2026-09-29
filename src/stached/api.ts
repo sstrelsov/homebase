@@ -1,9 +1,9 @@
-// Client for the Stached API (stached-api/ at the repo root, on Railway). In
+// Client for the Stached API (stached-api/ at the repo root, on the Studio). In
 // dev it goes through Vite's proxy to a local API, unless VITE_STACHED_API
 // points somewhere else.
 const API =
   import.meta.env.VITE_STACHED_API ??
-  (import.meta.env.DEV ? "/stached-api" : "https://stached-api.up.railway.app");
+  (import.meta.env.DEV ? "/stached-api" : "https://api.spencerstrelsov.com");
 
 /** A group's color slot: 1–4 by difficulty, or the stache. */
 export type Color = "1" | "2" | "3" | "4" | "stache";
