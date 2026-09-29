@@ -3,7 +3,7 @@ import {
   NavbarBrand,
   NavbarContent,
   NavbarItem,
-} from "@nextui-org/react";
+} from "@nextui-org/navbar";
 import { useLocation } from "@tanstack/react-router";
 import { RoutePath } from "../../config/Routes";
 import NavLink from "./NavLink";

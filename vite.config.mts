@@ -1,4 +1,4 @@
-import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import mdx from "@mdx-js/rollup";
 import react from "@vitejs/plugin-react";
@@ -24,20 +24,22 @@ export default defineConfig({
       name: "spa-fallback",
       closeBundle() {
         const outDir = resolve(__dirname, "build");
-        const index = resolve(outDir, "index.html");
+        const index = readFileSync(resolve(outDir, "index.html"), "utf8");
+        // Every other route skips the landing page's headshot preload
+        const html = index.replace(/\s*<!-- Headshot preload[\s\S]*?\/>/, "");
         // 404.html for unknown routes
-        copyFileSync(index, resolve(outDir, "404.html"));
+        writeFileSync(resolve(outDir, "404.html"), html);
         // Static copies for known routes so GitHub Pages returns 200
         for (const route of ["about", "projects"]) {
           mkdirSync(resolve(outDir, route), { recursive: true });
-          copyFileSync(index, resolve(outDir, route, "index.html"));
+          writeFileSync(resolve(outDir, route, "index.html"), html);
         }
         // Unlisted routes: noindex in the static HTML, before any JS runs
         for (const route of ["mustache"]) {
           mkdirSync(resolve(outDir, route), { recursive: true });
           writeFileSync(
             resolve(outDir, route, "index.html"),
-            readFileSync(index, "utf8").replace(
+            html.replace(
               "<head>",
               '<head>\n    <meta name="robots" content="noindex, nofollow" />',
             ),
