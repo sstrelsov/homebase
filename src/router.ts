@@ -4,7 +4,6 @@ import {
   createRouter,
   HeadContent,
   lazyRouteComponent,
-  redirect,
   stripSearchParams,
 } from "@tanstack/react-router";
 import App from "./App";
@@ -108,21 +107,11 @@ const stachedRoute = createRoute({
   }),
 });
 
-// The game used to be a story at /mustache.
-const mustacheRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/mustache",
-  beforeLoad: () => {
-    throw redirect({ to: "/stached", replace: true });
-  },
-});
-
 const routeTree = rootRoute.addChildren([
   homeRoute,
   aboutRoute,
   projectsRoute.addChildren([projectsIndexRoute, projectDetailRoute]),
   stachedRoute,
-  mustacheRoute,
 ]);
 
 export const router = createRouter({
