@@ -95,13 +95,13 @@ const projectDetailRoute = createRoute({
 });
 
 // Unlisted: no nav link, not in the sitemap, noindex.
-const mustacheRoute = createRoute({
+const stachedRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/mustache",
-  component: lazyRouteComponent(() => import("./pages/Mustache")),
+  path: "/stached",
+  component: lazyRouteComponent(() => import("./pages/Stached")),
   head: () => ({
     meta: [
-      { title: "Hello" },
+      { title: "Stached" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
@@ -111,7 +111,7 @@ const routeTree = rootRoute.addChildren([
   homeRoute,
   aboutRoute,
   projectsRoute.addChildren([projectsIndexRoute, projectDetailRoute]),
-  mustacheRoute,
+  stachedRoute,
 ]);
 
 export const router = createRouter({

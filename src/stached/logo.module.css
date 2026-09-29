@@ -1,0 +1,140 @@
+/* The 1984 station ident. Colors come from the .stached palette. */
+.logo {
+  display: block;
+  width: 100%;
+  overflow: visible;
+}
+
+.arcs {
+  fill: none;
+}
+
+.cutout {
+  fill: var(--bg);
+  stroke: var(--bg);
+  stroke-width: 7;
+  stroke-linejoin: round;
+}
+
+.face {
+  fill: var(--face);
+}
+
+/* Two color fringes, offset like a misaligned tube */
+.fringeRed,
+.fringeBlue {
+  mix-blend-mode: screen;
+  opacity: 0.85;
+}
+
+.fringeRed {
+  fill: var(--red);
+  transform: translateX(-2.5px);
+}
+
+.fringeBlue {
+  fill: var(--blue);
+  transform: translateX(2.5px);
+}
+
+@keyframes broadcast {
+  0%,
+  100% {
+    opacity: 0.35;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+
+@keyframes glitch-red {
+  0%,
+  100% {
+    transform: translateX(-2.5px);
+  }
+  62% {
+    transform: translate(-9px, 1px);
+  }
+  64% {
+    transform: translateX(-2.5px);
+  }
+}
+
+@keyframes glitch-blue {
+  0%,
+  100% {
+    transform: translateX(2.5px);
+  }
+  62% {
+    transform: translate(8px, -1px);
+  }
+  64% {
+    transform: translateX(2.5px);
+  }
+}
+
+@keyframes wipe {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+@keyframes flicker-on {
+  0% {
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 0.15;
+  }
+  40% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  65%,
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes arcs-on {
+  from {
+    opacity: 0;
+  }
+}
+
+/* All the motion, for everyone who hasn't asked for less of it */
+@media (prefers-reduced-motion: no-preference) {
+  /* Broadcast arcs pulse outward, innermost first */
+  .broadcast {
+    animation: broadcast 1.8s ease-in-out infinite;
+  }
+
+  /* A quick fringe glitch every few seconds */
+  .fringeRed {
+    animation: glitch-red 4.5s steps(1) infinite;
+  }
+
+  .fringeBlue {
+    animation: glitch-blue 4.5s steps(1) infinite;
+  }
+
+  /* The reveal: bands wipe in, Gerald flickers on, the arcs start up */
+  .ident .stripe {
+    transform-box: fill-box;
+    transform-origin: left;
+    animation: wipe 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .ident .gerald {
+    animation: flicker-on 0.7s steps(1) 0.45s both;
+  }
+
+  .ident .arcs {
+    animation: arcs-on 0.4s ease-out 1s both;
+  }
+}

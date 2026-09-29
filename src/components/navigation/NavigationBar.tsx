@@ -12,8 +12,10 @@ const NavigationBar = () => {
   const location = useLocation();
 
   const isBlogRoute = location.pathname.includes("cafe-belle");
+  // The game takes the whole screen.
+  const isStached = location.pathname.startsWith("/stached");
 
-  if (isBlogRoute) {
+  if (isBlogRoute || isStached) {
     return null;
   }
 
