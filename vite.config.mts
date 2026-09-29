@@ -63,4 +63,15 @@ export default defineConfig({
   build: {
     outDir: "build",
   },
+  // Dev: /stached-api goes to a local Stached API, and Tailscale Serve may
+  // front the dev server on a *.ts.net host (see `make phone`).
+  server: {
+    allowedHosts: [".ts.net"],
+    proxy: {
+      "/stached-api": {
+        target: "http://localhost:3999",
+        rewrite: (path) => path.replace(/^\/stached-api/, ""),
+      },
+    },
+  },
 });

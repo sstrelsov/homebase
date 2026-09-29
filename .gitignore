@@ -25,3 +25,6 @@ npm-debug.log*
 
 homebase.code-workspace
 references/
+
+# make phone
+.phone

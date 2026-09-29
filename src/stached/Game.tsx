@@ -18,6 +18,7 @@ import {
 } from "./api";
 import ResultsDialog from "./ResultsDialog";
 import styles from "./stached.module.css";
+import { useStacheClock } from "./useStacheClock";
 
 const PRAISE = ["Perfect!", "Great!", "Solid!", "Phew!"];
 
@@ -114,17 +115,7 @@ const Game = ({
   const [scope, animate] = useAnimate();
   const toastTimer = useRef<number>(undefined);
 
-  // The server keeps the real clock; this one just shows it ticking.
-  const startedAt = useRef(Date.now() - play.elapsedMs);
-  const [now, setNow] = useState(Date.now);
-  const ticking = play.stachedMs === null && !play.finished;
-  useEffect(() => {
-    if (!ticking) return;
-    const id = setInterval(() => setNow(Date.now()), 200);
-    return () => clearInterval(id);
-  }, [ticking]);
-  const clock =
-    play.stachedMs ?? (play.finished ? null : now - startedAt.current);
+  const clock = useStacheClock(token, puzzle.id, play);
 
   useEffect(() => () => clearTimeout(toastTimer.current), []);
 
@@ -249,10 +240,7 @@ const Game = ({
         <div>
           <p className={styles.label}>Stache time</p>
           <p
-            className="text-[36px] leading-none tabular-nums"
-            style={{
-              color: play.stachedMs === null ? undefined : COLOR_HEX.stache,
-            }}
+            className={`text-[36px] leading-none tabular-nums ${play.stachedMs === null ? "" : styles.hot}`}
           >
             {clock === null ? "—" : formatTime(clock, play.stachedMs !== null)}
           </p>
@@ -332,7 +320,7 @@ const Game = ({
           <div role="status" className={styles.stacheFlash}>
             <Mustache />
             <p className={`${styles.title} text-2xl`}>Stached!</p>
-            <p className="text-5xl" style={{ color: COLOR_HEX.stache }}>
+            <p className={`text-5xl ${styles.hot}`}>
               {formatTime(play.stachedMs ?? 0, true)}
             </p>
           </div>

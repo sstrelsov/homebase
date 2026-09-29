@@ -40,11 +40,7 @@ const Login = ({ onSignIn }: LoginProps) => {
         <svg
           viewBox="0 12 200 54"
           aria-hidden="true"
-          className="w-20"
-          style={{
-            fill: "#fffdf2",
-            filter: "drop-shadow(-2px 0 #ff2a6d) drop-shadow(2px 0 #05d9e8)",
-          }}
+          className={`w-20 ${styles.mark}`}
         >
           <path d={MUSTACHE_PATH} />
         </svg>
@@ -88,8 +84,7 @@ const Login = ({ onSignIn }: LoginProps) => {
       <p
         role="alert"
         key={attempt}
-        className={`${styles.pixel} min-h-4 text-center text-[10px] ${error ? styles.shake : ""}`}
-        style={{ color: "#ff2a6d" }}
+        className={`${styles.pixel} ${styles.hot} min-h-4 text-center text-[10px] ${error ? styles.shake : ""}`}
       >
         {error}
       </p>

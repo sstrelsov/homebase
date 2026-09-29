@@ -1,6 +1,9 @@
-// Client for the Stached API (stached-api/ at the repo root, on Railway).
+// Client for the Stached API (stached-api/ at the repo root, on Railway). In
+// dev it goes through Vite's proxy to a local API, unless VITE_STACHED_API
+// points somewhere else.
 const API =
-  import.meta.env.VITE_STACHED_API ?? "https://stached-api.up.railway.app";
+  import.meta.env.VITE_STACHED_API ??
+  (import.meta.env.DEV ? "/stached-api" : "https://stached-api.up.railway.app");
 
 export type Color = "yellow" | "green" | "blue" | "purple" | "stache";
 
@@ -87,6 +90,18 @@ export const api = {
   today: (token: string) => request<Today>("/today", { token }),
   start: (token: string, puzzleId: number) =>
     request<Today>("/start", { token, body: { puzzleId } }),
+  /** Tells the server the board is on screen, so the clock keeps running. */
+  clock: (token: string, puzzleId: number) =>
+    request<{ elapsedMs: number }>("/clock", {
+      token,
+      body: { puzzleId, state: "active", at: Date.now() },
+    }),
+  /** Pauses the clock as the page hides: a beacon, which outlives the page. */
+  pauseClock: (token: string, puzzleId: number) =>
+    navigator.sendBeacon(
+      `${API}/clock`,
+      JSON.stringify({ token, puzzleId, state: "paused", at: Date.now() }),
+    ),
   guess: (token: string, puzzleId: number, words: string[]) =>
     request<Today & { result: GuessResult }>("/guess", {
       token,

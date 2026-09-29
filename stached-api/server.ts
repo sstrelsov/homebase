@@ -1,6 +1,11 @@
 // The Stached API: sign-in, today's puzzle, guesses, and the scoreboard.
 // The server holds the answers and the clock, so scores can't be fudged from
 // the browser. Bun.sql connects with DATABASE_URL.
+//
+// The stache clock only runs while the board is on screen: the game checks in
+// every few seconds while it's visible and says when it's hidden. A stretch
+// with no word from the game (a phone that went to sleep before it could say
+// so) counts for at most CLOCK_GRACE_MS.
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
 import puzzles from "./puzzles.json";
@@ -9,6 +14,7 @@ const PASSWORD = env("STACHE_PASSWORD");
 const SECRET = env("SESSION_SECRET");
 const ORIGINS = env("ALLOWED_ORIGINS").split(",");
 const MAX_MISTAKES = 4;
+const CLOCK_GRACE_MS = 15_000;
 // Non-stache groups get these in order, easiest first, like Connections.
 const COLORS = ["yellow", "green", "blue", "purple"];
 
@@ -31,6 +37,9 @@ interface Play {
   solved: number[];
   mistakes: number;
   stached_ms: number | null;
+  active_ms: number;
+  /** When the clock last heard from the game, or null while it's paused. */
+  active_since: Date | null;
   finished_at: Date | null;
   completed: boolean | null;
 }
@@ -63,8 +72,14 @@ const sign = (userId: number) =>
     .update(String(userId))
     .digest("base64url");
 
-async function authenticate(req: Request): Promise<number | null> {
-  const token = req.headers.get("authorization")?.replace(/^Bearer /, "");
+// Beacons can't set headers, so the token may also come in the body.
+async function authenticate(
+  req: Request,
+  data: Record<string, unknown>,
+): Promise<number | null> {
+  const token =
+    req.headers.get("authorization")?.replace(/^Bearer /, "") ??
+    (typeof data.token === "string" ? data.token : undefined);
   const [id, signature] = token?.split(".") ?? [];
   const userId = Number(id);
   if (!Number.isInteger(userId) || !signature) return null;
@@ -103,6 +118,13 @@ async function puzzleById(id: unknown): Promise<Puzzle | undefined> {
   return puzzle;
 }
 
+/** Clock time up to now, if the game has kept checking in. */
+function activeMs(play: Play, now: Date) {
+  if (!play.active_since) return play.active_ms;
+  const gap = now.getTime() - play.active_since.getTime();
+  return play.active_ms + Math.min(Math.max(gap, 0), CLOCK_GRACE_MS);
+}
+
 function colorOf(puzzle: Puzzle, index: number) {
   if (puzzle.groups[index].stache) return "stache";
   return COLORS[puzzle.groups.slice(0, index).filter((g) => !g.stache).length];
@@ -118,8 +140,7 @@ function playView(puzzle: Puzzle, play: Play) {
   const groupOf = (word: string) =>
     puzzle.groups.findIndex((g) => g.words.includes(word));
   return {
-    elapsedMs:
-      (play.finished_at ?? new Date()).getTime() - play.started_at.getTime(),
+    elapsedMs: finished ? play.active_ms : activeMs(play, new Date()),
     guesses: play.guesses,
     mistakes: play.mistakes,
     solved: play.solved.map((i) => groupView(puzzle, i)),
@@ -159,8 +180,7 @@ async function snapshot(userId: number, puzzle: Puzzle) {
   };
 }
 
-async function login(req: Request) {
-  const { name, password } = await body(req);
+async function login({ name, password }: Record<string, unknown>) {
   const clean = typeof name === "string" ? name.trim().replace(/\s+/g, " ") : "";
   if (!clean || clean.length > 24) return fail(400, "Enter your name");
   if (password !== PASSWORD) return fail(401, "Wrong password");
@@ -171,18 +191,50 @@ async function login(req: Request) {
   return Response.json({ token: `${user.id}.${sign(user.id)}`, name: user.name });
 }
 
-async function start(userId: number, req: Request) {
-  const puzzle = await puzzleById((await body(req)).puzzleId);
+async function start(userId: number, { puzzleId }: Record<string, unknown>) {
+  const puzzle = await puzzleById(puzzleId);
   if (!puzzle) return fail(404, "No such puzzle");
+  const now = new Date();
   await sql`
-    insert into plays (user_id, puzzle_id, started_at)
-    values (${userId}, ${puzzle.id}, ${new Date()})
+    insert into plays (user_id, puzzle_id, started_at, active_since)
+    values (${userId}, ${puzzle.id}, ${now}, ${now})
     on conflict (user_id, puzzle_id) do nothing`;
   return Response.json(await snapshot(userId, puzzle));
 }
 
-async function guess(userId: number, req: Request) {
-  const { puzzleId, words } = await body(req);
+/**
+ * Checks the game in ("active") or pauses the clock ("paused"). `at` is when
+ * the device sent it: check-ins can arrive out of order, and the older one
+ * loses.
+ */
+async function clock(
+  userId: number,
+  { puzzleId, state, at }: Record<string, unknown>,
+) {
+  if (state !== "active" && state !== "paused")
+    return fail(400, "State is active or paused");
+  if (typeof at !== "number") return fail(400, "Missing at");
+  const now = new Date();
+  const [play] = await sql`
+    update plays set
+      active_ms = active_ms + least(
+        coalesce(extract(epoch from ${now}::timestamptz - active_since), 0) * 1000,
+        ${CLOCK_GRACE_MS}
+      )::int,
+      active_since = ${state === "active" ? now : null},
+      clock_at = ${Math.round(at)}
+    where user_id = ${userId} and puzzle_id = ${Number(puzzleId)}
+      and finished_at is null
+      and (clock_at is null or clock_at <= ${Math.round(at)})
+    returning active_ms`;
+  if (!play) return fail(409, "No game running, or a newer check-in won");
+  return Response.json({ elapsedMs: play.active_ms });
+}
+
+async function guess(
+  userId: number,
+  { puzzleId, words }: Record<string, unknown>,
+) {
   const puzzle = await puzzleById(puzzleId);
   if (!puzzle) return fail(404, "No such puzzle");
   const picked = Array.isArray(words) ? [...new Set(words.map(String))] : [];
@@ -214,11 +266,10 @@ async function guess(userId: number, req: Request) {
     const now = new Date();
     const solved = correct ? [...play.solved, best.index] : play.solved;
     const mistakes = play.mistakes + (correct ? 0 : 1);
+    const elapsed = activeMs(play, now);
     const stachedMs =
       play.stached_ms ??
-      (correct && puzzle.groups[best.index].stache
-        ? now.getTime() - play.started_at.getTime()
-        : null);
+      (correct && puzzle.groups[best.index].stache ? elapsed : null);
     const completed =
       solved.length === puzzle.groups.length
         ? true
@@ -232,6 +283,8 @@ async function guess(userId: number, req: Request) {
         solved = ${solved}::jsonb,
         mistakes = ${mistakes},
         stached_ms = ${stachedMs},
+        active_ms = ${elapsed},
+        active_since = ${completed === null ? now : null},
         completed = ${completed},
         finished_at = ${completed === null ? null : now}
       where id = ${play.id}`;
@@ -245,9 +298,10 @@ async function guess(userId: number, req: Request) {
 async function route(req: Request): Promise<Response> {
   const path = `${req.method} ${new URL(req.url).pathname}`;
   if (path === "GET /health") return new Response("ok");
-  if (path === "POST /login") return login(req);
+  const data = req.method === "POST" ? await body(req) : {};
+  if (path === "POST /login") return login(data);
 
-  const userId = await authenticate(req);
+  const userId = await authenticate(req, data);
   if (!userId) return fail(401, "Sign in first");
   switch (path) {
     case "GET /today": {
@@ -256,9 +310,11 @@ async function route(req: Request): Promise<Response> {
       return Response.json(await snapshot(userId, puzzle));
     }
     case "POST /start":
-      return start(userId, req);
+      return start(userId, data);
+    case "POST /clock":
+      return clock(userId, data);
     case "POST /guess":
-      return guess(userId, req);
+      return guess(userId, data);
     default:
       return fail(404, "Not found");
   }

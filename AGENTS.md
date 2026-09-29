@@ -28,6 +28,7 @@ React 19, TypeScript, Vite 6, TanStack Router, Tailwind CSS, NextUI, Three.js (t
 | `bun run lint:fix` | Lint + auto-fix with Biome |
 | `bun run format` | Format with Biome |
 | `make deploy` | Build and deploy to `published` branch (GitHub Pages) |
+| `make phone` | Run the site on your phone over Tailscale and print a QR code (below) |
 
 ## Deployment
 
@@ -40,4 +41,15 @@ Unlisted Connections-style game. The page lives in `src/pages/Stached.tsx` and `
 - **Puzzles** live in `stached-api/puzzles.json`, one per date, and are upserted into Postgres on every boot. The game serves the latest puzzle dated on or before today (America/New_York). Each puzzle needs exactly one group with `"stache": true`; non-stache groups are colored yellow, green, blue, purple in file order, so list them easiest first.
 - **Editing a puzzle that people have played clears their plays** for it on the next deploy.
 - **Env:** `DATABASE_URL`, `STACHE_PASSWORD` (the shared sign-in password), `SESSION_SECRET`, `ALLOWED_ORIGINS` (comma-separated).
-- **Local:** `cd stached-api && bun --env-file=<file> server.ts`, then `VITE_STACHED_API=http://localhost:3000 bun run dev`.
+- **Clock:** stache time counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; a silence longer than that is capped at 15 seconds, so a phone that sleeps mid-game isn't charged for the nap.
+- **Theme:** the game follows the site's `light`/`dark` class on `<html>`. Colors are CSS variables in `src/stached/stached.module.css`, light by default and overridden under `.dark`.
+- **In dev**, the game calls `/stached-api`, which Vite proxies to a local API on port 3999. `VITE_STACHED_API` overrides that.
+
+## Testing on your phone (`make phone`)
+
+`make phone` runs a throwaway Postgres, the Stached API, and the dev server, then puts them behind Tailscale Serve at `https://<this-mac>.<tailnet>.ts.net:8443` and prints a QR code for `/stached`. Ctrl-C stops everything and removes the Serve entry.
+
+- The phone needs the Tailscale app connected; it doesn't need to be on the same Wi-Fi. HTTPS matters because phone browsers in HTTPS-only mode refuse the plain `http://` LAN address.
+- The database is recreated on every run, so every name gets a fresh try. The password is `//stache`.
+- The script only touches Serve port 8443 and refuses to start if something else already uses it. Other Serve entries on this Mac belong to other projects; leave them alone.
+- Needs `bun`, `node`, `tailscale`, and Homebrew's `postgresql@17` (`initdb`, `pg_ctl`, `createdb`).

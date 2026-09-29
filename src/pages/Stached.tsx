@@ -10,6 +10,7 @@ import {
   saveSession,
   type Today,
 } from "../stached/api";
+import Crawl from "../stached/Crawl";
 import Game from "../stached/Game";
 import Login from "../stached/Login";
 import RulesDialog from "../stached/RulesDialog";
@@ -91,13 +92,12 @@ const Arcade = ({ session, onSignOut }: ArcadeProps) => {
   const rise = intro ? styles.rise : "";
 
   return (
-    <div className="flex min-h-[calc(100dvh-40px)] flex-col justify-center gap-7">
-      <div aria-hidden="true" className={styles.horizon} />
-      <div className={`relative ${intro ? styles.powerOn : ""}`}>
+    <div className="flex min-h-[calc(100dvh-40px)] flex-col gap-7 pt-4">
+      <div className={intro ? styles.powerOn : undefined}>
         <RetroMustache />
       </div>
       <div
-        className={`${rise} relative flex flex-col items-center gap-3`}
+        className={`${rise} flex flex-col items-center gap-3`}
         style={{ animationDelay: "0.8s" }}
       >
         <h1 className={`${styles.title} text-[26px]`}>Stached</h1>
@@ -106,7 +106,7 @@ const Arcade = ({ session, onSignOut }: ArcadeProps) => {
         </p>
       </div>
       <div
-        className={`${rise} relative grid grid-cols-2 gap-3`}
+        className={`${rise} grid grid-cols-2 gap-3`}
         style={{ animationDelay: "1s" }}
       >
         <button
@@ -126,15 +126,14 @@ const Arcade = ({ session, onSignOut }: ArcadeProps) => {
         </button>
       </div>
       <div
-        className={`${rise} relative flex flex-col items-center gap-4 text-center`}
+        className={`${rise} flex flex-col items-center gap-4 text-center`}
         style={{ animationDelay: "1.2s" }}
       >
         {error ? (
           <button
             type="button"
             onClick={load}
-            className={styles.label}
-            style={{ color: "#ff2a6d" }}
+            className={`${styles.label} ${styles.hot}`}
           >
             {error}. Tap to retry
           </button>
@@ -149,6 +148,7 @@ const Arcade = ({ session, onSignOut }: ArcadeProps) => {
           Not {session.name}? Switch player
         </button>
       </div>
+      <Crawl />
       {rules}
     </div>
   );
@@ -156,17 +156,6 @@ const Arcade = ({ session, onSignOut }: ArcadeProps) => {
 
 const StachedPage = () => {
   const [session, setSession] = useState(loadSession);
-
-  // This page is dark mode only; put the site's theme back on the way out.
-  useEffect(() => {
-    const root = document.documentElement;
-    const previous = root.className;
-    root.classList.remove("light");
-    root.classList.add("dark");
-    return () => {
-      root.className = previous;
-    };
-  }, []);
 
   const signIn = (next: Session) => {
     saveSession(next);

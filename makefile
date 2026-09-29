@@ -4,6 +4,8 @@ PUBLISHED_BRANCH = published
 WORKTREE_DIR    = ../published-branch
 CURRENT_BRANCH  = $(shell git rev-parse --abbrev-ref HEAD)
 
+.PHONY: deploy build deploy-worktree clean remove-worktree phone
+
 # Default target
 deploy: build deploy-worktree clean
 
@@ -51,3 +53,8 @@ remove-worktree:
 	@echo "Removing worktree folder '$(WORKTREE_DIR)'..."
 	git worktree remove $(WORKTREE_DIR) --force || true
 	rm -rf $(WORKTREE_DIR)
+
+# Play the site on your phone: local API + dev server behind Tailscale Serve,
+# with a QR code to scan. See scripts/phone.sh.
+phone:
+	./scripts/phone.sh

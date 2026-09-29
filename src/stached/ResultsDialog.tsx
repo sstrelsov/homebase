@@ -66,13 +66,13 @@ const ResultsDialog = ({
         Puzzle #{puzzle.id} · {formatDate(puzzle.date)}
       </p>
       <div className="grid grid-cols-2 gap-3 text-center">
-        <div className="rounded-lg border border-white/15 p-3">
+        <div className={`${styles.panel} p-3`}>
           <p className={styles.label}>Stache time</p>
-          <p className="text-4xl" style={{ color: COLOR_HEX.stache }}>
+          <p className={`text-4xl ${styles.hot}`}>
             {play.stachedMs === null ? "—" : formatTime(play.stachedMs, true)}
           </p>
         </div>
-        <div className="rounded-lg border border-white/15 p-3">
+        <div className={`${styles.panel} p-3`}>
           <p className={styles.label}>Board</p>
           <p className="text-4xl">{play.completed ? "Solved" : "Missed"}</p>
           <p className="text-lg opacity-60">
@@ -111,16 +111,15 @@ const ResultsDialog = ({
           {board.map((score, i) => (
             <li
               key={score.name}
-              className="flex items-baseline gap-3 py-1 border-b border-white/10"
-              style={
+              className={`flex items-baseline gap-3 py-1 ${styles.rule} ${
                 score.name.toLowerCase() === player.toLowerCase()
-                  ? { color: COLOR_HEX.green }
-                  : undefined
-              }
+                  ? styles.me
+                  : ""
+              }`}
             >
               <span className="w-6 opacity-50">{i + 1}</span>
               <span className="flex-1 truncate">{score.name}</span>
-              <span style={{ color: COLOR_HEX.stache }}>
+              <span className={styles.hot}>
                 {score.stachedMs === null
                   ? "—"
                   : formatTime(score.stachedMs, true)}

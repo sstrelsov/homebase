@@ -1,21 +1,57 @@
-/* Stached: an 80s arcade cabinet around a Connections board */
+/* Stached: an 80s arcade cabinet around a Connections board. It follows the
+   site's theme: daylight by default, a dark arcade under .dark. The CRT logo
+   stays a black screen either way, like a TV in a bright room. */
 .arcade {
-  --neon: #39ff14;
+  /* Fixed neon, for fills and fringes that read on either background */
   --pink: #ff2a6d;
-  --cyan: #05d9e8;
-  --cream: #fffdf2;
-  --tile: #15121f;
-  --line: rgba(5, 217, 232, 0.3);
+  --cyan-neon: #05d9e8;
   --pixel: "Press Start 2P", monospace;
   --crt: "VT323", monospace;
+
+  --bg: #fbf6ec;
+  --ink: #1d1530;
+  --muted: rgba(29, 21, 48, 0.58);
+  --line: rgba(29, 21, 48, 0.14);
+  --hot: #d6135a;
+  --cyan: #007b8a;
+  --neon: #178a00;
+  --tile: #fff;
+  --tile-line: rgba(29, 21, 48, 0.18);
+  --tile-shadow: 0 2px 0 rgba(29, 21, 48, 0.12);
+  --input-bg: #fff;
+  --input-glow: none;
+  --title-glow: 0 0 10px rgba(255, 42, 109, 0.25);
+  --dialog-bg: #fffdf8;
+  --backdrop: rgba(29, 21, 48, 0.45);
+  --crawl: #d6135a;
+
   position: relative;
   min-height: 100%;
-  background: #000;
-  color: var(--cream);
+  background: var(--bg);
+  color: var(--ink);
   font-family: var(--crt);
   /* No double-tap zoom, no grey tap flash: this page is all taps. */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+:global(.dark) .arcade {
+  --bg: #000;
+  --ink: #fffdf2;
+  --muted: rgba(255, 253, 242, 0.55);
+  --line: rgba(255, 253, 242, 0.14);
+  --hot: #ff2a6d;
+  --cyan: #05d9e8;
+  --neon: #39ff14;
+  --tile: #15121f;
+  --tile-line: rgba(5, 217, 232, 0.3);
+  --tile-shadow: none;
+  --input-bg: #050805;
+  --input-glow: 0 0 6px rgba(57, 255, 20, 0.5);
+  --title-glow: 0 0 14px rgba(255, 42, 109, 0.6);
+  --dialog-bg: #07060c;
+  --backdrop: rgba(0, 0, 0, 0.72);
+  --crawl: #ffe14d;
 }
 
 .pixel {
@@ -24,15 +60,15 @@
   letter-spacing: 0.02em;
 }
 
-/* The wordmark: cream letters with the logo's red and blue fringes */
+/* The wordmark: letters with the logo's red and blue fringes */
 .title {
   font-family: var(--pixel);
   text-transform: uppercase;
-  color: var(--cream);
+  color: var(--ink);
   text-shadow:
     -2px 0 var(--pink),
-    2px 0 var(--cyan),
-    0 0 14px rgba(255, 42, 109, 0.6);
+    2px 0 var(--cyan-neon),
+    var(--title-glow);
 }
 
 .label {
@@ -40,22 +76,45 @@
   font-size: 9px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: rgba(255, 253, 242, 0.55);
+  color: var(--muted);
 }
 
-/* Inputs: 22px keeps iOS from zooming in on focus (it zooms below 16px). */
+.hot {
+  color: var(--hot);
+}
+
+.me {
+  color: var(--neon);
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.rule {
+  border-bottom: 1px solid var(--line);
+}
+
+/* Gerald as a small mark, with the logo's fringes */
+.mark {
+  fill: var(--ink);
+  filter: drop-shadow(-2px 0 var(--pink)) drop-shadow(2px 0 var(--cyan-neon));
+}
+
+/* Inputs: 26px keeps iOS from zooming in on focus (it zooms below 16px). */
 .input {
   width: 100%;
   height: 52px;
   padding: 0 14px;
-  border: 2px solid rgba(57, 255, 20, 0.45);
+  border: 2px solid color-mix(in srgb, var(--neon) 45%, transparent);
   border-radius: 8px;
-  background: #050805;
+  background: var(--input-bg);
   color: var(--neon);
   caret-color: var(--neon);
   font-family: var(--crt);
   font-size: 26px;
-  text-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
+  text-shadow: var(--input-glow);
   outline: none;
   transition:
     border-color 0.15s,
@@ -64,12 +123,7 @@
 
 .input:focus {
   border-color: var(--neon);
-  box-shadow: 0 0 0 3px rgba(57, 255, 20, 0.18);
-}
-
-.input::placeholder {
-  color: rgba(57, 255, 20, 0.3);
-  text-shadow: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--neon) 18%, transparent);
 }
 
 /* Buttons: chunky pixel caps */
@@ -80,10 +134,10 @@
   gap: 8px;
   min-height: 48px;
   padding: 0 8px;
-  border: 2px solid var(--cream);
+  border: 2px solid var(--ink);
   border-radius: 8px;
   background: transparent;
-  color: var(--cream);
+  color: var(--ink);
   font-family: var(--pixel);
   font-size: 11px;
   letter-spacing: 0.04em;
@@ -110,21 +164,21 @@
   color: #000;
   box-shadow:
     0 4px 0 #9c0f3c,
-    0 0 18px rgba(255, 42, 109, 0.45);
+    0 0 18px rgba(255, 42, 109, 0.4);
 }
 
 .primary:active:not(:disabled) {
   box-shadow:
     0 2px 0 #9c0f3c,
-    0 0 18px rgba(255, 42, 109, 0.45);
+    0 0 18px rgba(255, 42, 109, 0.4);
 }
 
 .secondary {
   border-color: var(--cyan);
   color: var(--cyan);
   box-shadow:
-    0 4px 0 rgba(5, 217, 232, 0.35),
-    0 0 14px rgba(5, 217, 232, 0.2);
+    0 4px 0 color-mix(in srgb, var(--cyan) 35%, transparent),
+    0 0 14px color-mix(in srgb, var(--cyan) 20%, transparent);
 }
 
 .shake {
@@ -198,41 +252,43 @@
   }
 }
 
-/* A neon grid rolling toward you under the home screen */
-.horizon {
-  position: fixed;
-  inset: auto 0 0;
-  height: 34dvh;
+/* Words to live by, crawling off into space */
+.crawl {
+  position: relative;
+  flex: 1;
+  min-height: 170px;
   overflow: hidden;
+  perspective: 280px;
+  perspective-origin: 50% 0;
   pointer-events: none;
-  perspective: 240px;
-  mask-image: linear-gradient(to bottom, transparent, #000 45%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 45%);
+  mask-image: linear-gradient(to bottom, transparent, #000 55%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 55%);
 }
 
-.horizon::before {
-  content: "";
+.crawlText {
   position: absolute;
-  inset: -100% -50% 0;
-  background:
-    repeating-linear-gradient(
-      90deg,
-      rgba(255, 42, 109, 0.5) 0 2px,
-      transparent 2px 44px
-    ),
-    repeating-linear-gradient(
-      0deg,
-      rgba(255, 42, 109, 0.5) 0 2px,
-      transparent 2px 44px
-    );
-  transform: rotateX(62deg);
-  transform-origin: bottom;
-  animation: roll 1.6s linear infinite;
+  top: 100%;
+  left: 4%;
+  right: 4%;
+  transform-origin: 50% 0;
+  color: var(--crawl);
+  font-size: 30px;
+  line-height: 1.05;
+  text-align: center;
+  text-transform: uppercase;
+  animation: crawl 50s linear infinite;
 }
 
-@keyframes roll {
+.crawlText p + p {
+  margin-top: 1.1em;
+}
+
+@keyframes crawl {
+  from {
+    transform: rotateX(30deg) translateY(0);
+  }
   to {
-    background-position: 0 44px;
+    transform: rotateX(30deg) translateY(calc(-100% - 70dvh));
   }
 }
 
@@ -257,10 +313,11 @@
   align-items: center;
   justify-content: center;
   padding: 4px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--tile-line);
   border-radius: 7px;
   background: var(--tile);
-  color: var(--cream);
+  color: var(--ink);
+  box-shadow: var(--tile-shadow);
   text-align: center;
   text-transform: uppercase;
   user-select: none;
@@ -274,12 +331,12 @@
 }
 
 .tile[data-selected] {
-  border-color: var(--cream);
-  background: var(--cream);
-  color: #000;
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
   box-shadow:
     -3px 0 0 var(--pink),
-    3px 0 0 var(--cyan);
+    3px 0 0 var(--cyan-neon);
 }
 
 .word {
@@ -335,7 +392,7 @@
 .life {
   width: 26px;
   height: 9px;
-  fill: var(--cream);
+  fill: var(--ink);
   filter: drop-shadow(0 0 3px var(--pink));
   transition:
     opacity 0.3s,
@@ -344,7 +401,7 @@
 
 .life[data-lost] {
   fill: none;
-  stroke: rgba(255, 253, 242, 0.35);
+  stroke: var(--muted);
   stroke-width: 6;
   filter: none;
   animation: lose 0.6s steps(1);
@@ -368,14 +425,13 @@
   z-index: 20;
   transform: translate(-50%, -100%);
   padding: 10px 14px;
-  border: 2px solid var(--cream);
   border-radius: 6px;
-  background: #000;
-  color: var(--cream);
+  background: var(--ink);
+  color: var(--bg);
   font-family: var(--pixel);
   font-size: 10px;
   white-space: nowrap;
-  box-shadow: 0 0 16px rgba(255, 253, 242, 0.25);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
   pointer-events: none;
 }
 
@@ -391,8 +447,8 @@
   gap: 14px;
   background: radial-gradient(
     ellipse at center,
-    rgba(0, 0, 0, 0.92) 30%,
-    rgba(0, 0, 0, 0.55)
+    color-mix(in srgb, var(--bg) 92%, transparent) 30%,
+    color-mix(in srgb, var(--bg) 55%, transparent)
   );
   pointer-events: none;
   animation: flash-in 2.2s ease-out both;
@@ -400,9 +456,9 @@
 
 .stacheFlash svg {
   width: 62%;
-  fill: var(--cream);
-  filter: drop-shadow(-4px 0 0 var(--pink)) drop-shadow(4px 0 0 var(--cyan))
-    drop-shadow(0 0 18px var(--pink));
+  fill: var(--ink);
+  filter: drop-shadow(-4px 0 0 var(--pink))
+    drop-shadow(4px 0 0 var(--cyan-neon)) drop-shadow(0 0 18px var(--pink));
   animation: stache-pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
 }
 
@@ -434,12 +490,10 @@
   padding: 0;
   border: 2px solid var(--cyan);
   border-radius: 12px;
-  background: #07060c;
-  color: var(--cream);
+  background: var(--dialog-bg);
+  color: var(--ink);
   font-family: var(--crt);
-  box-shadow:
-    0 0 0 1px #000,
-    0 0 32px rgba(5, 217, 232, 0.35);
+  box-shadow: 0 0 32px color-mix(in srgb, var(--cyan) 35%, transparent);
   overscroll-behavior: contain;
 }
 
@@ -448,7 +502,7 @@
 }
 
 .dialog::backdrop {
-  background: rgba(0, 0, 0, 0.72);
+  background: var(--backdrop, rgba(0, 0, 0, 0.6));
 }
 
 @keyframes dialog-in {
@@ -469,12 +523,16 @@
   .powerOn,
   .rise,
   .blink,
-  .horizon::before,
   .stacheBar,
   .life[data-lost],
   .stacheFlash svg,
   .dialog[open],
   .shake {
+    animation: none;
+  }
+
+  .crawlText {
+    top: 0;
     animation: none;
   }
 }
