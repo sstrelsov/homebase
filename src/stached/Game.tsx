@@ -6,14 +6,7 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  api,
-  formatDate,
-  formatTime,
-  type Group,
-  type Play,
-  type Today,
-} from "./api";
+import { api, formatTime, type Group, type Play, type Today } from "./api";
 import Logo, { MUSTACHE_PATH } from "./Logo";
 import ResultsDialog from "./ResultsDialog";
 import styles from "./stached.module.css";
@@ -187,8 +180,10 @@ const Game = ({
 
   const submit = async () => {
     const key = (words: string[]) => [...words].sort().join("|");
-    if (play.guesses.some((g) => key(g) === key(selected)))
+    if (play.guesses.some((g) => key(g) === key(selected))) {
+      setSelected([]);
       return say("Already guessed!");
+    }
 
     setBusy(true);
     try {
@@ -219,6 +214,7 @@ const Game = ({
           setStached(false);
         }
       } else if (next.result === "repeat") {
+        setSelected([]);
         say("Already guessed!");
       } else {
         if (next.result === "one_away") say("One away…");
@@ -227,6 +223,7 @@ const Game = ({
           { x: [0, -9, 9, -7, 7, -3, 3, 0] },
           { duration: 0.45 },
         );
+        setSelected([]);
         setMistakes(result.mistakes);
       }
 
@@ -258,14 +255,11 @@ const Game = ({
         <button
           type="button"
           onClick={onHome}
-          className={`${styles.display} -ml-1 py-2 pr-3 text-[11px]`}
+          aria-label="Stached home"
+          className={`${styles.title} -ml-1 py-2 pr-3 text-lg`}
         >
-          ‹ Home
+          Stached
         </button>
-        <div className="flex flex-col items-center gap-1.5">
-          <span className={`${styles.title} text-base`}>Stached</span>
-          <span className={styles.label}>{formatDate(puzzle.date)}</span>
-        </div>
         <button
           type="button"
           onClick={onRules}

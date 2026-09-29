@@ -16,9 +16,8 @@ import Logo from "../stached/Logo";
 import RulesDialog from "../stached/RulesDialog";
 import styles from "../stached/stached.module.css";
 
-function status(today: Today) {
-  const { puzzle, play } = today;
-  if (!play) return `Puzzle #${puzzle.id} · ${puzzle.groupCount} groups of 4`;
+function status({ play }: Today) {
+  if (!play) return null;
   if (!play.finished) return "Game on. The clock's running!";
   const stache =
     play.stachedMs === null
@@ -136,7 +135,9 @@ const SignedIn = ({ session, onSignOut }: SignedInProps) => {
             {error}. Tap to retry
           </button>
         ) : (
-          <p className={styles.label}>{today ? status(today) : "Loading…"}</p>
+          (!today || status(today)) && (
+            <p className={styles.label}>{today ? status(today) : "Loading…"}</p>
+          )
         )}
         <button
           type="button"

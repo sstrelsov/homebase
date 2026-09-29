@@ -47,12 +47,6 @@ const Login = ({ onSignIn }: LoginProps) => {
         >
           Stached
         </h1>
-        <p
-          className={`${styles.label} ${styles.rise}`}
-          style={{ animationDelay: "1.1s" }}
-        >
-          Insert name to play<span className={styles.blink}>_</span>
-        </p>
       </div>
 
       <label className="flex flex-col gap-2">
@@ -99,7 +93,7 @@ const Login = ({ onSignIn }: LoginProps) => {
         disabled={busy}
         className={`${styles.button} ${styles.primary} w-full`}
       >
-        {busy ? "Loading…" : "Press start"}
+        {busy ? "Logging in…" : "Log in"}
       </button>
     </form>
   );
