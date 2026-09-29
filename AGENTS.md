@@ -32,3 +32,12 @@ React 19, TypeScript, Vite 6, TanStack Router, Tailwind CSS, NextUI, Three.js (t
 ## Deployment
 
 Static SPA on GitHub Pages. `make deploy` builds to `build/`, then force-pushes that directory to the `published` branch via a git worktree. Run from `main`.
+
+## Stached (`/stached`)
+
+Unlisted Connections-style game. The page lives in `src/pages/Stached.tsx` and `src/stached/`; its backend is `stached-api/`, a dependency-free Bun server with Postgres, deployed to Railway on Spencer's personal account (not the Nexus Black workspace).
+
+- **Puzzles** live in `stached-api/puzzles.json`, one per date, and are upserted into Postgres on every boot. The game serves the latest puzzle dated on or before today (America/New_York). Each puzzle needs exactly one group with `"stache": true`; non-stache groups are colored yellow, green, blue, purple in file order, so list them easiest first.
+- **Editing a puzzle that people have played clears their plays** for it on the next deploy.
+- **Env:** `DATABASE_URL`, `STACHE_PASSWORD` (the shared sign-in password), `SESSION_SECRET`, `ALLOWED_ORIGINS` (comma-separated).
+- **Local:** `cd stached-api && bun --env-file=<file> server.ts`, then `VITE_STACHED_API=http://localhost:3000 bun run dev`.

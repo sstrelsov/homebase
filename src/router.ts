@@ -4,6 +4,7 @@ import {
   createRouter,
   HeadContent,
   lazyRouteComponent,
+  redirect,
   stripSearchParams,
 } from "@tanstack/react-router";
 import App from "./App";
@@ -95,22 +96,32 @@ const projectDetailRoute = createRoute({
 });
 
 // Unlisted: no nav link, not in the sitemap, noindex.
-const mustacheRoute = createRoute({
+const stachedRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/mustache",
-  component: lazyRouteComponent(() => import("./pages/Mustache")),
+  path: "/stached",
+  component: lazyRouteComponent(() => import("./pages/Stached")),
   head: () => ({
     meta: [
-      { title: "Hello" },
+      { title: "Stached" },
       { name: "robots", content: "noindex, nofollow" },
     ],
   }),
+});
+
+// The game used to be a story at /mustache.
+const mustacheRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/mustache",
+  beforeLoad: () => {
+    throw redirect({ to: "/stached", replace: true });
+  },
 });
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
   aboutRoute,
   projectsRoute.addChildren([projectsIndexRoute, projectDetailRoute]),
+  stachedRoute,
   mustacheRoute,
 ]);
 

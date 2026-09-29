@@ -1,6 +1,9 @@
 import { useId } from "react";
 import styles from "../css/mustache.module.css";
-import { MUSTACHE_PATH } from "../data/mustacheStory";
+
+/** Gerald, drawn in a 200 x 64 box. */
+export const MUSTACHE_PATH =
+  "M100 30c-8-14-26-20-42-12-12 6-18 20-32 22-10 1-18-5-22-12 2 18 16 32 36 34 22 2 44-8 60-24 16 16 38 26 60 24 20-2 34-16 36-34-4 7-12 13-22 12-14-2-20-16-32-22-16-8-34-2-42 12z";
 
 const NEON = "#39ff14";
 const CENTER = { x: 200, y: 92 };

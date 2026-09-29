@@ -1,0 +1,480 @@
+/* Stached: an 80s arcade cabinet around a Connections board */
+.arcade {
+  --neon: #39ff14;
+  --pink: #ff2a6d;
+  --cyan: #05d9e8;
+  --cream: #fffdf2;
+  --tile: #15121f;
+  --line: rgba(5, 217, 232, 0.3);
+  --pixel: "Press Start 2P", monospace;
+  --crt: "VT323", monospace;
+  position: relative;
+  min-height: 100%;
+  background: #000;
+  color: var(--cream);
+  font-family: var(--crt);
+  /* No double-tap zoom, no grey tap flash: this page is all taps. */
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pixel {
+  font-family: var(--pixel);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* The wordmark: cream letters with the logo's red and blue fringes */
+.title {
+  font-family: var(--pixel);
+  text-transform: uppercase;
+  color: var(--cream);
+  text-shadow:
+    -2px 0 var(--pink),
+    2px 0 var(--cyan),
+    0 0 14px rgba(255, 42, 109, 0.6);
+}
+
+.label {
+  font-family: var(--pixel);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 253, 242, 0.55);
+}
+
+/* Inputs: 22px keeps iOS from zooming in on focus (it zooms below 16px). */
+.input {
+  width: 100%;
+  height: 52px;
+  padding: 0 14px;
+  border: 2px solid rgba(57, 255, 20, 0.45);
+  border-radius: 8px;
+  background: #050805;
+  color: var(--neon);
+  caret-color: var(--neon);
+  font-family: var(--crt);
+  font-size: 26px;
+  text-shadow: 0 0 6px rgba(57, 255, 20, 0.5);
+  outline: none;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.input:focus {
+  border-color: var(--neon);
+  box-shadow: 0 0 0 3px rgba(57, 255, 20, 0.18);
+}
+
+.input::placeholder {
+  color: rgba(57, 255, 20, 0.3);
+  text-shadow: none;
+}
+
+/* Buttons: chunky pixel caps */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 8px;
+  border: 2px solid var(--cream);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cream);
+  font-family: var(--pixel);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    transform 0.08s,
+    opacity 0.15s,
+    box-shadow 0.15s;
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(2px);
+}
+
+.button:disabled {
+  opacity: 0.35;
+}
+
+.primary {
+  border-color: var(--pink);
+  background: var(--pink);
+  color: #000;
+  box-shadow:
+    0 4px 0 #9c0f3c,
+    0 0 18px rgba(255, 42, 109, 0.45);
+}
+
+.primary:active:not(:disabled) {
+  box-shadow:
+    0 2px 0 #9c0f3c,
+    0 0 18px rgba(255, 42, 109, 0.45);
+}
+
+.secondary {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow:
+    0 4px 0 rgba(5, 217, 232, 0.35),
+    0 0 14px rgba(5, 217, 232, 0.2);
+}
+
+.shake {
+  animation: shake 0.4s;
+}
+
+@keyframes shake {
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(7px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+/* The logo switching on like an old tube */
+.powerOn {
+  transform-origin: center;
+  animation: power-on 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+@keyframes power-on {
+  0% {
+    opacity: 0;
+    transform: scale(0.02, 0.004);
+    filter: brightness(8);
+  }
+  15% {
+    opacity: 1;
+    transform: scale(1, 0.008);
+    filter: brightness(6);
+  }
+  45% {
+    transform: scale(1, 0.008);
+    filter: brightness(4);
+  }
+  75% {
+    transform: scale(1, 1.04);
+    filter: brightness(1.6);
+  }
+  100% {
+    transform: scale(1, 1);
+    filter: brightness(1);
+  }
+}
+
+.rise {
+  animation: rise 0.5s ease-out both;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+.blink {
+  animation: blink 1s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* A neon grid rolling toward you under the home screen */
+.horizon {
+  position: fixed;
+  inset: auto 0 0;
+  height: 34dvh;
+  overflow: hidden;
+  pointer-events: none;
+  perspective: 240px;
+  mask-image: linear-gradient(to bottom, transparent, #000 45%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 45%);
+}
+
+.horizon::before {
+  content: "";
+  position: absolute;
+  inset: -100% -50% 0;
+  background:
+    repeating-linear-gradient(
+      90deg,
+      rgba(255, 42, 109, 0.5) 0 2px,
+      transparent 2px 44px
+    ),
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 42, 109, 0.5) 0 2px,
+      transparent 2px 44px
+    );
+  transform: rotateX(62deg);
+  transform-origin: bottom;
+  animation: roll 1.6s linear infinite;
+}
+
+@keyframes roll {
+  to {
+    background-position: 0 44px;
+  }
+}
+
+/* The board */
+.board {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Fill the phone screen: every row of tiles or bars shares what is left. */
+  grid-auto-rows: clamp(
+    54px,
+    calc((100dvh - 256px - (var(--rows) - 1) * 7px) / var(--rows)),
+    84px
+  );
+  gap: 7px;
+}
+
+.tile {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--tile);
+  color: var(--cream);
+  text-align: center;
+  text-transform: uppercase;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  transition:
+    background-color 0.12s,
+    color 0.12s,
+    border-color 0.12s,
+    box-shadow 0.12s;
+}
+
+.tile[data-selected] {
+  border-color: var(--cream);
+  background: var(--cream);
+  color: #000;
+  box-shadow:
+    -3px 0 0 var(--pink),
+    3px 0 0 var(--cyan);
+}
+
+.word {
+  display: block;
+  width: 100%;
+  line-height: 0.92;
+  overflow-wrap: normal;
+}
+
+.bar {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 7px;
+  background: var(--color);
+  color: #000;
+  text-align: center;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--color) 50%, transparent);
+}
+
+.barTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--pixel);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.barWords {
+  font-size: 19px;
+  line-height: 0.95;
+  text-transform: uppercase;
+}
+
+.stacheBar {
+  animation: stache-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes stache-glow {
+  50% {
+    box-shadow:
+      0 0 26px rgba(255, 42, 109, 0.9),
+      0 0 48px rgba(255, 42, 109, 0.45);
+  }
+}
+
+/* Lives: one mustache per mistake you can still make */
+.life {
+  width: 26px;
+  height: 9px;
+  fill: var(--cream);
+  filter: drop-shadow(0 0 3px var(--pink));
+  transition:
+    opacity 0.3s,
+    fill 0.3s;
+}
+
+.life[data-lost] {
+  fill: none;
+  stroke: rgba(255, 253, 242, 0.35);
+  stroke-width: 6;
+  filter: none;
+  animation: lose 0.6s steps(1);
+}
+
+@keyframes lose {
+  0%,
+  40% {
+    opacity: 0.2;
+  }
+  20%,
+  60% {
+    opacity: 1;
+  }
+}
+
+.toast {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  z-index: 20;
+  transform: translate(-50%, -100%);
+  padding: 10px 14px;
+  border: 2px solid var(--cream);
+  border-radius: 6px;
+  background: #000;
+  color: var(--cream);
+  font-family: var(--pixel);
+  font-size: 10px;
+  white-space: nowrap;
+  box-shadow: 0 0 16px rgba(255, 253, 242, 0.25);
+  pointer-events: none;
+}
+
+/* The big moment */
+.stacheFlash {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0.92) 30%,
+    rgba(0, 0, 0, 0.55)
+  );
+  pointer-events: none;
+  animation: flash-in 2.2s ease-out both;
+}
+
+.stacheFlash svg {
+  width: 62%;
+  fill: var(--cream);
+  filter: drop-shadow(-4px 0 0 var(--pink)) drop-shadow(4px 0 0 var(--cyan))
+    drop-shadow(0 0 18px var(--pink));
+  animation: stache-pop 0.6s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+@keyframes flash-in {
+  0% {
+    opacity: 0;
+  }
+  8%,
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes stache-pop {
+  from {
+    transform: scale(0.2) rotate(-8deg);
+  }
+}
+
+/* Dialogs */
+.dialog {
+  width: calc(100% - 24px);
+  max-width: 440px;
+  max-height: 86dvh;
+  margin: auto;
+  padding: 0;
+  border: 2px solid var(--cyan);
+  border-radius: 12px;
+  background: #07060c;
+  color: var(--cream);
+  font-family: var(--crt);
+  box-shadow:
+    0 0 0 1px #000,
+    0 0 32px rgba(5, 217, 232, 0.35);
+  overscroll-behavior: contain;
+}
+
+.dialog[open] {
+  animation: dialog-in 0.22s ease-out;
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.72);
+}
+
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: scale(1, 0.1);
+  }
+}
+
+.swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .powerOn,
+  .rise,
+  .blink,
+  .horizon::before,
+  .stacheBar,
+  .life[data-lost],
+  .stacheFlash svg,
+  .dialog[open],
+  .shake {
+    animation: none;
+  }
+}
