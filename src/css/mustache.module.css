@@ -1,0 +1,20 @@
+.sway {
+  animation: sway 2.4s ease-in-out infinite;
+  transform-origin: 50% 40%;
+}
+
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sway {
+    animation: none;
+  }
+}
