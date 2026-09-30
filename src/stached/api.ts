@@ -32,27 +32,27 @@ export interface Score {
   name: string;
   completed: boolean;
   stachedMs: number | null;
-  /** Played after the puzzle's day, from Past games. */
+  /** Played after the puzzle's day, so it doesn't count. */
   late: boolean;
 }
 
 /** A puzzle so far, with how you did on it. */
-export interface PastGame {
-  date: string;
-  number: number;
-  play: {
-    finished: boolean;
-    completed: boolean | null;
-    stachedMs: number | null;
-    mistakes: number;
-    late: boolean;
-  } | null;
+export interface PastGame
+  extends Pick<Day["puzzle"], "date" | "number" | "today"> {
+  play:
+    | (Pick<Play, "finished" | "completed" | "stachedMs"> & Pick<Score, "late">)
+    | null;
 }
 
-export interface Today {
+/** A day's game: its puzzle, your play, and its scoreboard. */
+export interface Day {
   puzzle: {
     id: number;
+    /** #1 is the first puzzle, by date. */
+    number: number;
     date: string;
+    /** Today's puzzle: the newest one out. */
+    today: boolean;
     words: string[];
     groupCount: number;
     maxMistakes: number;
@@ -65,7 +65,6 @@ export interface Standing {
   name: string;
   games: number;
   solved: number;
-  perfect: number;
   streak: number;
   bestStacheMs: number | null;
   avgStacheMs: number | null;
@@ -120,12 +119,12 @@ async function request<T>(
 export const api = {
   login: (name: string, password: string) =>
     request<Session>("/login", { body: { name, password } }),
-  today: (token: string) => request<Today>("/today", { token }),
+  today: (token: string) => request<Day>("/today", { token }),
   leaderboard: (token: string) =>
     request<Leaderboard>("/leaderboard", { token }),
   /** Starts that day's game, or picks it back up. */
   start: (token: string, date: string) =>
-    request<Today>("/start", { token, body: { date } }),
+    request<Day>("/start", { token, body: { date } }),
   pastGames: (token: string) => request<PastGame[]>("/puzzles", { token }),
   /** Tells the server the board is on screen, so the clock keeps running. */
   clock: (token: string, puzzleId: number) =>
@@ -140,7 +139,7 @@ export const api = {
       JSON.stringify({ token, puzzleId, state: "paused", at: Date.now() }),
     ),
   guess: (token: string, puzzleId: number, words: string[]) =>
-    request<Today & { result: GuessResult }>("/guess", {
+    request<Day & { result: GuessResult }>("/guess", {
       token,
       body: { puzzleId, words },
     }),
@@ -174,19 +173,19 @@ export function formatTime(ms: number | null, tenths = true) {
   return tenths ? `${clock}.${Math.floor((ms % 1000) / 100)}` : clock;
 }
 
-/** "2026-09-29" → "Tue, Sep 29, 2026", as a calendar day rather than UTC. */
-export function formatDate(date: string) {
-  const [year, month, day] = date.split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+/**
+ * "2026-09-29" → "Tue, Sep 29, 2026", or however `options` say, as a calendar
+ * day rather than UTC.
+ */
+export function formatDate(
+  date: string,
+  options: Intl.DateTimeFormatOptions = {
     weekday: "short",
     month: "short",
     day: "numeric",
     year: "numeric",
-  });
+  },
+) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", options);
 }
-
-/** Today's date in New York, where puzzles change over: "2026-09-30". */
-export const nyToday = () =>
-  new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(
-    new Date(),
-  );

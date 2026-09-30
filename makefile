@@ -69,7 +69,7 @@ phone-preview:
 # sstrelsov-personal, so no sudo); a tmux stopgap session is restarted instead.
 deploy-stached:
 	ssh personal-studio 'set -e; export PATH=/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$$PATH; C=$$HOME/.config/stached; \
-	  (umask 077; set -o pipefail; pg_dump -d stached | gzip > $$HOME/backups/stached/stached-$$(date +%F-%H%M)-predeploy.sql.gz); \
+	  (umask 077; set -o pipefail; pg_dump -d stached | gzip > $$HOME/backups/stached/predeploy-$$(date +%F-%H%M).sql.gz); \
 	  cd ~/dev/homebase && git fetch -q origin && git checkout -q $(CURRENT_BRANCH) && git pull -q --ff-only && git log --oneline -1; \
 	  if tmux has-session -t stached-api 2>/dev/null; then \
 	    tmux kill-session -t stached-api; \
@@ -82,18 +82,24 @@ stached-backup:
 	./stached-api/ops/pull-backup.sh
 
 # Pull that copy every day at 10am (or on wake, if this Mac was asleep then).
+# The LaunchAgent runs the main checkout's script, even when installed from a
+# worktree, so it outlives the worktree.
+PULL_LABEL  = me.strelsov.stached-backup-pull
+PULL_PLIST  = $(HOME)/Library/LaunchAgents/$(PULL_LABEL).plist
+PULL_SCRIPT = $(dir $(shell git rev-parse --path-format=absolute --git-common-dir))stached-api/ops/pull-backup.sh
 stached-backup-install:
+	@test -f $(PULL_SCRIPT) || { echo "No $(PULL_SCRIPT) yet: update the main checkout first." >&2; exit 1; }
 	@mkdir -p $(HOME)/Library/LaunchAgents $(HOME)/Backups/stached
 	@printf '%s\n' '<?xml version="1.0" encoding="UTF-8"?>' \
 	  '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
 	  '<plist version="1.0"><dict>' \
-	  '<key>Label</key><string>me.strelsov.stached-backup-pull</string>' \
-	  '<key>ProgramArguments</key><array><string>/bin/bash</string><string>$(CURDIR)/stached-api/ops/pull-backup.sh</string></array>' \
+	  '<key>Label</key><string>$(PULL_LABEL)</string>' \
+	  '<key>ProgramArguments</key><array><string>/bin/bash</string><string>$(PULL_SCRIPT)</string></array>' \
 	  '<key>StartCalendarInterval</key><dict><key>Hour</key><integer>10</integer><key>Minute</key><integer>0</integer></dict>' \
 	  '<key>StandardOutPath</key><string>$(HOME)/Backups/stached/pull.log</string>' \
 	  '<key>StandardErrorPath</key><string>$(HOME)/Backups/stached/pull.log</string>' \
-	  '</dict></plist>' > $(HOME)/Library/LaunchAgents/me.strelsov.stached-backup-pull.plist
-	@plutil -lint $(HOME)/Library/LaunchAgents/me.strelsov.stached-backup-pull.plist
-	@launchctl bootout gui/$$(id -u)/me.strelsov.stached-backup-pull 2>/dev/null || true
-	@launchctl bootstrap gui/$$(id -u) $(HOME)/Library/LaunchAgents/me.strelsov.stached-backup-pull.plist
+	  '</dict></plist>' > $(PULL_PLIST)
+	@plutil -lint $(PULL_PLIST)
+	@launchctl bootout gui/$$(id -u)/$(PULL_LABEL) 2>/dev/null || true
+	@launchctl bootstrap gui/$$(id -u) $(PULL_PLIST)
 	@echo "Daily Stached backup pull installed (10am). Log: ~/Backups/stached/pull.log"

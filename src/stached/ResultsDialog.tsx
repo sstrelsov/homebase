@@ -2,12 +2,11 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   type Color,
+  type Day,
   formatDate,
   formatTime,
-  nyToday,
   type Play,
   type Score,
-  type Today,
 } from "./api";
 import Dialog from "./Dialog";
 import styles from "./stached.module.css";
@@ -25,7 +24,7 @@ interface ResultsDialogProps {
   open: boolean;
   onClose: () => void;
   onHome: () => void;
-  puzzle: Today["puzzle"];
+  puzzle: Day["puzzle"];
   play: Play;
   board: Score[];
   player: string;
@@ -52,7 +51,7 @@ const ResultsDialog = ({
 
   const share = async () => {
     const text = [
-      `Stached #${puzzle.id} · ${formatDate(puzzle.date)}`,
+      `Stached #${puzzle.number} · ${formatDate(puzzle.date)}`,
       play.stachedMs === null
         ? "No stache"
         : `Stache time ${formatTime(play.stachedMs)}`,
@@ -73,7 +72,7 @@ const ResultsDialog = ({
   return (
     <Dialog open={open} onClose={onClose} title={headline(play)}>
       <p className={`${styles.label} -mt-3`}>
-        Puzzle #{puzzle.id} · {formatDate(puzzle.date)}
+        Puzzle #{puzzle.number} · {formatDate(puzzle.date)}
       </p>
       <div className="grid grid-cols-2 gap-3 text-center">
         <div className={`${styles.panel} p-3`}>
@@ -117,7 +116,7 @@ const ResultsDialog = ({
 
       <section className="space-y-2">
         <h3 className={styles.label}>
-          {puzzle.date === nyToday() ? "Today's scoreboard" : "Scoreboard"}
+          {puzzle.today ? "Today's scoreboard" : "Scoreboard"}
         </h3>
         <ol className="text-[19px] leading-tight">
           {board.map((score, i) => (

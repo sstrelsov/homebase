@@ -70,7 +70,8 @@ plist me.strelsov.stached.tunnel \
     <string>--token-file</string><string>$C/tunnel-token</string>" "$KEEP"
 
 # Nightly at 4am: dump the database (it holds the puzzle answers, so owner-only)
-# and keep two weeks.
+# and keep two weeks. Deploys' predeploy-*.sql.gz dumps land here too, and stay.
+sudo -u $U install -d -m 700 "$H/backups/stached"
 plist me.strelsov.stached.backup \
 "    <string>/bin/bash</string><string>-c</string>
     <string>umask 077; set -o pipefail; pg_dump -d stached | gzip &gt; $H/backups/stached/stached-\$(date +%F).sql.gz &amp;&amp; find $H/backups/stached -name 'stached-*.sql.gz' -mtime +14 -delete</string>" \

@@ -1,44 +1,21 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { ApiError, api, type Session, type Today } from "./api";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
+import { useCallback } from "react";
+import { api } from "./api";
 import Game from "./Game";
+import { useLoad, useStached } from "./session";
 import styles from "./stached.module.css";
 
-interface DayGameProps {
-  session: Session;
-  date: string;
-  onSignOut: () => void;
-  onRules: () => void;
-}
-
 /**
- * One day's game at /stached/<date>. Opening it starts that day's game, or
- * picks it back up from the server: a finished day shows its board, answers
- * and results; a missed day is played late.
+ * One day's game at /stached/<date>, fresh for each date. Opening it starts
+ * that day's game, or picks it back up from the server: a finished day shows
+ * its board, answers and results; a missed day is played late.
  */
-const DayGame = ({ session, date, onSignOut, onRules }: DayGameProps) => {
+const DayGame = () => {
   const navigate = useNavigate();
-  const [day, setDay] = useState<Today | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    let current = true;
-    setDay(null);
-    setError(null);
-    api.start(session.token, date).then(
-      (next) => {
-        if (current) setDay(next);
-      },
-      (err: unknown) => {
-        if (!current) return;
-        if (err instanceof ApiError && err.status === 401) onSignOut();
-        else setError(err instanceof Error ? err.message : "Something broke");
-      },
-    );
-    return () => {
-      current = false;
-    };
-  }, [session.token, date, onSignOut]);
+  const { date } = useParams({ from: "/stached/$date" });
+  const { session, openRules } = useStached();
+  const start = useCallback((token: string) => api.start(token, date), [date]);
+  const { data: day, setData: setDay, error } = useLoad(start);
 
   if (error)
     return (
@@ -55,15 +32,14 @@ const DayGame = ({ session, date, onSignOut, onRules }: DayGameProps) => {
 
   return (
     <Game
-      key={date}
       token={session.token}
       player={session.name}
       puzzle={day.puzzle}
       board={day.board}
       play={day.play}
-      onToday={setDay}
+      onDay={setDay}
       onHome={() => navigate({ to: "/stached" })}
-      onRules={onRules}
+      onRules={openRules}
     />
   );
 };

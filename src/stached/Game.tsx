@@ -8,13 +8,12 @@ import {
 } from "react";
 import {
   api,
+  type Day,
   formatDate,
   formatTime,
   type Group,
-  nyToday,
   type Play,
   type Score,
-  type Today,
 } from "./api";
 import Logo, { Mustache } from "./Logo";
 import ResultsDialog from "./ResultsDialog";
@@ -121,10 +120,10 @@ const FitWord = ({ word }: { word: string }) => {
 interface GameProps {
   token: string;
   player: string;
-  puzzle: Today["puzzle"];
+  puzzle: Day["puzzle"];
   board: Score[];
   play: Play;
-  onToday: (today: Today) => void;
+  onDay: (day: Day) => void;
   onHome: () => void;
   onRules: () => void;
 }
@@ -135,7 +134,7 @@ const Game = ({
   puzzle,
   board,
   play,
-  onToday,
+  onDay,
   onHome,
   onRules,
 }: GameProps) => {
@@ -215,7 +214,7 @@ const Game = ({
         ),
       ]);
       await sleep(120);
-      onToday(next);
+      onDay(next);
       const result = next.play as Play;
 
       if (next.result === "correct") {
@@ -273,7 +272,7 @@ const Game = ({
           Stached
         </button>
         {/* Today's game needs no date; a past one does. */}
-        {puzzle.date !== nyToday() && (
+        {!puzzle.today && (
           <span className={styles.label}>{formatDate(puzzle.date)}</span>
         )}
         <button

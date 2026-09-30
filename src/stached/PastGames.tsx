@@ -1,25 +1,9 @@
 import { Link } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
-import {
-  ApiError,
-  api,
-  formatTime,
-  nyToday,
-  type PastGame,
-  type Session,
-} from "./api";
+import { api, formatDate, formatTime, type PastGame } from "./api";
 import { Mustache } from "./Logo";
+import Screen from "./Screen";
+import { useLoad } from "./session";
 import styles from "./stached.module.css";
-
-/** "2026-09-29" → { day: "Tue", date: "Sep 29" }, as a calendar day. */
-function calendar(iso: string) {
-  const [year, month, day] = iso.split("-").map(Number);
-  const when = new Date(year, month - 1, day);
-  return {
-    day: when.toLocaleDateString("en-US", { weekday: "short" }),
-    date: when.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-  };
-}
 
 type TileState = "unplayed" | "playing" | "stached" | "unstached";
 
@@ -29,10 +13,9 @@ function stateOf({ play }: PastGame): TileState {
   return play.stachedMs === null ? "unstached" : "stached";
 }
 
-const Tile = ({ game, today }: { game: PastGame; today: string }) => {
+const Tile = ({ game }: { game: PastGame }) => {
   const { play } = game;
   const state = stateOf(game);
-  const { day, date } = calendar(game.date);
   return (
     <Link
       to="/stached/$date"
@@ -43,91 +26,53 @@ const Tile = ({ game, today }: { game: PastGame; today: string }) => {
       <span className="flex w-full items-baseline justify-between">
         <span className={styles.label}>#{game.number}</span>
         <span className={styles.label}>
-          {game.date === today ? "Today" : day}
+          {game.today ? "Today" : formatDate(game.date, { weekday: "short" })}
         </span>
       </span>
-      <span className={`${styles.display} text-[17px]`}>{date}</span>
+      <span className={`${styles.display} text-[17px]`}>
+        {formatDate(game.date, { month: "short", day: "numeric" })}
+      </span>
       <Mustache aria-hidden="true" className={styles.dayTileStache} />
-      <span className={`${styles.display} text-[12px]`}>
+      <span className={`${styles.display} ${styles.dayTileValue} text-[12px]`}>
         {state === "unplayed"
-          ? "▶ Play"
+          ? "▶\uFE0E Play"
           : state === "playing"
             ? "Resume"
             : formatTime(play?.stachedMs ?? null)}
       </span>
       <span className={`${styles.label} min-h-3`}>
-        {play?.finished && (play.completed ? "✓ Solved" : "✗ Missed")}
-        {play?.late && " · late"}
+        {[
+          play?.finished && (play.completed ? "✓ Solved" : "✗ Missed"),
+          play?.late && "late",
+        ]
+          .filter(Boolean)
+          .join(" · ")}
       </span>
     </Link>
   );
 };
 
-interface PastGamesProps {
-  session: Session;
-  onSignOut: () => void;
-}
-
 /** Every puzzle so far: your result and answers, or a way to play a missed day. */
-const PastGames = ({ session, onSignOut }: PastGamesProps) => {
-  const [games, setGames] = useState<PastGame[] | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(() => {
-    setError(null);
-    api.pastGames(session.token).then(setGames, (err: unknown) => {
-      if (err instanceof ApiError && err.status === 401) onSignOut();
-      else setError(err instanceof Error ? err.message : "Something broke");
-    });
-  }, [session.token, onSignOut]);
-
-  useEffect(load, [load]);
-
-  const today = nyToday();
+const PastGames = () => {
+  const { data: games, error, load } = useLoad(api.pastGames);
 
   return (
-    <div className="flex flex-col gap-5">
-      <header className="flex items-center justify-between">
-        <Link
-          to="/stached"
-          aria-label="Stached home"
-          className={`${styles.title} -ml-1 py-2 pr-3 text-lg`}
-        >
-          Stached
-        </Link>
-      </header>
-
-      <div className="flex flex-col gap-3">
-        <h1 className={`${styles.title} text-[26px]`}>Past games</h1>
-        <div className={`${styles.stripes} w-28`} />
-      </div>
-
-      {error ? (
-        <button
-          type="button"
-          onClick={load}
-          className={`${styles.label} ${styles.alert} text-left`}
-        >
-          {error}. Tap to retry
-        </button>
-      ) : !games ? (
-        <p className={styles.label}>Loading…</p>
-      ) : (
+    <Screen
+      title="Past games"
+      error={error}
+      onRetry={load}
+      note="Tap a day to see your board and the answers, or to play a day you missed. Days played late count for you, but not toward streaks or the leaderboard."
+    >
+      {games && (
         <ul className="grid grid-cols-2 gap-3">
           {games.map((game) => (
             <li key={game.date}>
-              <Tile game={game} today={today} />
+              <Tile game={game} />
             </li>
           ))}
         </ul>
       )}
-
-      <p className={`${styles.label} leading-relaxed`}>
-        Tap a day to see your board and the answers, or to play a day you
-        missed. Days played late count for you, but not toward streaks or the
-        leaderboard.
-      </p>
-    </div>
+    </Screen>
   );
 };
 

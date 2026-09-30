@@ -651,9 +651,7 @@
   background: var(--tile);
   color: var(--ink);
   text-align: center;
-  transition:
-    transform 0.08s,
-    border-color 0.15s;
+  transition: transform 0.08s;
 }
 
 .dayTile:active {
@@ -672,10 +670,6 @@
   border-color: rgba(255, 210, 63, 0.55);
 }
 
-.dayTile[data-state="unplayed"] > span:nth-last-child(2) {
-  color: var(--gold);
-}
-
 .dayTile[data-state="stached"] .dayTileStache {
   fill: var(--face);
   stroke: none;
@@ -683,7 +677,8 @@
     drop-shadow(0 0 6px rgba(255, 210, 63, 0.6));
 }
 
-.dayTile[data-state="stached"] > span:nth-last-child(2) {
+.dayTile[data-state="unplayed"] .dayTileValue,
+.dayTile[data-state="stached"] .dayTileValue {
   color: var(--gold);
 }
 

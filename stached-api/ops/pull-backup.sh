@@ -4,7 +4,7 @@
 # LaunchAgent `make stached-backup-install` sets up, or by `make stached-backup`.
 set -euo pipefail
 
-DEST="${STACHED_BACKUP_DIR:-$HOME/Backups/stached}"
+DEST="$HOME/Backups/stached"
 mkdir -p "$DEST"
 chmod 700 "$DEST" # the dump includes the puzzle answers
 
@@ -17,7 +17,6 @@ ssh -o BatchMode=yes -o ConnectTimeout=20 personal-studio \
 
 # Keep it only if it's a whole dump: a dropped connection or a failed pg_dump
 # leaves yesterday's copy in place instead.
-gzip -t "$partial"
 gzip -dc "$partial" | tail -c 300 | grep -q "PostgreSQL database dump complete"
 mv "$partial" "$file"
 find "$DEST" -name 'stached-*.sql.gz' -mtime +30 -delete

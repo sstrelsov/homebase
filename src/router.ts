@@ -94,11 +94,14 @@ const projectDetailRoute = createRoute({
   }),
 });
 
-// Unlisted: no nav link, not in the sitemap, noindex.
+// Unlisted: no nav link, not in the sitemap, noindex. The page holds the
+// session, and its screens render inside it, all from one lazy chunk.
+const stachedPage = () => import("./pages/Stached");
+
 const stachedRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/stached",
-  component: lazyRouteComponent(() => import("./pages/Stached")),
+  component: lazyRouteComponent(stachedPage),
   head: () => ({
     meta: [
       { title: "Stached" },
@@ -107,60 +110,45 @@ const stachedRoute = createRoute({
   }),
 });
 
+const stachedHomeRoute = createRoute({
+  getParentRoute: () => stachedRoute,
+  path: "/",
+  component: lazyRouteComponent(stachedPage, "StachedHome"),
+});
+
 const stachedLeaderboardRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/stached/leaderboard",
-  component: lazyRouteComponent(
-    () => import("./pages/Stached"),
-    "StachedLeaderboardPage",
-  ),
-  head: () => ({
-    meta: [
-      { title: "Leaderboard | Stached" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
-  }),
+  getParentRoute: () => stachedRoute,
+  path: "leaderboard",
+  component: lazyRouteComponent(stachedPage, "StachedLeaderboard"),
+  head: () => ({ meta: [{ title: "Leaderboard | Stached" }] }),
 });
 
 const stachedPastRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/stached/past",
-  component: lazyRouteComponent(
-    () => import("./pages/Stached"),
-    "StachedPastPage",
-  ),
-  head: () => ({
-    meta: [
-      { title: "Past games | Stached" },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
-  }),
+  getParentRoute: () => stachedRoute,
+  path: "past",
+  component: lazyRouteComponent(stachedPage, "StachedPast"),
+  head: () => ({ meta: [{ title: "Past games | Stached" }] }),
 });
 
-// One day's game: /stached/2026-09-29.
+// One day's game: /stached/2026-09-29. Each date gets a fresh game screen.
 const stachedDayRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/stached/$date",
-  component: lazyRouteComponent(
-    () => import("./pages/Stached"),
-    "StachedDayPage",
-  ),
-  head: ({ params }) => ({
-    meta: [
-      { title: `Stached · ${params.date}` },
-      { name: "robots", content: "noindex, nofollow" },
-    ],
-  }),
+  getParentRoute: () => stachedRoute,
+  path: "$date",
+  component: lazyRouteComponent(stachedPage, "StachedDay"),
+  remountDeps: ({ params }) => params.date,
+  head: ({ params }) => ({ meta: [{ title: `Stached · ${params.date}` }] }),
 });
 
 const routeTree = rootRoute.addChildren([
   homeRoute,
   aboutRoute,
   projectsRoute.addChildren([projectsIndexRoute, projectDetailRoute]),
-  stachedRoute,
-  stachedLeaderboardRoute,
-  stachedPastRoute,
-  stachedDayRoute,
+  stachedRoute.addChildren([
+    stachedHomeRoute,
+    stachedLeaderboardRoute,
+    stachedPastRoute,
+    stachedDayRoute,
+  ]),
 ]);
 
 export const router = createRouter({

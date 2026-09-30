@@ -22,7 +22,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 
 | What | Where |
 |---|---|
-| Game UI | `src/pages/Stached.tsx`, `src/stached/` (login, game, past games, clock, leaderboard, dialogs, logo, styles) |
+| Game UI | `src/pages/Stached.tsx` (the page and session), `src/stached/` (login, home, game, past games, clock, leaderboard, dialogs, logo, styles) |
 | API server | `stached-api/server.ts` (dependency-free Bun) |
 | Database schema | `stached-api/migrations/*.sql`, applied by `stached-api/migrate.ts` |
 | Studio services | `stached-api/ops/install-daemons.sh` |
@@ -37,8 +37,8 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 - **Four mistakes** end the game. Three right words out of four gets a "one away" hint.
 - **Stache time** counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; if a phone sleeps before it can say so, the gap counts for at most 15 seconds. The server keeps the real clock.
 - **The leaderboard** ranks everyone by streak, then best stache time. A streak is puzzles solved in a row; today's puzzle doesn't break it until you finish (or miss) it. Each player also shows their best and average stache time, games solved, and a bar per day for the last seven puzzles.
-- **The daily puzzle** is the newest one dated on or before today in New York. Puzzles are numbered by date (#1 is the first).
-- **Past games** shows a tile per day so far. A finished day opens your board, the answers, and that day's scoreboard. A missed day can be played any time after, but it's marked **late**: it shows in your history and on that day's scoreboard (tagged late), and it never counts toward streaks or leaderboard times.
+- **The daily puzzle** is the newest one dated on or before today in New York; a day without a puzzle of its own keeps the last one. Puzzles are numbered by date (#1 is the first).
+- **Past games** shows a tile per day so far. A finished day opens your board, the answers, and that day's scoreboard. A missed day can be played any time after, and an unfinished one finished, but that game is marked **late** (started or guessed after its day): it shows in your history and on that day's scoreboard (tagged late), and it never counts toward streaks or leaderboard times.
 
 ## Puzzles
 
@@ -74,12 +74,26 @@ make phone-preview  # the same, with a production build, to test the link-previe
 
 Both run a throwaway Postgres (recreated every run), the API, and the site on this Mac, using the sample puzzle and the password `test` (override with `PUZZLES_FILE` and `STACHE_PASSWORD`). See the Testing on your phone section of `AGENTS.md` for details. For desktop-only work, run the API on port 3999 and `bun run dev`; Vite proxies `/stached-api` to it.
 
-Checks: `bun run lint`, `bun run build`, and `cd stached-api && bunx tsc`.
+The API reads its settings from the environment (on the Studio, `~/.config/stached/api.env`) and won't start without the first five:
+
+| Variable | What |
+|---|---|
+| `DATABASE_URL` | Postgres connection string |
+| `STACHE_PASSWORD` | the shared sign-in password |
+| `SESSION_SECRET` | signs sign-in tokens; changing it signs everyone out |
+| `PUZZLES_FILE` | path to the puzzles JSON |
+| `ALLOWED_ORIGINS` | comma-separated site origins allowed to call the API |
+| `HOST` | bind address, default `0.0.0.0`. `127.0.0.1` means behind the tunnel, so `CF-Connecting-IP` is trusted |
+| `PORT` | default `3000` (`3999` on the Studio) |
+
+The site calls `https://api.spencerstrelsov.com` in production and `/stached-api` in dev; `VITE_STACHED_API` overrides either.
+
+Checks: `bun run lint` (Biome, for the site and the API), `bun run build`, and `cd stached-api && bunx tsc`.
 
 ## Deploying
 
 - **The site:** merge to `main`. GitHub Actions builds and publishes to GitHub Pages.
-- **The API:** `make deploy-stached` from the branch you want (normally `main`). It dumps the database first (`~/backups/stached/*-predeploy.sql.gz`), pulls that branch on the Studio, and restarts the API. The API applies any new migrations as it starts.
+- **The API:** `make deploy-stached` from the branch you want (normally `main`). It dumps the database first (`~/backups/stached/predeploy-*.sql.gz`), pulls that branch on the Studio, and restarts the API. The API applies any new migrations as it starts.
 
 Deploy the API before merging a site change that needs a new endpoint. The old site keeps working against the new API.
 
@@ -90,12 +104,12 @@ Three tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the p
 | Migration | What it did |
 |---|---|
 | `0001_initial.sql` | The schema as of 2026-09-30 |
-| `0002_plays_late.sql` | `plays.late`, for games played after their day | `schema_migrations` records which migrations ran.
+| `0002_plays_late.sql` | `plays.late`, for games played after their day |
 
-To change the schema, add the next numbered file:
+`schema_migrations` records which migrations ran. To change the schema, add the next numbered file:
 
 ```sql
--- stached-api/migrations/0002_track_shuffles.sql
+-- stached-api/migrations/0003_track_shuffles.sql
 alter table plays add column shuffles int not null default 0;
 ```
 
@@ -109,10 +123,10 @@ alter table plays add column shuffles int not null default 0;
 | Copy | When | Kept |
 |---|---|---|
 | Studio, `~/backups/stached/stached-YYYY-MM-DD.sql.gz` | nightly at 4am | 14 days |
-| Studio, `…-predeploy.sql.gz` | every `make deploy-stached` | until you delete it |
+| Studio, `~/backups/stached/predeploy-YYYY-MM-DD-HHMM.sql.gz` | every `make deploy-stached` | until you delete it |
 | This Mac, `~/Backups/stached/stached-YYYY-MM-DD.sql.gz` | daily at 10am, or on wake | 30 days |
 
-The MacBook copy is the one that survives a dead Studio disk. `make stached-backup` pulls one on demand, and `make stached-backup-install` sets up the daily pull (a LaunchAgent that logs to `~/Backups/stached/pull.log`). Every pull is checked for a complete dump before it replaces anything. The dumps include the puzzle answers, so the backup folders are owner-only.
+The MacBook copy is the one that survives a dead Studio disk. `make stached-backup` pulls one on demand, and `make stached-backup-install` sets up the daily pull: a LaunchAgent that runs the main checkout's copy of the script (so update that checkout first, and a worktree can be deleted safely) and logs to `~/Backups/stached/pull.log`. Every pull is checked for a complete dump before it replaces anything. The dumps include the puzzle answers, so the backup folders are owner-only.
 
 To restore on the Studio, stop the API so nobody plays mid-restore, then start it again:
 
@@ -145,7 +159,7 @@ Everything runs as `sstrelsov-personal` (`ssh personal-studio`), from a clone at
 - The password and the real puzzles exist only on the Studio. Changing the password (edit `STACHE_PASSWORD` in `api.env`, then `make deploy-stached`) doesn't sign anyone out.
 - Changing `SESSION_SECRET` signs everyone out. Deleting a player signs that player out.
 - The API allows browsers only from the site's origins. It limits each client to 10 sign-ins and 180 other requests a minute, and caps request bodies at 16 KB. Behind the tunnel it identifies clients by Cloudflare's `CF-Connecting-IP`, which only the tunnel can set, because the API listens on loopback.
-- These limits count per connection, so a crowd on one Wi-Fi shares them.
+- These limits count per IP address, so a crowd on one Wi-Fi shares them.
 
 ## Troubleshooting
 
