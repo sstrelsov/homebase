@@ -10,6 +10,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
 import { type CardPuzzle, nextColor, renderCard } from "./card";
+import { routeOf } from "./http";
 import { migrate } from "./migrate";
 
 const PASSWORD = env("STACHE_PASSWORD");
@@ -460,7 +461,7 @@ async function card() {
 }
 
 async function route(req: Request): Promise<Response> {
-  const path = `${req.method} ${new URL(req.url).pathname}`;
+  const path = routeOf(req);
   if (path === "GET /health") return new Response("ok");
   if (path === "GET /card.png") return card();
   const data = req.method === "POST" ? await body(req) : {};
