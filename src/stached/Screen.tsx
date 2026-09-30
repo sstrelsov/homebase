@@ -27,10 +27,11 @@ interface ScreenProps {
   onRetry: () => void;
   /** What's on the screen once it has loaded; null until then. */
   children: ReactNode;
-  note: ReactNode;
+  /** Small print at the bottom. */
+  note?: ReactNode;
 }
 
-/** A screen off home (past games, the leaderboard): title, content, a note. */
+/** A screen off home (past games, the leaderboard): title, content, small print. */
 const Screen = ({
   title,
   subtitle,
@@ -62,7 +63,7 @@ const Screen = ({
       (children ?? <p className={styles.label}>Loading…</p>)
     )}
 
-    <p className={`${styles.label} leading-relaxed`}>{note}</p>
+    {note && <p className={`${styles.label} leading-relaxed`}>{note}</p>}
   </div>
 );
 

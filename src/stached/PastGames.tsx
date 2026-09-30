@@ -13,6 +13,21 @@ function stateOf({ play }: PastGame): TileState {
   return play.stachedMs === null ? "unstached" : "stached";
 }
 
+/** Days from a puzzle's date to today in New York, where the puzzle day turns. */
+function daysAgo(date: string) {
+  const today = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/New_York",
+  });
+  return Math.round((Date.parse(today) - Date.parse(date)) / 86_400_000);
+}
+
+/** "Today", "Yesterday", then the weekday; the date sits right under it. */
+function dayName(game: PastGame) {
+  if (game.today) return "Today";
+  if (daysAgo(game.date) === 1) return "Yesterday";
+  return formatDate(game.date, { weekday: "long" });
+}
+
 const Tile = ({ game }: { game: PastGame }) => {
   const { play } = game;
   const state = stateOf(game);
@@ -23,12 +38,7 @@ const Tile = ({ game }: { game: PastGame }) => {
       className={styles.dayTile}
       data-state={state}
     >
-      <span className="flex w-full items-baseline justify-between">
-        <span className={styles.label}>#{game.number}</span>
-        <span className={styles.label}>
-          {game.today ? "Today" : formatDate(game.date, { weekday: "short" })}
-        </span>
-      </span>
+      <span className={styles.label}>{dayName(game)}</span>
       <span className={`${styles.display} text-[17px]`}>
         {formatDate(game.date, { month: "short", day: "numeric" })}
       </span>
@@ -57,12 +67,7 @@ const PastGames = () => {
   const { data: games, error, load } = useLoad(api.pastGames);
 
   return (
-    <Screen
-      title="Past games"
-      error={error}
-      onRetry={load}
-      note="Tap a day to see your board and the answers, or to play a day you missed. Days played late count for you, but not toward streaks or the leaderboard."
-    >
+    <Screen title="Past games" error={error} onRetry={load}>
       {games && (
         <ul className="grid grid-cols-2 gap-3">
           {games.map((game) => (
