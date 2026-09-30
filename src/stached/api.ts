@@ -37,11 +37,8 @@ export interface Score {
 }
 
 /** A puzzle so far, with how you did on it. */
-export interface PastGame
-  extends Pick<Day["puzzle"], "date" | "number" | "today"> {
-  play:
-    | (Pick<Play, "finished" | "completed" | "stachedMs"> & Pick<Score, "late">)
-    | null;
+export interface PastGame extends Pick<Day["puzzle"], "date" | "today"> {
+  play: Pick<Play, "finished" | "completed" | "stachedMs"> | null;
 }
 
 /** A day's game: its puzzle, your play, and its scoreboard. */

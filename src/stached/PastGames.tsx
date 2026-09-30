@@ -50,13 +50,8 @@ const Tile = ({ game }: { game: PastGame }) => {
             ? "Resume"
             : formatTime(play?.stachedMs ?? null)}
       </span>
-      <span className={`${styles.label} min-h-3`}>
-        {[
-          play?.finished && (play.completed ? "✓ Solved" : "✗ Missed"),
-          play?.late && "late",
-        ]
-          .filter(Boolean)
-          .join(" · ")}
+      <span className={`${styles.label} h-4 leading-4`}>
+        {play?.finished && (play.completed ? "✓ Solved" : "✗ Missed")}
       </span>
     </Link>
   );

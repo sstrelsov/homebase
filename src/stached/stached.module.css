@@ -641,6 +641,7 @@
 
 /* Past games: a tile per day */
 .dayTile {
+  height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
