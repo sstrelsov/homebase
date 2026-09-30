@@ -46,7 +46,7 @@ function barsFor(play: Play): Group[] {
 /**
  * Shrinks a word until it fits its tile, never breaking it. At each size a
  * word too wide for the tile first tries the font's narrowest width, so a long
- * one like WEIGHTLIFTING stays as big as it can.
+ * word stays as big as it can.
  */
 const FitWord = ({ word }: { word: string }) => {
   const ref = useRef<HTMLSpanElement>(null);
