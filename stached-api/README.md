@@ -70,9 +70,10 @@ To change puzzles: `ssh personal-studio`, edit the file, then run `make deploy-s
 ```bash
 make phone          # play it on your phone over Tailscale (HTTPS), with a QR code
 make phone-preview  # the same, with a production build, to test the link-preview card
+make phone-live-data  # the same, starting from a copy of the live database and puzzles
 ```
 
-Both run a throwaway Postgres (recreated every run), the API, and the site on this Mac, using the sample puzzle and the password `test` (override with `PUZZLES_FILE` and `STACHE_PASSWORD`). See the Testing on your phone section of `AGENTS.md` for details. For desktop-only work, run the API on port 3999 and `bun run dev`; Vite proxies `/stached-api` to it.
+All three run a throwaway Postgres (recreated every run), the API, and the site on this Mac, with the password `test` (override with `STACHE_PASSWORD`). The first two use the sample puzzle (override with `PUZZLES_FILE`). `phone-live-data` copies the live database and puzzles from the Studio into the owner-only `.phone` folder, so the leaderboard and past games look real. It's still a copy, so nothing you do there reaches the live game. See the Testing on your phone section of `AGENTS.md` for details. For desktop-only work, run the API on port 3999 and `bun run dev`; Vite proxies `/stached-api` to it.
 
 The API reads its settings from the environment (on the Studio, `~/.config/stached/api.env`) and won't start without the first five:
 

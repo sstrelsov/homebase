@@ -57,11 +57,11 @@ const ResultsDialog = ({
         : `Stache time ${formatTime(play.stachedMs)}`,
       ...grid.map((row) => row.map((color) => SHARE_EMOJI[color]).join("")),
     ].join("\n");
-    const url = `${window.location.origin}/stached`;
+    // Text only: a link would unfurl into a big preview card in Messages.
     try {
-      if (navigator.share) await navigator.share({ text, url });
+      if (navigator.share) await navigator.share({ text });
       else {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
+        await navigator.clipboard.writeText(text);
         setShared(true);
       }
     } catch {

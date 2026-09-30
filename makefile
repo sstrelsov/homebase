@@ -4,7 +4,7 @@ PUBLISHED_BRANCH = published
 WORKTREE_DIR    = ../published-branch
 CURRENT_BRANCH  = $(shell git rev-parse --abbrev-ref HEAD)
 
-.PHONY: deploy build deploy-worktree clean remove-worktree phone phone-preview deploy-stached stached-backup stached-backup-install
+.PHONY: deploy build deploy-worktree clean remove-worktree phone phone-preview phone-live-data deploy-stached stached-backup stached-backup-install
 
 # Default target
 deploy: build deploy-worktree clean
@@ -62,6 +62,10 @@ phone:
 # Same, but a production build, to see the link preview when you share it.
 phone-preview:
 	./scripts/phone.sh --preview
+
+# Same, starting from a copy of the live database and puzzles (still throwaway).
+phone-live-data:
+	./scripts/phone.sh --live-data
 
 # Ship the Stached API to the Studio: back up the database, check out the branch
 # you're on here, pull it there, and restart the API (which applies any new
