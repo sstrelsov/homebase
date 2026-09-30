@@ -5,6 +5,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Nightly, so Stached's next day page and the day on its preview card go up
+  # without a push (see vite.config.mts). 05:10 UTC is 1:10am in New York in
+  # summer and 12:10am in winter.
+  schedule:
+    - cron: "10 5 * * *"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -30,13 +36,13 @@ jobs:
       - run: bun run build
 
       - name: Upload Pages artifact
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: build
 
   deploy:
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: ci
     runs-on: ubuntu-latest
     environment:

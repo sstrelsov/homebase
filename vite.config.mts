@@ -16,6 +16,29 @@ const STACHED_CARD = new URL(
   SITE,
 ).href;
 const STACHED_DESCRIPTION = "Got ’stache?";
+// The first puzzle's day. Every day since has its own page (/stached/<date>).
+const STACHED_FIRST_DAY = "2026-09-29";
+// Puzzle days turn over in New York, as on the API.
+const STACHED_TODAY = new Date().toLocaleDateString("en-CA", {
+  timeZone: "America/New_York",
+});
+
+/**
+ * "2026-09-29" through tomorrow: tomorrow's page is up before the nightly
+ * build (.github/workflows/ci.yml) adds the day after.
+ */
+function stachedDays() {
+  const last = new Date(`${STACHED_TODAY}T00:00Z`);
+  last.setUTCDate(last.getUTCDate() + 1);
+  const days: string[] = [];
+  for (
+    const day = new Date(`${STACHED_FIRST_DAY}T00:00Z`);
+    day <= last;
+    day.setUTCDate(day.getUTCDate() + 1)
+  )
+    days.push(day.toISOString().slice(0, 10));
+  return days;
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -46,14 +69,16 @@ export default defineConfig({
         // Stached is unlisted: noindex in the static HTML, before any JS runs,
         // plus its own title and preview card for when the link is shared.
         // The API draws the card: today's puzzle number and date, with the next
-        // border color on each fetch (stached-api/card.ts).
+        // border color on each fetch (stached-api/card.ts). The day in its URL
+        // changes with each nightly build, so an app that caches pictures by
+        // URL fetches the new day's card.
         const stached = `
     <meta name="robots" content="noindex, nofollow" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Stached" />
     <meta property="og:description" content="${STACHED_DESCRIPTION}" />
     <meta property="og:url" content="${SITE}/stached" />
-    <meta property="og:image" content="${STACHED_CARD}" />
+    <meta property="og:image" content="${STACHED_CARD}?day=${STACHED_TODAY}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />`;
@@ -64,10 +89,17 @@ export default defineConfig({
             /<meta\s+name="description"\s+content="[^"]*"\s*\/>/,
             `<meta name="description" content="${STACHED_DESCRIPTION}" />`,
           );
-        // The game's fixed pages, so direct loads get a 200 and the card.
-        // Day pages (/stached/2026-09-29) fall back to 404.html, which still
-        // runs the app; their dates live in the private puzzles file.
-        for (const route of ["stached", "stached/leaderboard", "stached/past"]) {
+        // Every Stached page, days included, so a direct load gets a 200 and
+        // the card. The 404.html fallback has neither: a link to it previews
+        // as nothing, and the app, loaded from it, keeps the plain tags even
+        // after going home. A page per calendar day, puzzle or not, gives
+        // nothing away.
+        for (const route of [
+          "stached",
+          "stached/leaderboard",
+          "stached/past",
+          ...stachedDays().map((day) => `stached/${day}`),
+        ]) {
           mkdirSync(resolve(outDir, route), { recursive: true });
           writeFileSync(resolve(outDir, route, "index.html"), page);
         }
