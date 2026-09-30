@@ -37,24 +37,14 @@ Static SPA on GitHub Pages. `make deploy` builds to `build/`, then force-pushes 
 
 ## Stached (`/stached`)
 
-Unlisted Connections-style game. The page lives in `src/pages/Stached.tsx` and `src/stached/`; its backend is `stached-api/`, a dependency-free Bun server with Postgres, running on the Mac Studio behind Cloudflare at `https://api.spencerstrelsov.com` (see below).
+Unlisted Connections-style game with a stache group and a leaderboard. **[`stached-api/README.md`](stached-api/README.md) is the full guide**: architecture, puzzles, deploys, migrations, backups, the Studio and Cloudflare setup, and troubleshooting. The rules that matter most:
 
-- **Puzzles** are kept out of this public repo. The API reads them from `PUZZLES_FILE`; in production that's `~/.config/stached/puzzles.json` on the Studio (mode 600). `stached-api/puzzles.example.json` shows the format with a made-up puzzle. One puzzle per date; Postgres mirrors the file on every boot. The game serves the latest puzzle dated on or before today (America/New_York). Each puzzle needs exactly one group with `"stache": true`; non-stache groups get color slots 1–4 in file order, so list them easiest first. To change puzzles, edit the file on the Studio (`ssh personal-studio`) and restart the API with `make deploy-stached`.
-- **Editing or removing a puzzle that people have played clears their plays** for it on the next deploy.
-- **Env:** `DATABASE_URL`, `STACHE_PASSWORD` (the shared sign-in password, kept only in the Studio's `api.env`), `PUZZLES_FILE`, `SESSION_SECRET`, `ALLOWED_ORIGINS` (comma-separated), `HOST` (bind address, default `0.0.0.0`), `PORT`.
-- **Limits:** 10 sign-ins and 180 other requests per client per minute, and 16 KB request bodies. The client is Cloudflare's `CF-Connecting-IP` only when `HOST=127.0.0.1`, because then the tunnel is the only way in.
-- **Clock:** stache time counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; a silence longer than that is capped at 15 seconds, so a phone that sleeps mid-game isn't charged for the nap.
-- **Look:** a 1984 TV-station ident, always dark. The palette sits at the top of `src/stached/stached.module.css`; the logo is `src/stached/Logo.tsx`.
-- **In dev**, the game calls `/stached-api`, which Vite proxies to a local API on port 3999. `VITE_STACHED_API` overrides that.
-
-## Production API (Mac Studio + Cloudflare Tunnel)
-
-The API runs on the Studio as `sstrelsov-personal` (`ssh personal-studio`), from a clone at `~/dev/homebase`. Nothing on the Studio is exposed directly: Postgres and the API listen on 127.0.0.1, and a Cloudflare Tunnel (outbound only) carries `api.spencerstrelsov.com` to `127.0.0.1:3999`. The domain's DNS is on Cloudflare (Porkbun is still the registrar). GitHub Pages and Porkbun email forwarding records are DNS-only.
-
-- **Files:** `~/.config/stached/` holds `api.env` (the password and generated secrets, mode 600), `puzzles.json` (the real puzzles, 600), `tunnel-token` (600), logs, and `launchd/` plists. Backups go to `~/backups/stached/` nightly at 4am, kept 14 days.
-- **Services:** LaunchDaemons `me.strelsov.stached.{postgres,api,tunnel,backup}`, installed once with `sudo ~/.config/stached/install-daemons.sh`. They start at boot with nobody logged in, which matters because a FileVault reboot leaves the Studio at the login window. After any reboot the game is down until the disk is unlocked.
-- **Deploy:** `make deploy-stached` pulls the branch on the Studio and restarts the API. The daemon runs as `sstrelsov-personal`, so killing it needs no sudo; launchd starts it again.
-- **Cloudflare:** a rate-limiting rule on `/login` sits in front of the app's own limits.
+- The UI is `src/pages/Stached.tsx` and `src/stached/`; the API is `stached-api/` (dependency-free Bun + Postgres), running on the Mac Studio behind a Cloudflare Tunnel at `https://api.spencerstrelsov.com`.
+- **This repo is public.** The real puzzles and the password live only on the Studio (`~/.config/stached/`). Never commit them; `stached-api/puzzles.example.json` is the made-up stand-in.
+- **Schema changes are new numbered files in `stached-api/migrations/`.** They apply on API boot. Never edit a shipped migration.
+- **Deploy the API with `make deploy-stached`** (it backs up first). Deploy it before merging a site change that needs a new endpoint.
+- Editing or removing a puzzle that people have played deletes their games for it.
+- The look is a 1984 TV-station ident, always dark. The palette is at the top of `src/stached/stached.module.css`.
 
 ## Testing on your phone (`make phone`)
 

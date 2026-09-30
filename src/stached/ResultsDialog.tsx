@@ -1,11 +1,12 @@
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   type Color,
+  type Day,
   formatDate,
   formatTime,
   type Play,
   type Score,
-  type Today,
 } from "./api";
 import Dialog from "./Dialog";
 import styles from "./stached.module.css";
@@ -23,7 +24,7 @@ interface ResultsDialogProps {
   open: boolean;
   onClose: () => void;
   onHome: () => void;
-  puzzle: Today["puzzle"];
+  puzzle: Day["puzzle"];
   play: Play;
   board: Score[];
   player: string;
@@ -50,17 +51,17 @@ const ResultsDialog = ({
 
   const share = async () => {
     const text = [
-      `Stached #${puzzle.id} · ${formatDate(puzzle.date)}`,
+      `Stached #${puzzle.number} · ${formatDate(puzzle.date)}`,
       play.stachedMs === null
         ? "No stache"
         : `Stache time ${formatTime(play.stachedMs)}`,
       ...grid.map((row) => row.map((color) => SHARE_EMOJI[color]).join("")),
     ].join("\n");
-    const url = `${window.location.origin}/stached`;
+    // Text only: a link would unfurl into a big preview card in Messages.
     try {
-      if (navigator.share) await navigator.share({ text, url });
+      if (navigator.share) await navigator.share({ text });
       else {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
+        await navigator.clipboard.writeText(text);
         setShared(true);
       }
     } catch {
@@ -71,7 +72,7 @@ const ResultsDialog = ({
   return (
     <Dialog open={open} onClose={onClose} title={headline(play)}>
       <p className={`${styles.label} -mt-3`}>
-        Puzzle #{puzzle.id} · {formatDate(puzzle.date)}
+        Puzzle #{puzzle.number} · {formatDate(puzzle.date)}
       </p>
       <div className="grid grid-cols-2 gap-3 text-center">
         <div className={`${styles.panel} p-3`}>
@@ -114,7 +115,9 @@ const ResultsDialog = ({
       </button>
 
       <section className="space-y-2">
-        <h3 className={styles.label}>Today's scoreboard</h3>
+        <h3 className={styles.label}>
+          {puzzle.today ? "Today's scoreboard" : "Scoreboard"}
+        </h3>
         <ol className="text-[19px] leading-tight">
           {board.map((score, i) => (
             <li
@@ -124,7 +127,14 @@ const ResultsDialog = ({
               }`}
             >
               <span className="w-6 opacity-50">{i + 1}</span>
-              <span className="flex-1 truncate">{score.name}</span>
+              <span className="flex-1 truncate">
+                {score.name}
+                {score.late && (
+                  <span className={`${styles.label} ml-2`} title="Played late">
+                    late
+                  </span>
+                )}
+              </span>
               <span className={styles.stacheText}>
                 {formatTime(score.stachedMs)}
               </span>
@@ -136,13 +146,14 @@ const ResultsDialog = ({
         </ol>
       </section>
 
-      <button
-        type="button"
-        onClick={onHome}
-        className={`${styles.button} w-full`}
-      >
-        Home
-      </button>
+      <div className="grid grid-cols-2 gap-3">
+        <button type="button" onClick={onHome} className={styles.button}>
+          Home
+        </button>
+        <Link to="/stached/leaderboard" className={styles.button}>
+          Leaderboard
+        </Link>
+      </div>
     </Dialog>
   );
 };

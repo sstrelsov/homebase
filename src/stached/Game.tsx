@@ -8,11 +8,12 @@ import {
 } from "react";
 import {
   api,
+  type Day,
+  formatDate,
   formatTime,
   type Group,
   type Play,
   type Score,
-  type Today,
 } from "./api";
 import Logo, { Mustache } from "./Logo";
 import ResultsDialog from "./ResultsDialog";
@@ -42,46 +43,11 @@ function barsFor(play: Play): Group[] {
   return [...play.solved, ...missed];
 }
 
-const VOWEL = /[aeiouy]/i;
-const LETTER = /[a-z]/i;
-const DIGRAPHS = ["ch", "ck", "gh", "ph", "sh", "th", "wh"];
-
 /**
- * Puts a soft hyphen at one syllable break in each long word, nearest its
- * middle: weight|lifting, l'appar|tement. Rough English rules are plenty for
- * a word that only breaks when it would otherwise be too small to read.
+ * Shrinks a word until it fits its tile, never breaking it. At each size a
+ * word too wide for the tile first tries the font's narrowest width, so a long
+ * one like WEIGHTLIFTING stays as big as it can.
  */
-function softHyphenate(text: string) {
-  return text
-    .split(" ")
-    .map((word) => {
-      if (word.length < 9) return word;
-      const vowels = [...word].flatMap((c, i) => (VOWEL.test(c) ? [i] : []));
-      const breaks = vowels.slice(1).flatMap((next, k) => {
-        const cluster = word.slice(vowels[k] + 1, next);
-        if (!cluster || ![...cluster].every((c) => LETTER.test(c))) return [];
-        if (cluster.length === 1) return [next - 1]; // ta|ble
-        const digraph = DIGRAPHS.includes(cluster.slice(-2).toLowerCase());
-        return [next - (digraph ? 2 : 1)]; // weight|lifting, rea|ching
-      });
-      const fair = breaks.filter((i) => i >= 3 && word.length - i >= 3);
-      if (!fair.length) return word;
-      const middle = word.length / 2;
-      const at = fair.reduce((a, b) =>
-        Math.abs(b - middle) < Math.abs(a - middle) ? b : a,
-      );
-      return `${word.slice(0, at)}\u00ad${word.slice(at)}`;
-    })
-    .join(" ");
-}
-
-// Whole words down to 15px; after that, long words may break at their hyphen.
-const FIT_STEPS = [
-  { hyphens: "none", min: 15 },
-  { hyphens: "manual", min: 11 },
-];
-
-/** Shrinks a word until it fits its tile, breaking long ones if it must. */
 const FitWord = ({ word }: { word: string }) => {
   const ref = useRef<HTMLSpanElement>(null);
 
@@ -91,13 +57,14 @@ const FitWord = ({ word }: { word: string }) => {
     if (!span || !tile) return;
     const shrink = () => {
       const room = tile.clientHeight - 8;
-      const fits = () =>
-        span.scrollWidth <= span.clientWidth && span.offsetHeight <= room;
-      for (const { hyphens, min } of FIT_STEPS) {
-        span.style.setProperty("hyphens", hyphens);
-        span.style.setProperty("-webkit-hyphens", hyphens);
-        for (let size = 26; size >= min; size--) {
-          span.style.fontSize = `${size}px`;
+      const tooWide = () => span.scrollWidth > span.clientWidth;
+      const fits = () => !tooWide() && span.offsetHeight <= room;
+      for (let size = 26; size >= 10; size--) {
+        span.style.fontSize = `${size}px`;
+        span.style.fontStretch = "";
+        if (fits()) return;
+        if (tooWide()) {
+          span.style.fontStretch = "75%";
           if (fits()) return;
         }
       }
@@ -111,7 +78,7 @@ const FitWord = ({ word }: { word: string }) => {
 
   return (
     <span ref={ref} className={styles.word}>
-      {softHyphenate(word)}
+      {word}
     </span>
   );
 };
@@ -119,10 +86,10 @@ const FitWord = ({ word }: { word: string }) => {
 interface GameProps {
   token: string;
   player: string;
-  puzzle: Today["puzzle"];
+  puzzle: Day["puzzle"];
   board: Score[];
   play: Play;
-  onToday: (today: Today) => void;
+  onDay: (day: Day) => void;
   onHome: () => void;
   onRules: () => void;
 }
@@ -133,7 +100,7 @@ const Game = ({
   puzzle,
   board,
   play,
-  onToday,
+  onDay,
   onHome,
   onRules,
 }: GameProps) => {
@@ -213,7 +180,7 @@ const Game = ({
         ),
       ]);
       await sleep(120);
-      onToday(next);
+      onDay(next);
       const result = next.play as Play;
 
       if (next.result === "correct") {
@@ -270,6 +237,10 @@ const Game = ({
         >
           Stached
         </button>
+        {/* Today's game needs no date; a past one does. */}
+        {!puzzle.today && (
+          <span className={styles.label}>{formatDate(puzzle.date)}</span>
+        )}
         <button
           type="button"
           onClick={onRules}

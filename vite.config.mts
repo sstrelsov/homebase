@@ -56,17 +56,20 @@ export default defineConfig({
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />`;
-        mkdirSync(resolve(outDir, "stached"), { recursive: true });
-        writeFileSync(
-          resolve(outDir, "stached", "index.html"),
-          readFileSync(index, "utf8")
-            .replace("<head>", `<head>${stached}`)
-            .replace(/<title>.*<\/title>/, "<title>Stached</title>")
-            .replace(
-              /<meta\s+name="description"\s+content="[^"]*"\s*\/>/,
-              `<meta name="description" content="${STACHED_DESCRIPTION}" />`,
-            ),
-        );
+        const page = readFileSync(index, "utf8")
+          .replace("<head>", `<head>${stached}`)
+          .replace(/<title>.*<\/title>/, "<title>Stached</title>")
+          .replace(
+            /<meta\s+name="description"\s+content="[^"]*"\s*\/>/,
+            `<meta name="description" content="${STACHED_DESCRIPTION}" />`,
+          );
+        // The game's fixed pages, so direct loads get a 200 and the card.
+        // Day pages (/stached/2026-09-29) fall back to 404.html, which still
+        // runs the app; their dates live in the private puzzles file.
+        for (const route of ["stached", "stached/leaderboard", "stached/past"]) {
+          mkdirSync(resolve(outDir, route), { recursive: true });
+          writeFileSync(resolve(outDir, route, "index.html"), page);
+        }
       },
     },
   ],

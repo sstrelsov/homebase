@@ -315,7 +315,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  padding: 4px 2px;
   border: 1px solid rgba(255, 241, 201, 0.16);
   border-radius: 7px;
   background: var(--tile);
@@ -562,6 +562,130 @@
   height: 22px;
   border-radius: 4px;
   background: var(--color);
+}
+
+/* Leaderboard */
+.standing {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--tile);
+}
+
+.standing[data-me] {
+  border-color: var(--gold);
+  box-shadow: 0 0 14px rgba(255, 210, 63, 0.25);
+}
+
+.standingStats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.standingStats dd {
+  margin-top: 2px;
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 110%;
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.recent {
+  display: grid;
+  grid-template-columns: repeat(var(--days), minmax(0, 1fr));
+  gap: 4px;
+}
+
+.recentDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.recentBar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  height: 34px;
+  border-bottom: 1px solid var(--line);
+}
+
+.recentFill {
+  width: 14px;
+  border-radius: 4px 4px 0 0;
+  background: var(--c1);
+  box-shadow: 0 0 8px rgba(255, 210, 63, 0.4);
+}
+
+.recentNone {
+  width: 8px;
+  height: 2px;
+  margin-bottom: 4px;
+  background: var(--muted);
+}
+
+.recentValue {
+  font-family: var(--text);
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Past games: a tile per day */
+.dayTile {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--tile);
+  color: var(--ink);
+  text-align: center;
+  transition: transform 0.08s;
+}
+
+.dayTile:active {
+  transform: translateY(1px);
+}
+
+.dayTileStache {
+  width: 64px;
+  height: 20px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 5;
+}
+
+.dayTile[data-state="unplayed"] {
+  border-color: rgba(255, 210, 63, 0.55);
+}
+
+.dayTile[data-state="stached"] .dayTileStache {
+  fill: var(--face);
+  stroke: none;
+  filter: drop-shadow(-1.5px 0 var(--red)) drop-shadow(1.5px 0 var(--blue))
+    drop-shadow(0 0 6px rgba(255, 210, 63, 0.6));
+}
+
+.dayTile[data-state="unplayed"] .dayTileValue,
+.dayTile[data-state="stached"] .dayTileValue {
+  color: var(--gold);
+}
+
+.dayTile[data-state="unstached"] .dayTileStache {
+  fill: var(--muted);
+  stroke: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

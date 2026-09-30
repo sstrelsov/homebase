@@ -1,6 +1,6 @@
-// The Stached API: sign-in, today's puzzle, guesses, and the scoreboard.
-// The server holds the answers and the clock, so scores can't be fudged from
-// the browser. Bun.sql connects with DATABASE_URL.
+// The Stached API: sign-in, the day's puzzles, guesses, scoreboards, past
+// games and the leaderboard. The server holds the answers and the clock, so
+// scores can't be fudged from the browser. Bun.sql connects with DATABASE_URL.
 //
 // The stache clock only runs while the board is on screen: the game checks in
 // every few seconds while it's visible and says when it's hidden. A stretch
@@ -8,6 +8,7 @@
 // so) counts for at most CLOCK_GRACE_MS.
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
+import { migrate } from "./migrate";
 
 const PASSWORD = env("STACHE_PASSWORD");
 const SECRET = env("SESSION_SECRET");
@@ -19,7 +20,7 @@ const CLOCK_GRACE_MS = 15_000;
 const COLORS = ["1", "2", "3", "4"];
 // The real puzzles live outside this public repo (on the Studio, next to the
 // password); puzzles.example.json is a made-up one for local testing.
-const puzzles: Omit<Puzzle, "id">[] = await Bun.file(
+const puzzles: Pick<Puzzle, "date" | "groups">[] = await Bun.file(
   env("PUZZLES_FILE"),
 ).json();
 
@@ -31,7 +32,11 @@ interface Group {
 
 interface Puzzle {
   id: number;
+  /** #1 is the first puzzle, by date. */
+  number: number;
   date: string;
+  /** Whether it's the daily puzzle: the newest one out. */
+  today: boolean;
   groups: Group[];
 }
 
@@ -47,6 +52,7 @@ interface Play {
   active_since: Date | null;
   finished_at: Date | null;
   completed: boolean | null;
+  late: boolean;
 }
 
 type Result = "correct" | "one_away" | "wrong" | "repeat";
@@ -112,17 +118,130 @@ async function body(req: Request): Promise<Record<string, unknown>> {
 const fail = (status: number, error: string) =>
   Response.json({ error }, { status });
 
-/** The latest live puzzle (dated today or earlier, New York time) that matches. */
-async function livePuzzle(filter = sql``): Promise<Puzzle | undefined> {
-  const [puzzle] = await sql`
-    select id, to_char(date, 'YYYY-MM-DD') as date, groups from puzzles
-    where date <= (now() at time zone 'America/New_York')::date ${filter}
-    order by date desc limit 1`;
+/**
+ * The puzzles out so far (dated today or earlier, New York time), numbered by
+ * date from #1. The newest is today's: a day without a puzzle of its own
+ * keeps the last one.
+ */
+const released = () => sql`(
+  select id, to_char(date, 'YYYY-MM-DD') as date, groups,
+         row_number() over (order by date)::int as number,
+         date = max(date) over () as today
+  from puzzles
+  where date <= (now() at time zone 'America/New_York')::date
+) released`;
+
+/** The released puzzle that matches: by default, today's. */
+async function findPuzzle(where = sql`today`): Promise<Puzzle | undefined> {
+  const [puzzle] = await sql`select * from ${released()} where ${where}`;
   return puzzle;
 }
 
 const puzzleById = async (id: unknown) =>
-  Number.isInteger(id) ? livePuzzle(sql`and id = ${id}`) : undefined;
+  Number.isInteger(id) ? findPuzzle(sql`id = ${id}`) : undefined;
+
+// Compared as text, so a date that doesn't exist is just no puzzle.
+const puzzleByDate = async (date: unknown) =>
+  typeof date === "string" ? findPuzzle(sql`date = ${date}`) : undefined;
+
+/** Every puzzle so far, newest first, with how this player did on each. */
+async function pastGames(userId: number) {
+  const rows = await sql`
+    select released.date, released.number, released.today, p.id as play,
+           p.finished_at is not null as finished, p.completed,
+           p.stached_ms as "stachedMs", p.late
+    from ${released()}
+    left join plays p on p.puzzle_id = released.id and p.user_id = ${userId}
+    order by released.date desc`;
+  return rows.map(
+    ({ date, number, today, play, ...game }: Record<string, unknown>) => ({
+      date,
+      number,
+      today,
+      play: play === null ? null : game,
+    }),
+  );
+}
+
+const RECENT_PUZZLES = 7;
+
+interface GameRow {
+  name: string;
+  puzzle_id: number;
+  completed: boolean | null;
+  stached_ms: number | null;
+  finished: boolean;
+}
+
+interface Standing {
+  name: string;
+  games: number;
+  solved: number;
+  streak: number;
+  bestStacheMs: number | null;
+  avgStacheMs: number | null;
+  /** Stache time on each of the recent puzzles, oldest first; null if none. */
+  recent: (number | null)[];
+}
+
+/**
+ * Everyone who has played, with streaks and times. A streak is the run of
+ * puzzles solved, newest first; today's puzzle, if it isn't finished yet,
+ * doesn't break it (you still have today to keep it going). Late games don't
+ * count at all, so a missed day never fills a gap.
+ */
+async function leaderboard() {
+  const [days, plays]: [
+    { id: number; date: string; today: boolean }[],
+    GameRow[],
+  ] = await Promise.all([
+    sql`select id, date, today from ${released()} order by date desc`,
+    sql`
+      select u.name, p.puzzle_id, p.completed, p.stached_ms,
+             p.finished_at is not null as finished
+      from plays p join users u on u.id = p.user_id
+      where not p.late`,
+  ]);
+  const byPlayer = new Map<string, Map<number, GameRow>>();
+  for (const play of plays) {
+    if (!byPlayer.has(play.name)) byPlayer.set(play.name, new Map());
+    byPlayer.get(play.name)?.set(play.puzzle_id, play);
+  }
+  const recent = days.slice(0, RECENT_PUZZLES).reverse();
+
+  const standings: Standing[] = [...byPlayer].map(([name, games]) => {
+    const all = [...games.values()];
+    const finished = all.filter((g) => g.finished);
+    const times = all
+      .map((g) => g.stached_ms)
+      .filter((ms): ms is number => ms !== null);
+    let streak = 0;
+    for (const day of days) {
+      const game = games.get(day.id);
+      if (day.today && !game?.finished) continue;
+      if (!game?.completed) break;
+      streak++;
+    }
+    return {
+      name,
+      games: finished.length,
+      solved: finished.filter((g) => g.completed).length,
+      streak,
+      bestStacheMs: times.length ? Math.min(...times) : null,
+      avgStacheMs: times.length
+        ? Math.round(times.reduce((a, b) => a + b, 0) / times.length)
+        : null,
+      recent: recent.map((day) => games.get(day.id)?.stached_ms ?? null),
+    };
+  });
+
+  const best = (s: Standing) => s.bestStacheMs ?? Number.POSITIVE_INFINITY;
+  standings.sort(
+    (a, b) =>
+      b.streak - a.streak || best(a) - best(b) || a.name.localeCompare(b.name),
+  );
+  return { recentDates: recent.map((day) => day.date), players: standings };
+}
 
 /** Clock time up to now, if the game has kept checking in. */
 function activeMs(play: Play, now: Date) {
@@ -168,7 +287,7 @@ async function snapshot(userId: number, puzzle: Puzzle) {
   const [[play], board] = await Promise.all([
     sql`select * from plays where user_id = ${userId} and puzzle_id = ${puzzle.id}`,
     sql`
-      select u.name, p.completed, p.stached_ms as "stachedMs"
+      select u.name, p.completed, p.stached_ms as "stachedMs", p.late
       from plays p join users u on u.id = p.user_id
       where p.puzzle_id = ${puzzle.id} and p.finished_at is not null
       order by p.stached_ms nulls last, p.completed desc, p.mistakes, p.finished_at`,
@@ -176,7 +295,9 @@ async function snapshot(userId: number, puzzle: Puzzle) {
   return {
     puzzle: {
       id: puzzle.id,
+      number: puzzle.number,
       date: puzzle.date,
+      today: puzzle.today,
       // Sorted so the order gives nothing away; the game shuffles them.
       words: puzzle.groups.flatMap((g) => g.words).sort(),
       groupCount: puzzle.groups.length,
@@ -188,7 +309,8 @@ async function snapshot(userId: number, puzzle: Puzzle) {
 }
 
 async function login({ name, password }: Record<string, unknown>) {
-  const clean = typeof name === "string" ? name.trim().replace(/\s+/g, " ") : "";
+  const clean =
+    typeof name === "string" ? name.trim().replace(/\s+/g, " ") : "";
   if (!clean || clean.length > 24) return fail(400, "Enter your name");
   if (password !== PASSWORD) return fail(401, "Wrong password");
   const [user] = await sql`
@@ -198,12 +320,19 @@ async function login({ name, password }: Record<string, unknown>) {
   return Response.json({ token: `${user.id}.${sign(user)}`, name: user.name });
 }
 
-async function start(userId: number, { puzzleId }: Record<string, unknown>) {
-  const puzzle = await puzzleById(puzzleId);
-  if (!puzzle) return fail(404, "No such puzzle");
+/** Starts a game (by date, or by id for older pages), or picks it back up. */
+async function start(
+  userId: number,
+  { puzzleId, date }: Record<string, unknown>,
+) {
+  const puzzle = await (date !== undefined
+    ? puzzleByDate(date)
+    : puzzleById(puzzleId));
+  if (!puzzle) return fail(404, "No puzzle for that day");
+  // A game started after its day is late: it's yours, but it doesn't count.
   await sql`
-    insert into plays (user_id, puzzle_id, active_since)
-    values (${userId}, ${puzzle.id}, ${new Date()})
+    insert into plays (user_id, puzzle_id, active_since, late)
+    values (${userId}, ${puzzle.id}, ${new Date()}, ${!puzzle.today})
     on conflict (user_id, puzzle_id) do nothing`;
   return Response.json(await snapshot(userId, puzzle));
 }
@@ -302,7 +431,9 @@ async function guess(
         -- A guess checks the game in, but doesn't restart a paused clock.
         active_since = ${completed === null && play.active_since ? now : null},
         completed = ${completed},
-        finished_at = ${completed === null ? null : now}
+        finished_at = ${completed === null ? null : now},
+        -- Finishing a game after its day doesn't count either.
+        late = ${play.late || !puzzle.today}
       where id = ${play.id}`;
     return correct ? "correct" : best.hits === 3 ? "one_away" : "wrong";
   });
@@ -321,7 +452,7 @@ async function route(req: Request): Promise<Response> {
   if (!userId) return fail(401, "Sign in first");
   switch (path) {
     case "GET /today": {
-      const puzzle = await livePuzzle();
+      const puzzle = await findPuzzle();
       if (!puzzle) return fail(404, "No puzzle yet");
       return Response.json(await snapshot(userId, puzzle));
     }
@@ -331,6 +462,10 @@ async function route(req: Request): Promise<Response> {
       return clock(userId, data);
     case "POST /guess":
       return guess(userId, data);
+    case "GET /leaderboard":
+      return Response.json(await leaderboard());
+    case "GET /puzzles":
+      return Response.json(await pastGames(userId));
     default:
       return fail(404, "Not found");
   }
@@ -376,7 +511,7 @@ function cors(req: Request): Record<string, string> {
 }
 
 checkPuzzles();
-await sql.unsafe(await Bun.file(new URL("schema.sql", import.meta.url)).text());
+await migrate();
 // Postgres mirrors the puzzles file. Editing or dropping a puzzle that people have
 // played wipes their games: scores from the old words wouldn't mean anything
 // against the new ones.
@@ -391,8 +526,10 @@ for (const { date, groups } of puzzles) {
     where puzzles.groups is distinct from excluded.groups
     returning id`;
   if (changed) {
-    const cleared = await sql`delete from plays where puzzle_id = ${changed.id}`;
-    if (cleared.count) console.log(`${date} changed: cleared ${cleared.count} plays`);
+    const cleared =
+      await sql`delete from plays where puzzle_id = ${changed.id}`;
+    if (cleared.count)
+      console.log(`${date} changed: cleared ${cleared.count} plays`);
   }
 }
 

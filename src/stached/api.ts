@@ -32,18 +32,47 @@ export interface Score {
   name: string;
   completed: boolean;
   stachedMs: number | null;
+  /** Played after the puzzle's day, so it doesn't count. */
+  late: boolean;
 }
 
-export interface Today {
+/** A puzzle so far, with how you did on it. */
+export interface PastGame extends Pick<Day["puzzle"], "date" | "today"> {
+  play: Pick<Play, "finished" | "completed" | "stachedMs"> | null;
+}
+
+/** A day's game: its puzzle, your play, and its scoreboard. */
+export interface Day {
   puzzle: {
     id: number;
+    /** #1 is the first puzzle, by date. */
+    number: number;
     date: string;
+    /** Today's puzzle: the newest one out. */
+    today: boolean;
     words: string[];
     groupCount: number;
     maxMistakes: number;
   };
   play: Play | null;
   board: Score[];
+}
+
+export interface Standing {
+  name: string;
+  games: number;
+  solved: number;
+  streak: number;
+  bestStacheMs: number | null;
+  avgStacheMs: number | null;
+  /** Stache time on each of the recent puzzles, oldest first. */
+  recent: (number | null)[];
+}
+
+export interface Leaderboard {
+  /** The recent puzzles' dates, oldest first, matching each `recent`. */
+  recentDates: string[];
+  players: Standing[];
 }
 
 export type GuessResult = "correct" | "one_away" | "wrong" | "repeat";
@@ -87,9 +116,13 @@ async function request<T>(
 export const api = {
   login: (name: string, password: string) =>
     request<Session>("/login", { body: { name, password } }),
-  today: (token: string) => request<Today>("/today", { token }),
-  start: (token: string, puzzleId: number) =>
-    request<Today>("/start", { token, body: { puzzleId } }),
+  today: (token: string) => request<Day>("/today", { token }),
+  leaderboard: (token: string) =>
+    request<Leaderboard>("/leaderboard", { token }),
+  /** Starts that day's game, or picks it back up. */
+  start: (token: string, date: string) =>
+    request<Day>("/start", { token, body: { date } }),
+  pastGames: (token: string) => request<PastGame[]>("/puzzles", { token }),
   /** Tells the server the board is on screen, so the clock keeps running. */
   clock: (token: string, puzzleId: number) =>
     request<{ elapsedMs: number }>("/clock", {
@@ -103,7 +136,7 @@ export const api = {
       JSON.stringify({ token, puzzleId, state: "paused", at: Date.now() }),
     ),
   guess: (token: string, puzzleId: number, words: string[]) =>
-    request<Today & { result: GuessResult }>("/guess", {
+    request<Day & { result: GuessResult }>("/guess", {
       token,
       body: { puzzleId, words },
     }),
@@ -137,13 +170,19 @@ export function formatTime(ms: number | null, tenths = true) {
   return tenths ? `${clock}.${Math.floor((ms % 1000) / 100)}` : clock;
 }
 
-/** "2026-09-29" → "Tue, Sep 29, 2026", as a calendar day rather than UTC. */
-export function formatDate(date: string) {
-  const [year, month, day] = date.split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+/**
+ * "2026-09-29" → "Tue, Sep 29, 2026", or however `options` say, as a calendar
+ * day rather than UTC.
+ */
+export function formatDate(
+  date: string,
+  options: Intl.DateTimeFormatOptions = {
     weekday: "short",
     month: "short",
     day: "numeric",
     year: "numeric",
-  });
+  },
+) {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", options);
 }
