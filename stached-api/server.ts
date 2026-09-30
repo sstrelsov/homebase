@@ -1,6 +1,7 @@
 // The Stached API: sign-in, the day's puzzles, guesses, scoreboards, past
-// games and the leaderboard. The server holds the answers and the clock, so
-// scores can't be fudged from the browser. Bun.sql connects with DATABASE_URL.
+// games, the leaderboard, and the link-preview card. The server holds the
+// answers and the clock, so scores can't be fudged from the browser. Bun.sql
+// connects with DATABASE_URL.
 //
 // The stache clock only runs while the board is on screen: the game checks in
 // every few seconds while it's visible and says when it's hidden. A stretch
@@ -8,6 +9,7 @@
 // so) counts for at most CLOCK_GRACE_MS.
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
+import { type CardPuzzle, nextColor, renderCard } from "./card";
 import { migrate } from "./migrate";
 
 const PASSWORD = env("STACHE_PASSWORD");
@@ -442,9 +444,31 @@ async function guess(
   return Response.json({ result, ...(await snapshot(userId, puzzle)) });
 }
 
+/**
+ * Today's link-preview card (card.ts), which the site's preview tags point at.
+ * It's public, since chat apps fetch it signed out, and never cached, so each
+ * fetch shows today's puzzle and takes the next border color. It reads only
+ * the puzzle's number and date, and never a puzzle still to come.
+ */
+async function card(req: Request) {
+  const [puzzle]: CardPuzzle[] =
+    await sql`select number, date from ${released()} where today`;
+  if (!puzzle) return fail(404, "No puzzle yet");
+  // A HEAD gets no picture, so it doesn't take a turn: an unfurler that checks
+  // the card before fetching it still sees every color.
+  const color = req.method === "HEAD" ? "gold" : nextColor();
+  return new Response(renderCard(puzzle, color), {
+    headers: { "content-type": "image/png" },
+  });
+}
+
 async function route(req: Request): Promise<Response> {
-  const path = `${req.method} ${new URL(req.url).pathname}`;
+  // HEAD is GET without the body, as HTTP asks (Bun drops it), so unfurlers
+  // can check the card without downloading it.
+  const method = req.method === "HEAD" ? "GET" : req.method;
+  const path = `${method} ${new URL(req.url).pathname}`;
   if (path === "GET /health") return new Response("ok");
+  if (path === "GET /card.png") return card(req);
   const data = req.method === "POST" ? await body(req) : {};
   if (path === "POST /login") return login(data);
 

@@ -54,10 +54,11 @@ Unlisted Connections-style game with a stache group and a leaderboard. **[`stach
 - The database is recreated on every run, so every name gets a fresh try. It uses a local test password (`test`, or `STACHE_PASSWORD`) and the made-up `stached-api/puzzles.example.json` (or `PUZZLES_FILE`), both printed on start.
 - The script only touches Serve port 8443 and refuses to start if something else already uses it. Other Serve entries on this Mac belong to other projects; leave them alone.
 - Needs `bun`, `node`, `tailscale`, and Homebrew's `postgresql@17` (`initdb`, `pg_ctl`, `createdb`).
+- On the Studio, the live Stached API has port 3999: run `STACHED_API_PORT=3998 make phone` (or `phone-preview`). The script refuses to start if the API port is taken, since Vite would otherwise send `/stached-api` to the live API. Never stop or touch the live API, its Postgres, or its LaunchDaemons.
 
 ### Link previews
 
-The Open Graph tags (title, description, `public/images/stached-og.png`) are written into `build/stached/index.html` at build time, with absolute URLs from `STACHED_SITE` (default `https://spencerstrelsov.com`, where GitHub Pages serves the site; `www` redirects there). The dev server doesn't serve them.
+The Open Graph tags (title, description, and an `og:image` of the API's `/card.png`) are written into `build/stached/index.html` at build time, with absolute URLs from `STACHED_SITE` (default `https://spencerstrelsov.com`, where GitHub Pages serves the site; `www` redirects there). The API draws the card: today's puzzle number and date, with a border in the next of the logo's colors on each fetch (see Link previews in [`stached-api/README.md`](stached-api/README.md)). The score Share button stays text only. The dev server doesn't serve the tags.
 
 - **Before it's live:** `make phone-preview` builds with `STACHED_SITE` pointed at this Mac and serves the build. Paste the printed `…ts.net:8443/stached/` link (trailing slash, as GitHub Pages serves it) into an iMessage thread on the phone; iMessage fetches previews from the sending phone, so Tailscale is enough. Slack, Discord and the like fetch from their own servers and can't reach a tailnet URL.
 - **Once live:** paste `https://spencerstrelsov.com/stached` anywhere, or inspect it with a preview checker such as opengraph.xyz. Apps cache previews per URL; add `?v=2` to see a change.

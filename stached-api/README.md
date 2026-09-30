@@ -24,6 +24,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 |---|---|
 | Game UI | `src/pages/Stached.tsx` (the page and session), `src/stached/` (login, home, game, past games, clock, leaderboard, dialogs, logo, styles) |
 | API server | `stached-api/server.ts` (dependency-free Bun) |
+| Link-preview card | `stached-api/card.ts` (draws it), `stached-api/card/` (its art, from `art.html`) |
 | Database schema | `stached-api/migrations/*.sql`, applied by `stached-api/migrate.ts` |
 | Studio services | `stached-api/ops/install-daemons.sh` |
 | Backups to this Mac | `stached-api/ops/pull-backup.sh` |
@@ -39,6 +40,16 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 - **The leaderboard** ranks everyone by streak, then best stache time. A streak is puzzles solved in a row; today's puzzle doesn't break it until you finish (or miss) it. Each player also shows their best and average stache time, games solved, and a bar per day for the last seven puzzles.
 - **The daily puzzle** is the newest one dated on or before today in New York; a day without a puzzle of its own keeps the last one. Puzzles are numbered by date (#1 is the first).
 - **Past games** shows a tile per day so far. A finished day opens your board, the answers, and that day's scoreboard. A missed day can be played any time after, and an unfinished one finished, but that game is marked **late** (started or guessed after its day): it shows in your history and on that day's scoreboard (tagged late), and it never counts toward streaks or leaderboard times.
+
+## Link previews
+
+Pasting `https://spencerstrelsov.com/stached` shows a card: Gerald, the title, today's puzzle number and date (`#12 · WED, SEP 30`), and a glowing border in one of the logo's four colors (gold, orange, red, blue), the next one on every fetch.
+
+- The site's static preview tags (written at build time, in `vite.config.mts`) point `og:image` at the API's `GET /card.png`. GitHub Pages can't vary a page by day, so the API draws the card, once a day in each color.
+- `/card.png` is public, because chat apps fetch it signed out, and never cached, so every fetch is today's and takes the next color (a HEAD, which gets no picture, doesn't). It reads only today's puzzle number and date: never the words, and never a puzzle still to come.
+- The score Share button stays text only, with no link, so a shared score doesn't unfurl into a card.
+- Apps cache previews by link: pasting the same link again can bring back the card they fetched before (Slack keeps one for about 30 minutes). Change the link (`?1`, `?2`) for a fresh one.
+- The art is `card/art.html`, drawn by a browser: Gerald, the bands, the title, and a sheet of letters for the date. `card.ts` sets the date, draws the border and lays an old TV's phosphor columns over it all (no fonts or image libraries on the server). Open `art.html` in Chrome to see the whole card. To change the art, edit it, start a Chrome with `--remote-debugging-port=9222`, and redraw `base.png`, `glyphs.png` and `glyphs.json` with `cd stached-api && bun card/make-art.ts http://127.0.0.1:9222`.
 
 ## Puzzles
 
@@ -73,7 +84,7 @@ make phone-preview  # the same, with a production build, to test the link-previe
 make phone-live-data  # the same, starting from a copy of the live database and puzzles
 ```
 
-All three run a throwaway Postgres (recreated every run), the API, and the site on this Mac, with the password `test` (override with `STACHE_PASSWORD`). The first two use the sample puzzle (override with `PUZZLES_FILE`). `phone-live-data` copies the live database and puzzles from the Studio into the owner-only `.phone` folder, so the leaderboard and past games look real. It's still a copy, so nothing you do there reaches the live game. See the Testing on your phone section of `AGENTS.md` for details. For desktop-only work, run the API on port 3999 and `bun run dev`; Vite proxies `/stached-api` to it.
+All three run a throwaway Postgres (recreated every run), the API, and the site on this Mac, with the password `test` (override with `STACHE_PASSWORD`). The first two use the sample puzzle (override with `PUZZLES_FILE`). `phone-live-data` copies the live database and puzzles from the Studio into the owner-only `.phone` folder, so the leaderboard and past games look real. It's still a copy, so nothing you do there reaches the live game. See the Testing on your phone section of `AGENTS.md` for details. For desktop-only work, run the API on port 3999 and `bun run dev`; Vite proxies `/stached-api` to it. On the Studio the live API already has 3999, so pick another port there with `STACHED_API_PORT` (`STACHED_API_PORT=3998 make phone-preview`), which Vite's proxy follows; `make phone` refuses to start on a port that's taken.
 
 The API reads its settings from the environment (on the Studio, `~/.config/stached/api.env`) and won't start without the first five:
 
@@ -89,7 +100,7 @@ The API reads its settings from the environment (on the Studio, `~/.config/stach
 
 The site calls `https://api.spencerstrelsov.com` in production and `/stached-api` in dev; `VITE_STACHED_API` overrides either.
 
-Checks: `bun run lint` (Biome, for the site and the API), `bun run build`, and `cd stached-api && bunx tsc`.
+Checks: `bun run lint` (Biome, for the site and the API), `bun run build`, and `cd stached-api && bunx tsc && bun test`.
 
 ## Deploying
 

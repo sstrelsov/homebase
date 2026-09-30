@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import mdx from "@mdx-js/rollup";
@@ -10,6 +9,12 @@ import viteTsconfigPaths from "vite-tsconfig-paths";
 // Absolute base for link-preview URLs. `make phone-preview` points it at this
 // Mac so a phone can fetch the preview before the site is live.
 const SITE = process.env.STACHED_SITE ?? "https://spencerstrelsov.com";
+// The preview card, drawn by the Stached API (at the address in
+// src/stached/api.ts).
+const STACHED_CARD = new URL(
+  `${process.env.VITE_STACHED_API ?? "https://api.spencerstrelsov.com"}/card.png`,
+  SITE,
+).href;
 const STACHED_DESCRIPTION = "Got ’stache?";
 
 // https://vitejs.dev/config/
@@ -40,19 +45,15 @@ export default defineConfig({
         }
         // Stached is unlisted: noindex in the static HTML, before any JS runs,
         // plus its own title and preview card for when the link is shared.
-        // A fingerprint in the image URL, so apps that cached an old card fetch
-        // the new picture.
-        const image = createHash("sha256")
-          .update(readFileSync(resolve(__dirname, "public/images/stached-og.png")))
-          .digest("hex")
-          .slice(0, 8);
+        // The API draws the card: today's puzzle number and date, with the next
+        // border color on each fetch (stached-api/card.ts).
         const stached = `
     <meta name="robots" content="noindex, nofollow" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Stached" />
     <meta property="og:description" content="${STACHED_DESCRIPTION}" />
     <meta property="og:url" content="${SITE}/stached" />
-    <meta property="og:image" content="${SITE}/images/stached-og.png?v=${image}" />
+    <meta property="og:image" content="${STACHED_CARD}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />`;
@@ -76,13 +77,14 @@ export default defineConfig({
   build: {
     outDir: "build",
   },
-  // Dev: /stached-api goes to a local Stached API, and Tailscale Serve may
-  // front the dev server on a *.ts.net host (see `make phone`).
+  // Dev: /stached-api goes to a local Stached API (on 3999, or
+  // STACHED_API_PORT), and Tailscale Serve may front the dev server on a
+  // *.ts.net host (see `make phone`).
   server: {
     allowedHosts: [".ts.net"],
     proxy: {
       "/stached-api": {
-        target: "http://localhost:3999",
+        target: `http://localhost:${process.env.STACHED_API_PORT ?? 3999}`,
         rewrite: (path) => path.replace(/^\/stached-api/, ""),
       },
     },

@@ -23,7 +23,9 @@ for arg in "$@"; do
 done
 
 PG_PORT=5499
-API_PORT=3999 # vite.config.mts proxies /stached-api here
+# vite.config.mts proxies /stached-api here. On the Studio the live API has
+# 3999, so pick another there: STACHED_API_PORT=3998 make phone.
+export STACHED_API_PORT="${STACHED_API_PORT:-3999}"
 WEB_PORT=5190
 HTTPS_PORT=8443
 DATA=.phone
@@ -33,9 +35,14 @@ PASSWORD="${STACHE_PASSWORD:-test}"
 PUZZLES="$PWD/${PUZZLES_FILE:-stached-api/puzzles.example.json}"
 PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 
-for tool in bun node tailscale initdb pg_ctl createdb; do
+for tool in bun node tailscale nc initdb pg_ctl createdb; do
   command -v "$tool" >/dev/null || { echo "phone: needs $tool" >&2; exit 1; }
 done
+if nc -z 127.0.0.1 "$STACHED_API_PORT" 2>/dev/null; then
+  echo "phone: something already listens on :$STACHED_API_PORT (on the Studio, the live API)." >&2
+  echo "       Pick another port with STACHED_API_PORT=3998." >&2
+  exit 1
+fi
 if tailscale serve status --json 2>/dev/null | grep -q "\"$HTTPS_PORT\""; then
   echo "phone: Tailscale already serves :$HTTPS_PORT." >&2
   echo "       Free it with: tailscale serve --https=$HTTPS_PORT off" >&2
@@ -78,7 +85,7 @@ fi
   cd stached-api
   DATABASE_URL="postgres://postgres@localhost:$PG_PORT/stached" \
     STACHE_PASSWORD="$PASSWORD" SESSION_SECRET=phone PUZZLES_FILE="$PUZZLES" \
-    ALLOWED_ORIGINS="http://localhost:$WEB_PORT" PORT="$API_PORT" \
+    ALLOWED_ORIGINS="http://localhost:$WEB_PORT" PORT="$STACHED_API_PORT" \
     exec bun server.ts
 ) &
 if [ -n "$PREVIEW" ]; then
