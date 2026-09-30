@@ -1,6 +1,7 @@
 // The Stached API: sign-in, the day's puzzles, guesses, scoreboards, past
-// games and the leaderboard. The server holds the answers and the clock, so
-// scores can't be fudged from the browser. Bun.sql connects with DATABASE_URL.
+// games, the leaderboard, and the link-preview card. The server holds the
+// answers and the clock, so scores can't be fudged from the browser. Bun.sql
+// connects with DATABASE_URL.
 //
 // The stache clock only runs while the board is on screen: the game checks in
 // every few seconds while it's visible and says when it's hidden. A stretch
@@ -8,6 +9,7 @@
 // so) counts for at most CLOCK_GRACE_MS.
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
+import { type CardPuzzle, nextColor, renderCard } from "./card";
 import { migrate } from "./migrate";
 
 const PASSWORD = env("STACHE_PASSWORD");
@@ -442,9 +444,25 @@ async function guess(
   return Response.json({ result, ...(await snapshot(userId, puzzle)) });
 }
 
+/**
+ * Today's link-preview card (card.ts), which the site's preview tags point at.
+ * It's public, since chat apps fetch it signed out, and never cached, so each
+ * fetch shows today's puzzle and takes the next border color. It reads only
+ * the puzzle's number and date, and never a puzzle still to come.
+ */
+async function card() {
+  const [puzzle]: CardPuzzle[] =
+    await sql`select number, date from ${released()} where today`;
+  if (!puzzle) return fail(404, "No puzzle yet");
+  return new Response(renderCard(puzzle, nextColor()), {
+    headers: { "content-type": "image/png" },
+  });
+}
+
 async function route(req: Request): Promise<Response> {
   const path = `${req.method} ${new URL(req.url).pathname}`;
   if (path === "GET /health") return new Response("ok");
+  if (path === "GET /card.png") return card();
   const data = req.method === "POST" ? await body(req) : {};
   if (path === "POST /login") return login(data);
 

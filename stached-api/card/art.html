@@ -1,0 +1,234 @@
+<!doctype html>
+<!--
+  The link-preview card's art, drawn by a browser because the API has no fonts or
+  vector renderer. `bun card/make-art.ts` screenshots it into base.png (the
+  card without its day or border) and glyphs.png (the day's letters), and
+  card.ts adds the rest per request. Open it directly to see the whole card.
+  Gerald, the bands and the arcs follow src/stached/Logo.tsx; the colors are
+  the palette at the top of src/stached/stached.module.css.
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Stached preview card</title>
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@1,62..125,100..900&display=block"
+    />
+    <style>
+      :root {
+        --bg: #000;
+        --ink: #fff1c9;
+        --face: #fff4d6;
+        --muted: rgba(255, 241, 201, 0.55);
+        --red: #ff3b2f;
+        --blue: #3d5bff;
+        --c1: #ffd23f;
+        --c2: #ff8c1a;
+        --c3: #ff3b2f;
+        --c4: #3d5bff;
+        --glow: 0 0 2px rgba(255, 241, 201, 0.7), 0 0 14px rgba(255, 196, 90, 0.55);
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+      }
+      .card {
+        position: relative;
+        width: 1200px;
+        height: 630px;
+        overflow: hidden;
+        background: var(--bg);
+      }
+      .caps {
+        position: absolute;
+        left: 0;
+        right: 0;
+        margin: 0;
+        font-family: "Archivo", sans-serif;
+        font-style: italic;
+        text-align: center;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .logo {
+        position: absolute;
+        left: 50%;
+        width: 660px;
+        transform: translateX(-50%);
+        overflow: visible;
+      }
+      .title {
+        font-weight: 900;
+        font-stretch: 125%;
+        font-size: 98px;
+        line-height: 1;
+        color: var(--ink);
+        text-shadow:
+          -5px 0 var(--red),
+          5px 0 var(--blue),
+          var(--glow);
+      }
+      /* The day: "#12 · Wed, Sep 30", in the label face but lit up */
+      .day {
+        font-weight: 800;
+        font-stretch: 112%;
+        font-size: 38px;
+        line-height: 1;
+        letter-spacing: 0.14em;
+        color: var(--ink);
+        text-shadow: var(--glow);
+      }
+      .tagline {
+        font-weight: 800;
+        font-stretch: 112%;
+        font-size: 30px;
+        letter-spacing: 0.14em;
+        color: var(--muted);
+      }
+      /* What card.ts draws per request, shown here for the whole picture */
+      .border {
+        position: absolute;
+        inset: 19px;
+        border: 10px solid var(--c1);
+        border-radius: 41px;
+        box-shadow:
+          0 0 18px var(--c1),
+          inset 0 0 18px var(--c1);
+      }
+      .crt {
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.6)),
+          repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.24) 0 1px, transparent 1px 3px);
+      }
+      /* The day's letters, one per cell, for card.ts to set any date with */
+      .glyphs {
+        display: flex;
+        flex-wrap: wrap;
+        width: 1200px;
+      }
+      .glyphs > div {
+        position: relative;
+        width: 100px;
+        height: 90px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card" id="card">
+      <svg class="logo" id="logo" viewBox="0 0 400 184" style="top: 58px" role="img" aria-label="Gerald the mustache"></svg>
+      <p class="caps title" style="top: 356px">Stached</p>
+      <p class="caps day" id="day" style="top: 474px">#12 · Wed, Sep 30</p>
+      <p class="caps tagline" style="top: 532px">Got ’stache?</p>
+      <div class="border" id="border"></div>
+      <div class="crt" id="crt"></div>
+    </div>
+
+    <script>
+      // Logo.tsx, as plain SVG.
+      const MUSTACHE_PATH =
+        "M100 30c-8-14-26-20-42-12-12 6-18 20-32 22-10 1-18-5-22-12 2 18 16 32 36 34 22 2 44-8 60-24 16 16 38 26 60 24 20-2 34-16 36-34-4 7-12 13-22 12-14-2-20-16-32-22-16-8-34-2-42 12z";
+      const CENTER = { x: 200, y: 92 };
+      const ARCS = [
+        { r: 62, width: 9, color: "var(--c1)" },
+        { r: 84, width: 7, color: "var(--c2)" },
+      ];
+      const BANDS = ["--c4", "--c3", "--c2", "--c1"];
+      const BAND = { height: 9, gap: 3, left: 12, right: 388, slant: 5 };
+      const BANDS_TOP =
+        CENTER.y - (BANDS.length * (BAND.height + BAND.gap) - BAND.gap) / 2;
+
+      function arc(r, from, to) {
+        const point = (deg) => {
+          const rad = (deg * Math.PI) / 180;
+          return `${CENTER.x + r * Math.cos(rad)} ${CENTER.y + r * Math.sin(rad)}`;
+        };
+        return `M${point(from)} A${r} ${r} 0 0 1 ${point(to)}`;
+      }
+
+      const bands = BANDS.map((color, i) => {
+        const y = BANDS_TOP + i * (BAND.height + BAND.gap);
+        const { left, right, slant, height } = BAND;
+        return `<polygon style="fill: var(${color})" points="${left + slant},${y} ${right + slant},${y} ${right},${y + height} ${left},${y + height}" />`;
+      }).join("");
+      const arcs = ARCS.map(
+        ({ r, width, color }) =>
+          `<g style="stroke: ${color}" stroke-width="${width}"><path d="${arc(r, 232, 308)}" /><path d="${arc(r, 52, 128)}" /></g>`,
+      ).join("");
+      document.getElementById("logo").innerHTML = `
+        <defs>
+          <filter id="bloom" x="-30%" y="-30%" width="160%" height="160%">
+            <feGaussianBlur stdDeviation="5" result="soft" />
+            <feMerge><feMergeNode in="soft" /><feMergeNode in="soft" /><feMergeNode in="SourceGraphic" /></feMerge>
+          </filter>
+          <path id="gerald" d="${MUSTACHE_PATH}" transform="translate(${CENTER.x - 121} ${CENTER.y - 53}) scale(1.21)" />
+        </defs>
+        <g filter="url(#bloom)">
+          ${bands}
+          <g fill="none">${arcs}</g>
+          <use href="#gerald" style="fill: var(--bg); stroke: var(--bg); stroke-width: 7; stroke-linejoin: round" />
+          <use href="#gerald" style="fill: var(--red); mix-blend-mode: screen; opacity: 0.85; transform: translateX(-2.5px)" />
+          <use href="#gerald" style="fill: var(--blue); mix-blend-mode: screen; opacity: 0.85; transform: translateX(2.5px)" />
+          <use href="#gerald" style="fill: var(--face)" />
+        </g>`;
+
+      // ?base: the card with no day, border or CRT (card.ts adds them).
+      // ?glyphs: every letter a day can use, one per cell, drawn where card.ts
+      // expects it. Both leave window.art for make-art.ts once the fonts load.
+      const CHARS = "#0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ·, ";
+      // Room around each letter for its slant and glow; the pen starts at x.
+      const CELL = { w: 100, h: 90, x: 30 };
+      const day = document.getElementById("day");
+      const mode = location.search.slice(1);
+
+      if (mode === "base")
+        for (const id of ["day", "border", "crt"])
+          document.getElementById(id).style.visibility = "hidden";
+
+      // A letter's advance: its width plus the tracking after it.
+      function advance(char) {
+        const probe = day.cloneNode();
+        Object.assign(probe.style, {
+          left: "auto",
+          right: "auto",
+          whiteSpace: "pre",
+          visibility: "hidden",
+        });
+        probe.textContent = char;
+        document.body.append(probe);
+        const width = probe.getBoundingClientRect().width;
+        probe.remove();
+        return width;
+      }
+
+      const fonts = ["italic 900 98px Archivo", "italic 800 38px Archivo"];
+      Promise.all(fonts.map((font) => document.fonts.load(font, CHARS))).then(() => {
+        const perRow = Math.floor(1200 / CELL.w);
+        const lineTop = (CELL.h - day.getBoundingClientRect().height) / 2;
+        window.art = {
+          chars: CHARS,
+          advances: [...CHARS].map(advance),
+          cell: { ...CELL, perRow, lineTop },
+          sheet: { width: 1200, height: Math.ceil(CHARS.length / perRow) * CELL.h },
+          // The day's line on the card: centered on x, its top at y.
+          day: { x: 600, y: day.offsetTop },
+        };
+        if (mode !== "glyphs") return;
+        document.getElementById("card").style.display = "none";
+        const sheet = document.createElement("div");
+        sheet.className = "glyphs";
+        for (const char of CHARS) {
+          const cell = document.createElement("div");
+          const letter = day.cloneNode();
+          Object.assign(letter.style, { left: `${CELL.x}px`, right: "auto", top: `${lineTop}px` });
+          letter.textContent = char;
+          cell.append(letter);
+          sheet.append(cell);
+        }
+        document.body.append(sheet);
+      });
+    </script>
+  </body>
+</html>
