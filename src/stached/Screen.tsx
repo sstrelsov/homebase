@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useCanGoBack, useRouter } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import styles from "./stached.module.css";
 
@@ -27,28 +27,35 @@ interface ScreenProps {
   onRetry: () => void;
   /** What's on the screen once it has loaded; null until then. */
   children: ReactNode;
-  /** Small print at the bottom. */
-  note?: ReactNode;
 }
 
-/** A screen off home (past games, the leaderboard): title, content, small print. */
-const Screen = ({
-  title,
-  subtitle,
-  error,
-  onRetry,
-  children,
-  note,
-}: ScreenProps) => (
+/**
+ * Back to wherever you came from: home, or a game's results. A link opened
+ * fresh has nowhere to go back to, so it goes home.
+ */
+const BackLink = () => {
+  const router = useRouter();
+  const canGoBack = useCanGoBack();
+  return (
+    <Link
+      to="/stached"
+      onClick={(event) => {
+        if (!canGoBack) return;
+        event.preventDefault();
+        router.history.back();
+      }}
+      className={`${styles.title} -ml-1 py-2 pr-3 text-lg`}
+    >
+      Back
+    </Link>
+  );
+};
+
+/** A screen off home (past games, the leaderboard): a title and its content. */
+const Screen = ({ title, subtitle, error, onRetry, children }: ScreenProps) => (
   <div className="flex flex-col gap-5">
     <header className="flex items-center justify-between">
-      <Link
-        to="/stached"
-        aria-label="Stached home"
-        className={`${styles.title} -ml-1 py-2 pr-3 text-lg`}
-      >
-        Stached
-      </Link>
+      <BackLink />
     </header>
 
     <div className="flex flex-col gap-3">
@@ -62,8 +69,6 @@ const Screen = ({
     ) : (
       (children ?? <p className={styles.label}>Loading…</p>)
     )}
-
-    {note && <p className={`${styles.label} leading-relaxed`}>{note}</p>}
   </div>
 );
 

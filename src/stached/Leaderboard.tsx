@@ -73,7 +73,6 @@ const Leaderboard = () => {
       }
       error={error}
       onRetry={load}
-      note="Streak: puzzles solved in a row. Today's puzzle doesn't break it until it's over. Bars are stache times: shorter is faster."
     >
       {board &&
         (board.players.length === 0 ? (
