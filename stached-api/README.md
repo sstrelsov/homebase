@@ -1,6 +1,13 @@
 # Stached
 
-A daily Connections-style puzzle with a twist: one of the four groups is stache themed, and your **stache time** is how fast you find it. It lives at `https://spencerstrelsov.com/stached` (unlisted, password-gated) with a leaderboard at `/stached/leaderboard`.
+A daily Connections-style puzzle with a twist: one of the four groups is stache themed, and your **stache time** is how fast you find it. It lives at `https://spencerstrelsov.com/stached` (unlisted, password-gated).
+
+| Page | Route |
+|---|---|
+| Home (logo, Rules, Play) | `/stached` |
+| A day's game | `/stached/2026-09-30` (Play opens today's) |
+| Past games | `/stached/past` |
+| Leaderboard | `/stached/leaderboard` |
 
 ```
 phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
@@ -15,7 +22,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 
 | What | Where |
 |---|---|
-| Game UI | `src/pages/Stached.tsx`, `src/stached/` (login, game, clock, leaderboard, dialogs, logo, styles) |
+| Game UI | `src/pages/Stached.tsx`, `src/stached/` (login, game, past games, clock, leaderboard, dialogs, logo, styles) |
 | API server | `stached-api/server.ts` (dependency-free Bun) |
 | Database schema | `stached-api/migrations/*.sql`, applied by `stached-api/migrate.ts` |
 | Studio services | `stached-api/ops/install-daemons.sh` |
@@ -30,7 +37,8 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 - **Four mistakes** end the game. Three right words out of four gets a "one away" hint.
 - **Stache time** counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; if a phone sleeps before it can say so, the gap counts for at most 15 seconds. The server keeps the real clock.
 - **The leaderboard** ranks everyone by streak, then best stache time. A streak is puzzles solved in a row; today's puzzle doesn't break it until you finish (or miss) it. Each player also shows their best and average stache time, games solved, and a bar per day for the last seven puzzles.
-- **The daily puzzle** is the newest one dated on or before today in New York.
+- **The daily puzzle** is the newest one dated on or before today in New York. Puzzles are numbered by date (#1 is the first).
+- **Past games** shows a tile per day so far. A finished day opens your board, the answers, and that day's scoreboard. A missed day can be played any time after, but it's marked **late**: it shows in your history and on that day's scoreboard (tagged late), and it never counts toward streaks or leaderboard times.
 
 ## Puzzles
 
@@ -77,7 +85,12 @@ Deploy the API before merging a site change that needs a new endpoint. The old s
 
 ## Database and migrations
 
-Three tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the puzzles file), and `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result). `schema_migrations` records which migrations ran.
+Three tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the puzzles file), and `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result, and whether it was played late).
+
+| Migration | What it did |
+|---|---|
+| `0001_initial.sql` | The schema as of 2026-09-30 |
+| `0002_plays_late.sql` | `plays.late`, for games played after their day | `schema_migrations` records which migrations ran.
 
 To change the schema, add the next numbered file:
 

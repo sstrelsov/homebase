@@ -4,6 +4,7 @@ import {
   type Color,
   formatDate,
   formatTime,
+  nyToday,
   type Play,
   type Score,
   type Today,
@@ -115,7 +116,9 @@ const ResultsDialog = ({
       </button>
 
       <section className="space-y-2">
-        <h3 className={styles.label}>Today's scoreboard</h3>
+        <h3 className={styles.label}>
+          {puzzle.date === nyToday() ? "Today's scoreboard" : "Scoreboard"}
+        </h3>
         <ol className="text-[19px] leading-tight">
           {board.map((score, i) => (
             <li
@@ -125,7 +128,14 @@ const ResultsDialog = ({
               }`}
             >
               <span className="w-6 opacity-50">{i + 1}</span>
-              <span className="flex-1 truncate">{score.name}</span>
+              <span className="flex-1 truncate">
+                {score.name}
+                {score.late && (
+                  <span className={`${styles.label} ml-2`} title="Played late">
+                    late
+                  </span>
+                )}
+              </span>
               <span className={styles.stacheText}>
                 {formatTime(score.stachedMs)}
               </span>

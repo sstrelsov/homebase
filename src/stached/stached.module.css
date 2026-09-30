@@ -639,6 +639,59 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Past games: a tile per day */
+.dayTile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--tile);
+  color: var(--ink);
+  text-align: center;
+  transition:
+    transform 0.08s,
+    border-color 0.15s;
+}
+
+.dayTile:active {
+  transform: translateY(1px);
+}
+
+.dayTileStache {
+  width: 64px;
+  height: 20px;
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 5;
+}
+
+.dayTile[data-state="unplayed"] {
+  border-color: rgba(255, 210, 63, 0.55);
+}
+
+.dayTile[data-state="unplayed"] > span:nth-last-child(2) {
+  color: var(--gold);
+}
+
+.dayTile[data-state="stached"] .dayTileStache {
+  fill: var(--face);
+  stroke: none;
+  filter: drop-shadow(-1.5px 0 var(--red)) drop-shadow(1.5px 0 var(--blue))
+    drop-shadow(0 0 6px rgba(255, 210, 63, 0.6));
+}
+
+.dayTile[data-state="stached"] > span:nth-last-child(2) {
+  color: var(--gold);
+}
+
+.dayTile[data-state="unstached"] .dayTileStache {
+  fill: var(--muted);
+  stroke: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .rise,
   .bar[data-color="stache"],

@@ -1,4 +1,4 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiError,
@@ -11,10 +11,11 @@ import {
   type Today,
 } from "../stached/api";
 import Crawl from "../stached/Crawl";
-import Game from "../stached/Game";
+import DayGame from "../stached/DayGame";
 import Leaderboard from "../stached/Leaderboard";
 import Login from "../stached/Login";
 import Logo from "../stached/Logo";
+import PastGames from "../stached/PastGames";
 import RulesDialog from "../stached/RulesDialog";
 import styles from "../stached/stached.module.css";
 
@@ -28,81 +29,35 @@ function status({ play }: Today) {
   return `${stache} · ${play.completed ? "Solved" : "Missed"}`;
 }
 
-type View = "home" | "leaderboard";
+// The logo powers on once per visit, not every time you come back home.
+let introShown = false;
 
-interface SignedInProps {
+interface HomeProps {
   session: Session;
-  view: View;
+  onRules: () => void;
   onSignOut: () => void;
 }
 
-/** Signed in: the logo and its two buttons, the game, or the leaderboard. */
-const SignedIn = ({ session, view, onSignOut }: SignedInProps) => {
+/** The logo, Rules and Play, and ways to the leaderboard and past games. */
+const Home = ({ session, onRules, onSignOut }: HomeProps) => {
+  const navigate = useNavigate();
   const [today, setToday] = useState<Today | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [playing, setPlaying] = useState(false);
-  const [rulesOpen, setRulesOpen] = useState(false);
-  // The logo powers on once, not every time you come back from a game.
-  const [intro, setIntro] = useState(true);
+  const [intro] = useState(() => !introShown);
 
-  const fail = useCallback(
-    (err: unknown) => {
-      if (err instanceof ApiError && err.status === 401) onSignOut();
-      else setError(err instanceof Error ? err.message : "Something broke");
-    },
-    [onSignOut],
-  );
+  useEffect(() => {
+    introShown = true;
+  }, []);
 
   const load = useCallback(() => {
     setError(null);
-    api.today(session.token).then(setToday, fail);
-  }, [session.token, fail]);
+    api.today(session.token).then(setToday, (err: unknown) => {
+      if (err instanceof ApiError && err.status === 401) onSignOut();
+      else setError(err instanceof Error ? err.message : "Something broke");
+    });
+  }, [session.token, onSignOut]);
 
   useEffect(load, [load]);
-
-  const play = async () => {
-    if (!today) return;
-    try {
-      // Starts the game, or picks it up from the server's copy, which may have
-      // moved on since this screen last looked.
-      setToday(await api.start(session.token, today.puzzle.id));
-      setIntro(false);
-      setPlaying(true);
-    } catch (err) {
-      fail(err);
-    }
-  };
-
-  const rules = (
-    <RulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
-  );
-
-  if (playing && today?.play) {
-    return (
-      <>
-        <Game
-          token={session.token}
-          player={session.name}
-          puzzle={today.puzzle}
-          board={today.board}
-          play={today.play}
-          onToday={setToday}
-          onHome={() => setPlaying(false)}
-          onRules={() => setRulesOpen(true)}
-        />
-        {rules}
-      </>
-    );
-  }
-
-  if (view === "leaderboard")
-    return (
-      <Leaderboard
-        token={session.token}
-        player={session.name}
-        onSignOut={onSignOut}
-      />
-    );
 
   const rise = intro ? styles.rise : "";
   const note = today ? status(today) : "Loading…";
@@ -116,23 +71,25 @@ const SignedIn = ({ session, view, onSignOut }: SignedInProps) => {
       >
         <h1 className={`${styles.title} text-[32px]`}>Stached</h1>
         <p className={styles.label}>
-          {today ? formatDate(today.puzzle.date) : " "}
+          {today ? formatDate(today.puzzle.date) : " "}
         </p>
       </div>
       <div
         className={`${rise} grid grid-cols-2 gap-3`}
         style={{ animationDelay: "1.3s" }}
       >
-        <button
-          type="button"
-          onClick={() => setRulesOpen(true)}
-          className={styles.button}
-        >
+        <button type="button" onClick={onRules} className={styles.button}>
           Rules
         </button>
         <button
           type="button"
-          onClick={play}
+          onClick={() =>
+            today &&
+            navigate({
+              to: "/stached/$date",
+              params: { date: today.puzzle.date },
+            })
+          }
           disabled={!today}
           className={`${styles.button} ${styles.primary}`}
         >
@@ -154,12 +111,20 @@ const SignedIn = ({ session, view, onSignOut }: SignedInProps) => {
         ) : (
           note && <p className={styles.label}>{note}</p>
         )}
-        <Link
-          to="/stached/leaderboard"
-          className={`${styles.display} ${styles.stacheText} text-[13px]`}
-        >
-          🔥 Leaderboard
-        </Link>
+        <div className="flex gap-6">
+          <Link
+            to="/stached/leaderboard"
+            className={`${styles.display} ${styles.stacheText} text-[13px]`}
+          >
+            🔥 Leaderboard
+          </Link>
+          <Link
+            to="/stached/past"
+            className={`${styles.display} ${styles.stacheText} text-[13px]`}
+          >
+            Past games
+          </Link>
+        </div>
         <button
           type="button"
           onClick={onSignOut}
@@ -169,12 +134,56 @@ const SignedIn = ({ session, view, onSignOut }: SignedInProps) => {
         </button>
       </div>
       <Crawl />
-      {rules}
     </div>
   );
 };
 
-const StachedPage = ({ view = "home" }: { view?: View }) => {
+type View = "home" | "leaderboard" | "past" | "day";
+
+interface SignedInProps {
+  session: Session;
+  view: View;
+  date?: string;
+  onSignOut: () => void;
+}
+
+/** Signed in: home, a day's game, past games, or the leaderboard. */
+const SignedIn = ({ session, view, date, onSignOut }: SignedInProps) => {
+  const [rulesOpen, setRulesOpen] = useState(false);
+  const openRules = () => setRulesOpen(true);
+
+  return (
+    <>
+      {view === "day" && date ? (
+        <DayGame
+          session={session}
+          date={date}
+          onSignOut={onSignOut}
+          onRules={openRules}
+        />
+      ) : view === "leaderboard" ? (
+        <Leaderboard
+          token={session.token}
+          player={session.name}
+          onSignOut={onSignOut}
+        />
+      ) : view === "past" ? (
+        <PastGames session={session} onSignOut={onSignOut} />
+      ) : (
+        <Home session={session} onRules={openRules} onSignOut={onSignOut} />
+      )}
+      <RulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
+    </>
+  );
+};
+
+const StachedPage = ({
+  view = "home",
+  date,
+}: {
+  view?: View;
+  date?: string;
+}) => {
   const [session, setSession] = useState(loadSession);
 
   const signIn = (next: Session) => {
@@ -196,6 +205,7 @@ const StachedPage = ({ view = "home" }: { view?: View }) => {
             key={session.token}
             session={session}
             view={view}
+            date={date}
             onSignOut={signOut}
           />
         ) : (
@@ -207,5 +217,12 @@ const StachedPage = ({ view = "home" }: { view?: View }) => {
 };
 
 export const StachedLeaderboardPage = () => <StachedPage view="leaderboard" />;
+
+export const StachedPastPage = () => <StachedPage view="past" />;
+
+export const StachedDayPage = () => {
+  const { date } = useParams({ strict: false }) as { date?: string };
+  return <StachedPage view="day" date={date} />;
+};
 
 export default StachedPage;

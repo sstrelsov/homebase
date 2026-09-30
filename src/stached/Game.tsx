@@ -8,8 +8,10 @@ import {
 } from "react";
 import {
   api,
+  formatDate,
   formatTime,
   type Group,
+  nyToday,
   type Play,
   type Score,
   type Today,
@@ -270,6 +272,10 @@ const Game = ({
         >
           Stached
         </button>
+        {/* Today's game needs no date; a past one does. */}
+        {puzzle.date !== nyToday() && (
+          <span className={styles.label}>{formatDate(puzzle.date)}</span>
+        )}
         <button
           type="button"
           onClick={onRules}

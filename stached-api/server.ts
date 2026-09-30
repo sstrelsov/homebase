@@ -125,6 +125,40 @@ async function livePuzzle(filter = sql``): Promise<Puzzle | undefined> {
 const puzzleById = async (id: unknown) =>
   Number.isInteger(id) ? livePuzzle(sql`and id = ${id}`) : undefined;
 
+const puzzleByDate = async (date: unknown) =>
+  typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)
+    ? livePuzzle(sql`and date = ${date}::date`)
+    : undefined;
+
+/** Every puzzle so far, newest first, with how this player did on each. */
+async function pastGames(userId: number) {
+  const rows = await sql`
+    select pz.date, pz.number, p.user_id, p.finished_at, p.completed,
+           p.stached_ms, p.mistakes, p.late
+    from (
+      select id, to_char(date, 'YYYY-MM-DD') as date, date as day,
+             row_number() over (order by date) as number
+      from puzzles
+    ) pz
+    left join plays p on p.puzzle_id = pz.id and p.user_id = ${userId}
+    where pz.day <= (now() at time zone 'America/New_York')::date
+    order by pz.day desc`;
+  return rows.map((r: Record<string, unknown>) => ({
+    date: r.date,
+    number: Number(r.number),
+    play:
+      r.user_id == null
+        ? null
+        : {
+            finished: r.finished_at !== null,
+            completed: r.completed,
+            stachedMs: r.stached_ms,
+            mistakes: r.mistakes,
+            late: r.late,
+          },
+  }));
+}
+
 const RECENT_PUZZLES = 7;
 
 interface Standing {
@@ -142,7 +176,8 @@ interface Standing {
 /**
  * Everyone who has played, with streaks and times. A streak is the run of
  * puzzles solved, newest first; today's puzzle, if it isn't finished yet,
- * doesn't break it (you still have today to keep it going).
+ * doesn't break it (you still have today to keep it going). Only games played
+ * on their day count: a late game from Past games never fills a gap.
  */
 interface GameRow {
   name: string;
@@ -163,7 +198,8 @@ async function leaderboard() {
     sql`
       select u.name, p.puzzle_id, p.completed, p.mistakes, p.stached_ms,
              p.finished_at is not null as finished
-      from plays p join users u on u.id = p.user_id`,
+      from plays p join users u on u.id = p.user_id
+      where not p.late`,
   ]);
   const byPlayer = new Map<string, Map<number, GameRow>>();
   for (const play of plays) {
@@ -251,7 +287,7 @@ async function snapshot(userId: number, puzzle: Puzzle) {
   const [[play], board] = await Promise.all([
     sql`select * from plays where user_id = ${userId} and puzzle_id = ${puzzle.id}`,
     sql`
-      select u.name, p.completed, p.stached_ms as "stachedMs"
+      select u.name, p.completed, p.stached_ms as "stachedMs", p.late
       from plays p join users u on u.id = p.user_id
       where p.puzzle_id = ${puzzle.id} and p.finished_at is not null
       order by p.stached_ms nulls last, p.completed desc, p.mistakes, p.finished_at`,
@@ -281,12 +317,21 @@ async function login({ name, password }: Record<string, unknown>) {
   return Response.json({ token: `${user.id}.${sign(user)}`, name: user.name });
 }
 
-async function start(userId: number, { puzzleId }: Record<string, unknown>) {
-  const puzzle = await puzzleById(puzzleId);
-  if (!puzzle) return fail(404, "No such puzzle");
+/** Starts a game (by date, or by id for older pages), or picks it back up. */
+async function start(
+  userId: number,
+  { puzzleId, date }: Record<string, unknown>,
+) {
+  const puzzle = await (date !== undefined
+    ? puzzleByDate(date)
+    : puzzleById(puzzleId));
+  if (!puzzle) return fail(404, "No puzzle for that day");
   await sql`
-    insert into plays (user_id, puzzle_id, active_since)
-    values (${userId}, ${puzzle.id}, ${new Date()})
+    insert into plays (user_id, puzzle_id, active_since, late)
+    values (
+      ${userId}, ${puzzle.id}, ${new Date()},
+      ${puzzle.date}::date < (now() at time zone 'America/New_York')::date
+    )
     on conflict (user_id, puzzle_id) do nothing`;
   return Response.json(await snapshot(userId, puzzle));
 }
@@ -416,6 +461,8 @@ async function route(req: Request): Promise<Response> {
       return guess(userId, data);
     case "GET /leaderboard":
       return Response.json(await leaderboard());
+    case "GET /puzzles":
+      return Response.json(await pastGames(userId));
     default:
       return fail(404, "Not found");
   }

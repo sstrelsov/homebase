@@ -122,12 +122,45 @@ const stachedLeaderboardRoute = createRoute({
   }),
 });
 
+const stachedPastRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/stached/past",
+  component: lazyRouteComponent(
+    () => import("./pages/Stached"),
+    "StachedPastPage",
+  ),
+  head: () => ({
+    meta: [
+      { title: "Past games | Stached" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
+});
+
+// One day's game: /stached/2026-09-29.
+const stachedDayRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/stached/$date",
+  component: lazyRouteComponent(
+    () => import("./pages/Stached"),
+    "StachedDayPage",
+  ),
+  head: ({ params }) => ({
+    meta: [
+      { title: `Stached · ${params.date}` },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   aboutRoute,
   projectsRoute.addChildren([projectsIndexRoute, projectDetailRoute]),
   stachedRoute,
   stachedLeaderboardRoute,
+  stachedPastRoute,
+  stachedDayRoute,
 ]);
 
 export const router = createRouter({

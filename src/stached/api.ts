@@ -32,6 +32,21 @@ export interface Score {
   name: string;
   completed: boolean;
   stachedMs: number | null;
+  /** Played after the puzzle's day, from Past games. */
+  late: boolean;
+}
+
+/** A puzzle so far, with how you did on it. */
+export interface PastGame {
+  date: string;
+  number: number;
+  play: {
+    finished: boolean;
+    completed: boolean | null;
+    stachedMs: number | null;
+    mistakes: number;
+    late: boolean;
+  } | null;
 }
 
 export interface Today {
@@ -108,8 +123,10 @@ export const api = {
   today: (token: string) => request<Today>("/today", { token }),
   leaderboard: (token: string) =>
     request<Leaderboard>("/leaderboard", { token }),
-  start: (token: string, puzzleId: number) =>
-    request<Today>("/start", { token, body: { puzzleId } }),
+  /** Starts that day's game, or picks it back up. */
+  start: (token: string, date: string) =>
+    request<Today>("/start", { token, body: { date } }),
+  pastGames: (token: string) => request<PastGame[]>("/puzzles", { token }),
   /** Tells the server the board is on screen, so the clock keeps running. */
   clock: (token: string, puzzleId: number) =>
     request<{ elapsedMs: number }>("/clock", {
@@ -167,3 +184,9 @@ export function formatDate(date: string) {
     year: "numeric",
   });
 }
+
+/** Today's date in New York, where puzzles change over: "2026-09-30". */
+export const nyToday = () =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York" }).format(
+    new Date(),
+  );

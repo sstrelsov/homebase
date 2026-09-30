@@ -63,8 +63,10 @@ export default defineConfig({
             /<meta\s+name="description"\s+content="[^"]*"\s*\/>/,
             `<meta name="description" content="${STACHED_DESCRIPTION}" />`,
           );
-        // The game and its leaderboard, so direct loads get a 200 and the card.
-        for (const route of ["stached", "stached/leaderboard"]) {
+        // The game's fixed pages, so direct loads get a 200 and the card.
+        // Day pages (/stached/2026-09-29) fall back to 404.html, which still
+        // runs the app; their dates live in the private puzzles file.
+        for (const route of ["stached", "stached/leaderboard", "stached/past"]) {
           mkdirSync(resolve(outDir, route), { recursive: true });
           writeFileSync(resolve(outDir, route, "index.html"), page);
         }
