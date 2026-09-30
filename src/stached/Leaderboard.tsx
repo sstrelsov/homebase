@@ -138,8 +138,11 @@ const Leaderboard = ({ token, player, onSignOut }: LeaderboardProps) => {
                     {standing.name}
                   </span>
                 </span>
-                <span className={`${styles.stacheText} shrink-0 text-[17px]`}>
-                  {standing.streak > 0 ? `🔥 ${standing.streak}` : "—"}
+                <span className="flex shrink-0 items-baseline gap-2">
+                  <span className={styles.label}>Streak</span>
+                  <span className={`${styles.stacheText} text-[17px]`}>
+                    {standing.streak}
+                  </span>
                 </span>
               </div>
               <dl className={styles.standingStats}>
@@ -165,8 +168,8 @@ const Leaderboard = ({ token, player, onSignOut }: LeaderboardProps) => {
       )}
 
       <p className={`${styles.label} leading-relaxed`}>
-        🔥 Streak: puzzles solved in a row. Today's puzzle doesn't break it
-        until it's over. Bars are stache times: shorter is faster.
+        Streak: puzzles solved in a row. Today's puzzle doesn't break it until
+        it's over. Bars are stache times: shorter is faster.
       </p>
     </div>
   );

@@ -116,7 +116,7 @@ const Home = ({ session, onRules, onSignOut }: HomeProps) => {
             to="/stached/leaderboard"
             className={`${styles.display} ${styles.stacheText} text-[13px]`}
           >
-            🔥 Leaderboard
+            Leaderboard
           </Link>
           <Link
             to="/stached/past"
