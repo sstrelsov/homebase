@@ -107,11 +107,27 @@ const stachedRoute = createRoute({
   }),
 });
 
+const stachedLeaderboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/stached/leaderboard",
+  component: lazyRouteComponent(
+    () => import("./pages/Stached"),
+    "StachedLeaderboardPage",
+  ),
+  head: () => ({
+    meta: [
+      { title: "Leaderboard | Stached" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
+});
+
 const routeTree = rootRoute.addChildren([
   homeRoute,
   aboutRoute,
   projectsRoute.addChildren([projectsIndexRoute, projectDetailRoute]),
   stachedRoute,
+  stachedLeaderboardRoute,
 ]);
 
 export const router = createRouter({

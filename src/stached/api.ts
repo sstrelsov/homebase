@@ -46,6 +46,24 @@ export interface Today {
   board: Score[];
 }
 
+export interface Standing {
+  name: string;
+  games: number;
+  solved: number;
+  perfect: number;
+  streak: number;
+  bestStacheMs: number | null;
+  avgStacheMs: number | null;
+  /** Stache time on each of the recent puzzles, oldest first. */
+  recent: (number | null)[];
+}
+
+export interface Leaderboard {
+  /** The recent puzzles' dates, oldest first, matching each `recent`. */
+  recentDates: string[];
+  players: Standing[];
+}
+
 export type GuessResult = "correct" | "one_away" | "wrong" | "repeat";
 
 export interface Session {
@@ -88,6 +106,8 @@ export const api = {
   login: (name: string, password: string) =>
     request<Session>("/login", { body: { name, password } }),
   today: (token: string) => request<Today>("/today", { token }),
+  leaderboard: (token: string) =>
+    request<Leaderboard>("/leaderboard", { token }),
   start: (token: string, puzzleId: number) =>
     request<Today>("/start", { token, body: { puzzleId } }),
   /** Tells the server the board is on screen, so the clock keeps running. */

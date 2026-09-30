@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import {
   type Color,
@@ -136,13 +137,14 @@ const ResultsDialog = ({
         </ol>
       </section>
 
-      <button
-        type="button"
-        onClick={onHome}
-        className={`${styles.button} w-full`}
-      >
-        Home
-      </button>
+      <div className="grid grid-cols-2 gap-3">
+        <button type="button" onClick={onHome} className={styles.button}>
+          Home
+        </button>
+        <Link to="/stached/leaderboard" className={styles.button}>
+          Leaderboard
+        </Link>
+      </div>
     </Dialog>
   );
 };

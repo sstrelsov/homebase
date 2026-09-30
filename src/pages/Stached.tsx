@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ApiError,
@@ -11,6 +12,7 @@ import {
 } from "../stached/api";
 import Crawl from "../stached/Crawl";
 import Game from "../stached/Game";
+import Leaderboard from "../stached/Leaderboard";
 import Login from "../stached/Login";
 import Logo from "../stached/Logo";
 import RulesDialog from "../stached/RulesDialog";
@@ -26,13 +28,16 @@ function status({ play }: Today) {
   return `${stache} · ${play.completed ? "Solved" : "Missed"}`;
 }
 
+type View = "home" | "leaderboard";
+
 interface SignedInProps {
   session: Session;
+  view: View;
   onSignOut: () => void;
 }
 
-/** Signed in: the logo and its two buttons, or the game itself. */
-const SignedIn = ({ session, onSignOut }: SignedInProps) => {
+/** Signed in: the logo and its two buttons, the game, or the leaderboard. */
+const SignedIn = ({ session, view, onSignOut }: SignedInProps) => {
   const [today, setToday] = useState<Today | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -90,6 +95,15 @@ const SignedIn = ({ session, onSignOut }: SignedInProps) => {
     );
   }
 
+  if (view === "leaderboard")
+    return (
+      <Leaderboard
+        token={session.token}
+        player={session.name}
+        onSignOut={onSignOut}
+      />
+    );
+
   const rise = intro ? styles.rise : "";
   const note = today ? status(today) : "Loading…";
 
@@ -140,6 +154,12 @@ const SignedIn = ({ session, onSignOut }: SignedInProps) => {
         ) : (
           note && <p className={styles.label}>{note}</p>
         )}
+        <Link
+          to="/stached/leaderboard"
+          className={`${styles.display} ${styles.stacheText} text-[13px]`}
+        >
+          🔥 Leaderboard
+        </Link>
         <button
           type="button"
           onClick={onSignOut}
@@ -154,7 +174,7 @@ const SignedIn = ({ session, onSignOut }: SignedInProps) => {
   );
 };
 
-const StachedPage = () => {
+const StachedPage = ({ view = "home" }: { view?: View }) => {
   const [session, setSession] = useState(loadSession);
 
   const signIn = (next: Session) => {
@@ -172,7 +192,12 @@ const StachedPage = () => {
       <div aria-hidden="true" className={styles.crt} />
       <div className="mx-auto w-full max-w-md px-4 pt-4 pb-6">
         {session ? (
-          <SignedIn key={session.token} session={session} onSignOut={signOut} />
+          <SignedIn
+            key={session.token}
+            session={session}
+            view={view}
+            onSignOut={signOut}
+          />
         ) : (
           <Login onSignIn={signIn} />
         )}
@@ -180,5 +205,7 @@ const StachedPage = () => {
     </div>
   );
 };
+
+export const StachedLeaderboardPage = () => <StachedPage view="leaderboard" />;
 
 export default StachedPage;

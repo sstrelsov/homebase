@@ -1,3 +1,6 @@
+-- The schema as it was when migrations began (2026-09-30). Everything here is
+-- "if not exists", so it is a no-op on the database that already had it.
+
 create table if not exists users (
   id serial primary key,
   name text not null,

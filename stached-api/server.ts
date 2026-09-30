@@ -8,6 +8,7 @@
 // so) counts for at most CLOCK_GRACE_MS.
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
+import { migrate } from "./migrate";
 
 const PASSWORD = env("STACHE_PASSWORD");
 const SECRET = env("SESSION_SECRET");
@@ -123,6 +124,88 @@ async function livePuzzle(filter = sql``): Promise<Puzzle | undefined> {
 
 const puzzleById = async (id: unknown) =>
   Number.isInteger(id) ? livePuzzle(sql`and id = ${id}`) : undefined;
+
+const RECENT_PUZZLES = 7;
+
+interface Standing {
+  name: string;
+  games: number;
+  solved: number;
+  perfect: number;
+  streak: number;
+  bestStacheMs: number | null;
+  avgStacheMs: number | null;
+  /** Stache time on each of the recent puzzles, oldest first; null if none. */
+  recent: (number | null)[];
+}
+
+/**
+ * Everyone who has played, with streaks and times. A streak is the run of
+ * puzzles solved, newest first; today's puzzle, if it isn't finished yet,
+ * doesn't break it (you still have today to keep it going).
+ */
+interface GameRow {
+  name: string;
+  puzzle_id: number;
+  completed: boolean | null;
+  mistakes: number;
+  stached_ms: number | null;
+  finished: boolean;
+}
+
+async function leaderboard() {
+  const [puzzles, plays]: [{ id: number; date: string }[], GameRow[]] =
+    await Promise.all([
+    sql`
+      select id, to_char(date, 'YYYY-MM-DD') as date from puzzles
+      where date <= (now() at time zone 'America/New_York')::date
+      order by date desc`,
+    sql`
+      select u.name, p.puzzle_id, p.completed, p.mistakes, p.stached_ms,
+             p.finished_at is not null as finished
+      from plays p join users u on u.id = p.user_id`,
+  ]);
+  const byPlayer = new Map<string, Map<number, GameRow>>();
+  for (const play of plays) {
+    if (!byPlayer.has(play.name)) byPlayer.set(play.name, new Map());
+    byPlayer.get(play.name)?.set(play.puzzle_id, play);
+  }
+  const recent = puzzles.slice(0, RECENT_PUZZLES).reverse();
+
+  const standings: Standing[] = [...byPlayer].map(([name, games]) => {
+    const all = [...games.values()];
+    const finished = all.filter((g) => g.finished);
+    const times = all
+      .map((g) => g.stached_ms)
+      .filter((ms): ms is number => ms !== null);
+    let streak = 0;
+    for (const [i, puzzle] of puzzles.entries()) {
+      const game = games.get(puzzle.id);
+      if (i === 0 && !game?.finished) continue;
+      if (!game?.completed) break;
+      streak++;
+    }
+    return {
+      name,
+      games: finished.length,
+      solved: finished.filter((g) => g.completed).length,
+      perfect: finished.filter((g) => g.completed && g.mistakes === 0).length,
+      streak,
+      bestStacheMs: times.length ? Math.min(...times) : null,
+      avgStacheMs: times.length
+        ? Math.round(times.reduce((a, b) => a + b, 0) / times.length)
+        : null,
+      recent: recent.map((p) => games.get(p.id)?.stached_ms ?? null),
+    };
+  });
+
+  const best = (s: Standing) => s.bestStacheMs ?? Number.POSITIVE_INFINITY;
+  standings.sort(
+    (a, b) =>
+      b.streak - a.streak || best(a) - best(b) || a.name.localeCompare(b.name),
+  );
+  return { recentDates: recent.map((p) => p.date), players: standings };
+}
 
 /** Clock time up to now, if the game has kept checking in. */
 function activeMs(play: Play, now: Date) {
@@ -331,6 +414,8 @@ async function route(req: Request): Promise<Response> {
       return clock(userId, data);
     case "POST /guess":
       return guess(userId, data);
+    case "GET /leaderboard":
+      return Response.json(await leaderboard());
     default:
       return fail(404, "Not found");
   }
@@ -376,7 +461,7 @@ function cors(req: Request): Record<string, string> {
 }
 
 checkPuzzles();
-await sql.unsafe(await Bun.file(new URL("schema.sql", import.meta.url)).text());
+await migrate();
 // Postgres mirrors the puzzles file. Editing or dropping a puzzle that people have
 // played wipes their games: scores from the old words wouldn't mean anything
 // against the new ones.
