@@ -10,7 +10,6 @@
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
 import { type CardPuzzle, nextColor, renderCard } from "./card";
-import { routeOf } from "./http";
 import { migrate } from "./migrate";
 
 const PASSWORD = env("STACHE_PASSWORD");
@@ -451,19 +450,25 @@ async function guess(
  * fetch shows today's puzzle and takes the next border color. It reads only
  * the puzzle's number and date, and never a puzzle still to come.
  */
-async function card() {
+async function card(req: Request) {
   const [puzzle]: CardPuzzle[] =
     await sql`select number, date from ${released()} where today`;
   if (!puzzle) return fail(404, "No puzzle yet");
-  return new Response(renderCard(puzzle, nextColor()), {
+  // A HEAD gets no picture, so it doesn't take a turn: an unfurler that checks
+  // the card before fetching it still sees every color.
+  const color = req.method === "HEAD" ? "gold" : nextColor();
+  return new Response(renderCard(puzzle, color), {
     headers: { "content-type": "image/png" },
   });
 }
 
 async function route(req: Request): Promise<Response> {
-  const path = routeOf(req);
+  // HEAD is GET without the body, as HTTP asks (Bun drops it), so unfurlers
+  // can check the card without downloading it.
+  const method = req.method === "HEAD" ? "GET" : req.method;
+  const path = `${method} ${new URL(req.url).pathname}`;
   if (path === "GET /health") return new Response("ok");
-  if (path === "GET /card.png") return card();
+  if (path === "GET /card.png") return card(req);
   const data = req.method === "POST" ? await body(req) : {};
   if (path === "POST /login") return login(data);
 

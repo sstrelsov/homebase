@@ -2,6 +2,7 @@
 // see card/art.html) with today's puzzle number and date set in, a border in
 // one of the logo's colors, and an old TV's phosphor columns over it all. A
 // card only ever knows a puzzle's number and date: never its words.
+import GLYPHS from "./card/glyphs.json";
 import { decodePng, encodePng, type Picture } from "./png";
 
 /**
@@ -25,33 +26,25 @@ export interface CardPuzzle {
   date: string;
 }
 
-interface Glyphs {
-  chars: string;
-  advances: number[];
-  /** Each letter's cell on the sheet, and where its pen and line start. */
-  cell: { w: number; h: number; x: number; perRow: number; lineTop: number };
-  /** The day's line on the card: centered on x, its top at y. */
-  day: { x: number; y: number };
-}
-
 const art = (name: string) =>
-  Bun.file(new URL(`./card/${name}`, import.meta.url));
-const BASE = decodePng(new Uint8Array(await art("base.png").arrayBuffer()));
-const SHEET = decodePng(new Uint8Array(await art("glyphs.png").arrayBuffer()));
-const GLYPHS: Glyphs = await art("glyphs.json").json();
+  Bun.file(new URL(`./card/${name}`, import.meta.url)).bytes();
+const BASE = decodePng(await art("base.png"));
+const SHEET = decodePng(await art("glyphs.png"));
 
 // The border: a lit tube just inside the edge, rounded like an old TV's glass.
 const TUBE = { inset: 24, radius: 36, width: 10, glow: 16 };
 
+// A bare date ("2026-09-30") reads as midnight UTC, so it's labeled in UTC.
+const DAY = new Intl.DateTimeFormat("en-US", {
+  weekday: "short",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
+
 /** The card's line of text, as the game labels a puzzle: "#12 · WED, SEP 30". */
-export function dayLine({ number, date }: CardPuzzle) {
-  const [year, month, day] = date.split("-").map(Number);
-  const when = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString(
-    "en-US",
-    { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" },
-  );
-  return `#${number} · ${when}`.toUpperCase();
-}
+export const dayLine = ({ number, date }: CardPuzzle) =>
+  `#${number} · ${DAY.format(new Date(date))}`.toUpperCase();
 
 let turn = 0;
 /** The border colors in turn, so each fetch of a card gets the next one. */
@@ -85,7 +78,11 @@ function drawTube({ data, width, height }: Picture, color: CardColor) {
     }
 }
 
-/** Sets a line in the day's letters from the glyph sheet, centered. */
+/**
+ * Sets a line in the day's letters from the glyph sheet, centered. glyphs.json
+ * has each letter's advance, its cell on the sheet (and where its pen and line
+ * start), and the day's line on the card: centered on x, its top at y.
+ */
 function drawLine({ data, width }: Picture, line: string) {
   const { chars, advances, cell, day } = GLYPHS;
   const glyphs = [...line].map((char) => {

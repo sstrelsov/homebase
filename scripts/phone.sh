@@ -35,7 +35,7 @@ PASSWORD="${STACHE_PASSWORD:-test}"
 PUZZLES="$PWD/${PUZZLES_FILE:-stached-api/puzzles.example.json}"
 PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 
-for tool in bun node tailscale initdb pg_ctl createdb; do
+for tool in bun node tailscale nc initdb pg_ctl createdb; do
   command -v "$tool" >/dev/null || { echo "phone: needs $tool" >&2; exit 1; }
 done
 if nc -z 127.0.0.1 "$STACHED_API_PORT" 2>/dev/null; then

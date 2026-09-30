@@ -1,6 +1,6 @@
-// Just enough PNG for the share cards: reads 8-bit, non-interlaced grey, RGB
-// or RGBA (a browser screenshot), and writes RGB. node:zlib does the
-// compressing, so there's nothing to install.
+// Just enough PNG for the link-preview card: reads 8-bit, non-interlaced RGB
+// or RGBA (a browser screenshot, or our own), and writes RGB. node:zlib does
+// the compressing, so there's nothing to install.
 import { deflateSync, inflateSync } from "node:zlib";
 
 /** An opaque picture, 3 bytes (RGB) a pixel, row by row. */
@@ -11,8 +11,8 @@ export interface Picture {
 }
 
 const SIGNATURE = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
-// Bytes a pixel for each color type we read: grey, RGB, RGBA.
-const CHANNELS: Record<number, number> = { 0: 1, 2: 3, 6: 4 };
+// Bytes a pixel for each color type we read: RGB, RGBA.
+const CHANNELS: Record<number, number> = { 2: 3, 6: 4 };
 
 function paeth(a: number, b: number, c: number) {
   const p = a + b - c;
@@ -38,7 +38,7 @@ export function decodePng(file: Uint8Array): Picture {
       height = chunk.readUInt32BE(4);
       channels = CHANNELS[chunk[9]];
       if (chunk[8] !== 8 || !channels || chunk[12])
-        throw new Error("Only 8-bit, non-interlaced grey, RGB or RGBA PNGs");
+        throw new Error("Only 8-bit, non-interlaced RGB or RGBA PNGs");
     } else if (type === "IDAT") idat.push(chunk);
     else if (type === "IEND") break;
     at += length + 12;
@@ -55,24 +55,19 @@ export function decodePng(file: Uint8Array): Picture {
       const a = x >= channels ? rows[row + x - channels] : 0;
       const b = y ? rows[row - stride + x] : 0;
       const c = x >= channels && y ? rows[row - stride + x - channels] : 0;
-      const guess =
-        filter === 1
-          ? a
-          : filter === 2
-            ? b
-            : filter === 3
-              ? (a + b) >> 1
-              : filter === 4
-                ? paeth(a, b, c)
-                : 0;
+      // The row's filter: None, Sub, Up, Average or Paeth.
+      let guess = 0;
+      if (filter === 1) guess = a;
+      else if (filter === 2) guess = b;
+      else if (filter === 3) guess = (a + b) >> 1;
+      else if (filter === 4) guess = paeth(a, b, c);
       rows[row + x] = line[x] + guess;
     }
   }
 
   const data = new Uint8Array(width * height * 3);
   for (let i = 0; i < width * height; i++)
-    for (let k = 0; k < 3; k++)
-      data[i * 3 + k] = rows[i * channels + (channels === 1 ? 0 : k)];
+    for (let k = 0; k < 3; k++) data[i * 3 + k] = rows[i * channels + k];
   return { width, height, data };
 }
 
@@ -106,7 +101,7 @@ export function encodePng({ width, height, data }: Picture) {
   return Buffer.concat([
     SIGNATURE,
     chunk("IHDR", header),
-    chunk("IDAT", deflateSync(rows, { level: 9 })),
+    chunk("IDAT", deflateSync(rows)),
     chunk("IEND", new Uint8Array()),
   ]);
 }

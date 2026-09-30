@@ -7,7 +7,7 @@ import {
   renderCard,
 } from "./card";
 import glyphs from "./card/glyphs.json";
-import { decodePng, encodePng } from "./png";
+import { decodePng, encodePng, type Picture } from "./png";
 import examples from "./puzzles.example.json";
 
 const COLORS = Object.keys(CARD_COLORS) as CardColor[];
@@ -15,8 +15,8 @@ const COLORS = Object.keys(CARD_COLORS) as CardColor[];
 const PUZZLE = { number: 1, date: examples[0].date };
 
 /** A box of a card's pixels, as one string to compare. */
-function box(png: Uint8Array, x0: number, y0: number, x1: number, y1: number) {
-  const { data, width } = decodePng(png);
+function box(card: Picture, x0: number, y0: number, x1: number, y1: number) {
+  const { data, width } = card;
   const rows = [];
   for (let y = y0; y < y1; y++)
     rows.push(data.subarray((y * width + x0) * 3, (y * width + x1) * 3));
@@ -25,17 +25,17 @@ function box(png: Uint8Array, x0: number, y0: number, x1: number, y1: number) {
 
 describe("a card", () => {
   const cards = Object.fromEntries(
-    COLORS.map((color) => [color, renderCard(PUZZLE, color)]),
-  ) as Record<CardColor, Uint8Array>;
+    COLORS.map((color) => [color, decodePng(renderCard(PUZZLE, color))]),
+  ) as Record<CardColor, Picture>;
 
   test("is the size the site's preview tags promise", () => {
-    const { width, height } = decodePng(cards.gold);
+    const { width, height } = cards.gold;
     expect([width, height]).toEqual([1200, 630]);
   });
 
   test("lights its border in its color", () => {
     for (const color of COLORS) {
-      const { data, width } = decodePng(cards[color]);
+      const { data, width } = cards[color];
       // The middle of the tube along the top, off a phosphor column.
       const i = (24 * width + 601) * 3;
       const lit = [...data.subarray(i, i + 3)];
@@ -59,8 +59,10 @@ describe("a card", () => {
   });
 
   test("sets the puzzle's number and date, and only there", () => {
-    const next = renderCard({ number: 2, date: "2026-01-02" }, "gold");
-    const line = (png: Uint8Array) => box(png, 300, 440, 900, 530);
+    const next = decodePng(
+      renderCard({ number: 2, date: "2026-01-02" }, "gold"),
+    );
+    const line = (card: Picture) => box(card, 300, 440, 900, 530);
     expect(line(next)).not.toBe(line(cards.gold));
     expect(box(next, 0, 0, 1200, 440)).toBe(box(cards.gold, 0, 0, 1200, 440));
   });

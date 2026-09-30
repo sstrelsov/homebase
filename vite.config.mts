@@ -9,11 +9,12 @@ import viteTsconfigPaths from "vite-tsconfig-paths";
 // Absolute base for link-preview URLs. `make phone-preview` points it at this
 // Mac so a phone can fetch the preview before the site is live.
 const SITE = process.env.STACHED_SITE ?? "https://spencerstrelsov.com";
-// The Stached API, which draws the preview card (as in src/stached/api.ts).
-const STACHED_API = new URL(
-  process.env.VITE_STACHED_API ?? "https://api.spencerstrelsov.com",
-  `${SITE}/`,
-).href.replace(/\/$/, "");
+// The preview card, drawn by the Stached API (at the address in
+// src/stached/api.ts).
+const STACHED_CARD = new URL(
+  `${process.env.VITE_STACHED_API ?? "https://api.spencerstrelsov.com"}/card.png`,
+  SITE,
+).href;
 const STACHED_DESCRIPTION = "Got ’stache?";
 
 // https://vitejs.dev/config/
@@ -44,15 +45,15 @@ export default defineConfig({
         }
         // Stached is unlisted: noindex in the static HTML, before any JS runs,
         // plus its own title and preview card for when the link is shared.
-        // The API draws the card fresh for every fetch: today's puzzle number
-        // and date, in the next border color (stached-api/card.ts).
+        // The API draws the card: today's puzzle number and date, with the next
+        // border color on each fetch (stached-api/card.ts).
         const stached = `
     <meta name="robots" content="noindex, nofollow" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Stached" />
     <meta property="og:description" content="${STACHED_DESCRIPTION}" />
     <meta property="og:url" content="${SITE}/stached" />
-    <meta property="og:image" content="${STACHED_API}/card.png" />
+    <meta property="og:image" content="${STACHED_CARD}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />`;
