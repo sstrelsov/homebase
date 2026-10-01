@@ -71,7 +71,7 @@ const Logo = ({ intro = false }: LogoProps) => {
         />
       </defs>
 
-      <g filter={`url(#${bloom})`}>
+      <g filter={`url(#${bloom})`} className={styles.bloom}>
         {BANDS.map((color, i) => {
           const y = BANDS_TOP + i * (BAND.height + BAND.gap);
           const { left, right, slant, height } = BAND;

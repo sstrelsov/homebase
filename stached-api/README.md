@@ -42,6 +42,15 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 - **The daily puzzle** is the newest one dated on or before today in New York; a day without a puzzle of its own keeps the last one. Puzzles are numbered by date (#1 is the first).
 - **Past games** shows a tile per day so far. A finished day opens your board, the answers, and that day's scoreboard. A missed day can be played any time after, and an unfinished one finished, but that game is marked **late** (started or guessed after its day): it shows in your history and on that day's scoreboard (tagged late), and it never counts toward streaks or leaderboard times.
 
+## The look
+
+A 1984 TV-station ident: heavy italic caps, the four broadcast colors, Gerald, and an old TV's phosphor columns over everything. It comes two ways, sharing every rule:
+
+- **Light** (the default): dark ink on cream paper. Glows give way to print: Gerald's red and blue fringes look like misregistered ink, bars sit flat, and the phosphor columns fade to a faint texture. Bright gold can't be read on cream, so gold type and outlines (`--accent`) are a deep amber; gold fills stay gold.
+- **Dark**: warm phosphor cream on black, glowing.
+
+`THEME` in `src/pages/Stached.tsx` picks one for everyone; there's no switch on screen yet. Each look is a set of color tokens at the top of `src/stached/stached.module.css`, so style new things with the tokens, never a literal color, and check both. The home-screen app's launch and status-bar colors can't follow `THEME` (they're static), so switching it also means switching `background_color` and `theme_color` in `public/stached/manifest.json` and `apple-mobile-web-app-status-bar-style` in `vite.config.mts` (`default` for light, `black` for dark). The link-preview card and the home-screen icon stay dark either way.
+
 ## Link previews
 
 Pasting `https://spencerstrelsov.com/stached` shows a card: Gerald, the title, today's puzzle number and date (`#12 · WED, SEP 30`), and a glowing border in one of the logo's four colors (gold, orange, red, blue), the next one on every fetch.

@@ -27,6 +27,16 @@
   opacity: 0.85;
 }
 
+/* On paper: no glow, and the fringes print like misregistered ink */
+[data-theme="light"] .bloom {
+  filter: none;
+}
+
+[data-theme="light"] .fringeRed,
+[data-theme="light"] .fringeBlue {
+  mix-blend-mode: multiply;
+}
+
 .fringeRed {
   fill: var(--red);
   transform: translateX(-2.5px);

@@ -1,5 +1,5 @@
 import { Outlet } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { api, loadSession, type Session, saveSession } from "../stached/api";
 import {
   handoffCode,
@@ -10,6 +10,11 @@ import Login from "../stached/Login";
 import RulesDialog from "../stached/RulesDialog";
 import { StachedContext } from "../stached/session";
 import styles from "../stached/stached.module.css";
+
+// The look, for everyone: "light" (ink on cream) or "dark" (phosphor on black).
+// No switch on screen yet. The home-screen app's colors don't follow this:
+// they're set for light in public/stached/manifest.json and vite.config.mts.
+const THEME: "light" | "dark" = "light";
 
 // The router loads every Stached screen from here, so they share one chunk.
 export { default as StachedDay } from "../stached/DayGame";
@@ -23,6 +28,7 @@ export { default as StachedPast } from "../stached/PastGames";
  */
 const StachedPage = () => {
   const [session, setSession] = useState(loadSession);
+  const page = useRef<HTMLDivElement>(null);
   const [rulesOpen, setRulesOpen] = useState(false);
   // A sign-in code from Safari (HomeScreen.tsx), on the home-screen app's
   // first launch. Only the app trades it, so a shared link signs no one in.
@@ -48,13 +54,30 @@ const StachedPage = () => {
       .finally(() => setRedeeming(false));
   }, [code, redeeming, signIn]);
 
+  // The browser's toolbar takes the page's color, and gives it back after.
+  useEffect(() => {
+    const meta = document.querySelector<HTMLMetaElement>(
+      'meta[name="theme-color"]',
+    );
+    if (!meta || !page.current) return;
+    const before = meta.content;
+    meta.content = getComputedStyle(page.current).getPropertyValue("--bg");
+    return () => {
+      meta.content = before;
+    };
+  }, []);
+
   const signOut = useCallback(() => {
     saveSession(null);
     setSession(null);
   }, []);
 
   return (
-    <div className={`self-start w-full ${styles.stached}`}>
+    <div
+      ref={page}
+      data-theme={THEME}
+      className={`self-start w-full ${styles.stached}`}
+    >
       <div aria-hidden="true" className={styles.crt} />
       <div className="mx-auto w-full max-w-md px-4 pt-4 pb-6">
         {session ? (
