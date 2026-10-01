@@ -54,16 +54,23 @@ const StachedPage = () => {
       .finally(() => setRedeeming(false));
   }, [code, redeeming, signIn]);
 
-  // The browser's toolbar takes the page's color, and gives it back after.
+  // While Stached is open, its color fills the strips around the page: Safari
+  // paints those behind the status bar and toolbar from the document's
+  // background, and other browsers tint their toolbar from theme-color. The
+  // site gets its own back after.
   useEffect(() => {
+    if (!page.current) return;
+    const bg = getComputedStyle(page.current).getPropertyValue("--bg");
+    const root = document.documentElement.style;
     const meta = document.querySelector<HTMLMetaElement>(
       'meta[name="theme-color"]',
     );
-    if (!meta || !page.current) return;
-    const before = meta.content;
-    meta.content = getComputedStyle(page.current).getPropertyValue("--bg");
+    const before = { background: root.background, theme: meta?.content ?? "" };
+    root.background = bg;
+    if (meta) meta.content = bg;
     return () => {
-      meta.content = before;
+      root.background = before.background;
+      if (meta) meta.content = before.theme;
     };
   }, []);
 
@@ -73,11 +80,7 @@ const StachedPage = () => {
   }, []);
 
   return (
-    <div
-      ref={page}
-      data-theme={THEME}
-      className={`self-start w-full ${styles.stached}`}
-    >
+    <div ref={page} data-theme={THEME} className={styles.stached}>
       <div aria-hidden="true" className={styles.crt} />
       <div className="mx-auto w-full max-w-md px-4 pt-4 pb-6">
         {session ? (

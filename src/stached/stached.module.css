@@ -42,7 +42,8 @@
   --scrim-tip: rgba(0, 0, 0, 0.85);
 
   position: relative;
-  min-height: 100%;
+  /* The whole screen, with the browser's toolbar space, so it runs under it */
+  min-height: 100lvh;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--text);
@@ -100,9 +101,11 @@
   --on-color: var(--cream);
 }
 
-/* An old TV over everything: phosphor columns and dim corners */
+/* An old TV over everything: phosphor columns and dim corners. It covers the
+   page, not the screen: iOS Safari lays a flat band over its toolbar for
+   anything fixed to the screen's edge, which would cut the page off there. */
 .crt {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 50;
   pointer-events: none;
