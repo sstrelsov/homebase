@@ -20,7 +20,6 @@
         --bg: #000;
         --ink: #fff1c9;
         --face: #fff4d6;
-        --muted: rgba(255, 241, 201, 0.55);
         --red: #ff3b2f;
         --blue: #3d5bff;
         --c1: #ffd23f;
@@ -79,13 +78,6 @@
         color: var(--ink);
         text-shadow: var(--glow);
       }
-      .tagline {
-        font-weight: 800;
-        font-stretch: 112%;
-        font-size: 30px;
-        letter-spacing: 0.14em;
-        color: var(--muted);
-      }
       /* What card.ts draws per request, shown here for the whole picture */
       .border {
         position: absolute;
@@ -118,10 +110,9 @@
   </head>
   <body>
     <div class="card" id="card">
-      <svg class="logo" id="logo" viewBox="0 0 400 184" style="top: 58px" role="img" aria-label="Gerald the mustache"></svg>
-      <p class="caps title" style="top: 356px">Stached</p>
-      <p class="caps day" id="day" style="top: 474px">#12 · Wed, Sep 30</p>
-      <p class="caps tagline" style="top: 532px">Got ’stache?</p>
+      <svg class="logo" id="logo" viewBox="0 0 400 184" style="top: 84px" role="img" aria-label="Gerald the mustache"></svg>
+      <p class="caps title" style="top: 382px">Stached</p>
+      <p class="caps day" id="day" style="top: 500px">#12 · Wed, Sep 30</p>
       <div class="border" id="border"></div>
       <div class="crt" id="crt"></div>
     </div>
