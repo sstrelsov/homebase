@@ -4,6 +4,7 @@
   vector renderer. `bun card/make-art.ts` screenshots it into base.png (the
   card without its day or border) and glyphs.png (the day's letters), and
   card.ts adds the rest per request. Open it directly to see the whole card.
+  It also draws the home-screen icon (?icon) into public/images.
   Gerald, the bands and the arcs follow src/stached/Logo.tsx; the colors are
   the palette at the top of src/stached/stached.module.css.
 -->
@@ -95,6 +96,20 @@
           radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.6)),
           repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.24) 0 1px, transparent 1px 3px);
       }
+      /* ?icon: Gerald and the bands on black, as big as the window allows */
+      .icon {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        display: grid;
+        place-items: center;
+        background: var(--bg);
+      }
+      .icon > .logo {
+        position: static;
+        width: 88vw;
+        transform: none;
+      }
       /* The day's letters, one per cell, for card.ts to set any date with */
       .glyphs {
         display: flex;
@@ -177,6 +192,12 @@
       if (mode === "base")
         for (const id of ["day", "border", "crt"])
           document.getElementById(id).style.visibility = "hidden";
+      if (mode === "icon") {
+        const icon = document.createElement("div");
+        icon.className = "icon";
+        icon.append(document.getElementById("logo"));
+        document.body.append(icon);
+      }
 
       // A letter's advance: its width plus the tracking after it.
       function advance(char) {

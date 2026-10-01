@@ -25,6 +25,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 | Game UI | `src/pages/Stached.tsx` (the page and session), `src/stached/` (login, home, game, past games, clock, leaderboard, dialogs, logo, styles) |
 | API server | `stached-api/server.ts` (dependency-free Bun) |
 | Link-preview card | `stached-api/card.ts` (draws it), `stached-api/card/` (its art, from `art.html`) |
+| Home-screen app | `public/stached/manifest.json`, `public/images/stached-icon-*.png` (from `art.html?icon`) |
 | Database schema | `stached-api/migrations/*.sql`, applied by `stached-api/migrate.ts` |
 | Studio services | `stached-api/ops/install-daemons.sh` |
 | Backups to this Mac | `stached-api/ops/pull-backup.sh` |
@@ -49,7 +50,15 @@ Pasting `https://spencerstrelsov.com/stached` shows a card: Gerald, the title, t
 - `/card.png` is public, because chat apps fetch it signed out, and never cached, so every fetch is today's and takes the next color (a HEAD, which gets no picture, doesn't). It reads only today's puzzle number and date: never the words, and never a puzzle still to come.
 - The score Share button stays text only, with no link, so a shared score doesn't unfurl into a card.
 - Apps cache previews by link: pasting the same link again can bring back the card they fetched before (Slack keeps one for about 30 minutes). Change the link (`?1`, `?2`) for a fresh one.
-- The art is `card/art.html`, drawn by a browser: Gerald, the bands, the title, and a sheet of letters for the date. `card.ts` sets the date, draws the border and lays an old TV's phosphor columns over it all (no fonts or image libraries on the server). Open `art.html` in Chrome to see the whole card. To change the art, edit it, start a Chrome with `--remote-debugging-port=9222`, and redraw `base.png`, `glyphs.png` and `glyphs.json` with `cd stached-api && bun card/make-art.ts http://127.0.0.1:9222`.
+- The art is `card/art.html`, drawn by a browser: Gerald, the bands, the title, and a sheet of letters for the date. `card.ts` sets the date, draws the border and lays an old TV's phosphor columns over it all (no fonts or image libraries on the server). Open `art.html` in Chrome to see the whole card. To change the art, edit it, start a Chrome with `--remote-debugging-port=9222`, and redraw `base.png`, `glyphs.png` and `glyphs.json` (and the home-screen icons, below) with `cd stached-api && bun card/make-art.ts http://127.0.0.1:9222`.
+
+## Home screen
+
+Stached saves to a phone's home screen as its own app: in Safari, Share → Add to Home Screen. It gets Gerald's icon and the name Stached, and opens full screen on the game, never the rest of the site.
+
+- The Stached pages (written by `vite.config.mts`) swap the site's icon and manifest for `public/images/stached-icon-180.png` and `public/stached/manifest.json`, which is scoped to `/stached`, and add the iOS home-screen tags. The rest of the site keeps its own.
+- The icons (180, 192 and 512 px) come from `card/art.html?icon`, drawn by `make-art.ts` with the card.
+- iOS keeps a home-screen app's storage apart from Safari's, so players sign in once more there.
 
 ## Puzzles
 
