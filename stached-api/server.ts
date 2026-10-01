@@ -11,11 +11,11 @@ import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
 import { type CardPuzzle, nextColor, renderCard } from "./card";
 import { migrate } from "./migrate";
+import { hasBonusLife, MAX_MISTAKES, outcome } from "./rules";
 
 const PASSWORD = env("STACHE_PASSWORD");
 const SECRET = env("SESSION_SECRET");
 const ORIGINS = env("ALLOWED_ORIGINS").split(",");
-const MAX_MISTAKES = 4;
 const CLOCK_GRACE_MS = 15_000;
 // Color slots for the non-stache groups, easiest first, like Connections.
 // Each theme paints them its own way.
@@ -274,6 +274,7 @@ function playView(puzzle: Puzzle, play: Play) {
     elapsedMs: activeMs(play, new Date()),
     guesses: play.guesses,
     mistakes: play.mistakes,
+    bonusLife: hasBonusLife(puzzle, play.solved),
     solved: play.solved.map((i) => groupView(puzzle, i)),
     stachedMs: play.stached_ms,
     finished,
@@ -449,12 +450,7 @@ async function guess(
     const stachedMs =
       play.stached_ms ??
       (correct && puzzle.groups[best.index].stache ? elapsed : null);
-    const completed =
-      solved.length === puzzle.groups.length
-        ? true
-        : mistakes >= MAX_MISTAKES
-          ? false
-          : null;
+    const completed = outcome(puzzle, solved, mistakes);
 
     await tx`
       update plays set

@@ -18,6 +18,8 @@ export interface Play {
   elapsedMs: number;
   guesses: string[][];
   mistakes: number;
+  /** Earned by solving the stache group: one more mistake before it's over. */
+  bonusLife: boolean;
   solved: Group[];
   stachedMs: number | null;
   finished: boolean;

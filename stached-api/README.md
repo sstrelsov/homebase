@@ -30,13 +30,13 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 | Studio services | `stached-api/ops/install-daemons.sh` |
 | Backups to this Mac | `stached-api/ops/pull-backup.sh` |
 | Real puzzles and password | on the Studio only, in `~/.config/stached/` (never in this public repo) |
-| Sample puzzle for local testing | `stached-api/puzzles.example.json` |
+| Sample puzzles for local testing | `stached-api/puzzles.example.json` (made up: one from before the bonus life, one from its first day) |
 
 ## How the game works
 
 - **Sign in** with a name and the shared password. A name is a player: signing in as "Cat" again is the same player with the same history, and a typo makes a new one. Sign-ins last until the browser clears its storage (Safari does that after about a week of not opening the site).
 - **One try per puzzle.** The server holds the answers, checks every guess, and saves the game, so reloading or switching phones picks up where you left off.
-- **Four mistakes** end the game. Three right words out of four gets a "one away" hint.
+- **Four mistakes** end the game, or five once you've solved the stache group: that earns a **bonus life**, a fifth mustache in the lives row. Puzzles before 2026-10-02 have no bonus life, even played late (`stached-api/rules.ts`). Three right words out of four gets a "one away" hint.
 - **Stache time** counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; if a phone sleeps before it can say so, the gap counts for at most 15 seconds. The server keeps the real clock.
 - **The leaderboard** ranks everyone by streak, then best stache time. A streak is puzzles solved in a row; today's puzzle doesn't break it until you finish (or miss) it. Each player also shows their best and average stache time, games solved, and a bar per day for the last seven puzzles.
 - **The daily puzzle** is the newest one dated on or before today in New York; a day without a puzzle of its own keeps the last one. Puzzles are numbered by date (#1 is the first).

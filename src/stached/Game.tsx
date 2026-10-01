@@ -20,7 +20,14 @@ import ResultsDialog from "./ResultsDialog";
 import StacheClock from "./StacheClock";
 import styles from "./stached.module.css";
 
-const PRAISE = ["Perfect!", "Great!", "Solid!", "Phew!"];
+// By mistakes made. Four means the bonus life saved the game.
+const PRAISE = [
+  "Perfect!",
+  "Great!",
+  "Solid!",
+  "Phew!",
+  "Saved by the 'stache!",
+];
 // How long a wrong guess stays selected, so you can see what missed.
 const MISS_LINGER_MS = 700;
 
@@ -110,6 +117,7 @@ const Game = ({
   );
   const [selected, setSelected] = useState<string[]>([]);
   const [mistakes, setMistakes] = useState(play.mistakes);
+  const [bonusLife, setBonusLife] = useState(play.bonusLife);
   const [over, setOver] = useState(play.finished);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -191,6 +199,8 @@ const Game = ({
           setStached(true);
           await sleep(2600);
           setStached(false);
+          setBonusLife(result.bonusLife);
+          say("Bonus life!");
         }
       } else if (next.result === "repeat") {
         await alreadyGuessed();
@@ -224,7 +234,8 @@ const Game = ({
     }
   };
 
-  const lives = puzzle.maxMistakes - mistakes;
+  const limit = puzzle.maxMistakes + (bonusLife ? 1 : 0);
+  const lives = limit - mistakes;
 
   return (
     <div className="flex flex-col gap-4">
@@ -259,15 +270,23 @@ const Game = ({
           <p className={styles.label}>Lives</p>
           <div
             role="img"
-            aria-label={`${lives} of ${puzzle.maxMistakes} lives left`}
+            aria-label={`${lives} of ${limit} lives left`}
             className="flex gap-1.5"
           >
+            {/* The bonus life comes in on the left, so it's the last one lost. */}
+            {bonusLife && (
+              <Mustache
+                className={styles.life}
+                data-bonus
+                data-lost={lives === 0 || undefined}
+              />
+            )}
             {Array.from({ length: puzzle.maxMistakes }, (_, i) => (
               <Mustache
                 // biome-ignore lint/suspicious/noArrayIndexKey: lives are positional
                 key={i}
                 className={styles.life}
-                data-lost={i >= lives || undefined}
+                data-lost={i >= puzzle.maxMistakes - mistakes || undefined}
               />
             ))}
           </div>
