@@ -25,7 +25,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 | Game UI | `src/pages/Stached.tsx` (the page and session), `src/stached/` (login, home, game, past games, clock, leaderboard, dialogs, logo, styles) |
 | API server | `stached-api/server.ts` (dependency-free Bun) |
 | Link-preview card | `stached-api/card.ts` (draws it), `stached-api/card/` (its art, from `art.html`) |
-| Home-screen app | `public/stached/manifest.json`, `public/images/stached-icon-*.png` (from `art.html?icon`) |
+| Home-screen app | `public/stached/manifest.json`, `public/images/stached-icon-v2-*.png` (from `art.html?icon`) |
 | Database schema | `stached-api/migrations/*.sql`, applied by `stached-api/migrate.ts` |
 | Studio services | `stached-api/ops/install-daemons.sh` |
 | Backups to this Mac | `stached-api/ops/pull-backup.sh` |
@@ -42,6 +42,15 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 - **The daily puzzle** is the newest one dated on or before today in New York; a day without a puzzle of its own keeps the last one. Puzzles are numbered by date (#1 is the first).
 - **Past games** shows a tile per day so far. A finished day opens your board, the answers, and that day's scoreboard. A missed day can be played any time after, and an unfinished one finished, but that game is marked **late** (started or guessed after its day): it shows in your history and on that day's scoreboard (tagged late), and it never counts toward streaks or leaderboard times.
 
+## The look
+
+A 1984 TV-station ident: heavy italic caps, the four broadcast colors, Gerald, and an old TV's phosphor columns over everything. It comes two ways, sharing every rule:
+
+- **Light** (the default): dark ink on cream paper. Glows give way to print: Gerald's red and blue fringes look like misregistered ink, and bars get a darker bottom edge like the buttons. The phosphor columns stay, two-tone (a dark line, then a faint light one), so the pixels show on the page, the bars and the black selected tiles alike. Bright gold can't be read on cream, so gold type, outlines and thin marks like the leaderboard's day bars (`--accent`) are a deep amber; gold fills stay gold.
+- **Dark**: warm phosphor cream on black, glowing.
+
+`THEME` in `src/pages/Stached.tsx` picks one for everyone; there's no switch on screen yet. Each look is a set of color tokens at the top of `src/stached/stached.module.css`, so style new things with the tokens, never a literal color, and check both. The home-screen app's launch and status-bar colors can't follow `THEME` (they're static), so switching it also means switching `background_color` and `theme_color` in `public/stached/manifest.json`, and the `theme-color` and `apple-mobile-web-app-status-bar-style` that `vite.config.mts` writes into the Stached pages (`default` for light, `black` for dark). The link-preview card and the home-screen icon stay dark either way.
+
 ## Link previews
 
 Pasting `https://spencerstrelsov.com/stached` shows a card: Gerald, the title, today's puzzle number and date (`#12 · WED, SEP 30`), and a glowing border in one of the logo's four colors (gold, orange, red, blue), the next one on every fetch.
@@ -56,8 +65,8 @@ Pasting `https://spencerstrelsov.com/stached` shows a card: Gerald, the title, t
 
 Stached saves to a phone's home screen as its own app: in Safari, Share → Add to Home Screen. It gets Gerald's icon and the name Stached, and opens full screen on the game, never the rest of the site.
 
-- The Stached pages (written by `vite.config.mts`) swap the site's icon and manifest for `public/images/stached-icon-180.png` and `public/stached/manifest.json`, which is scoped to `/stached`, and add the iOS home-screen tags. The rest of the site keeps its own.
-- The icon is the logo's four bands on a slant, Gerald big across them, under the game's old-TV finish (glow, phosphor columns, dim corners). The slant keeps it reading as a TV ident, not a striped flag. The PNGs (180, 192 and 512 px) come from `card/art.html?icon`, drawn by `make-art.ts` with the card. iOS keeps the icon it saved, so a new one needs a new file name to reach anyone, and even then only on a fresh Add to Home Screen.
+- The Stached pages (written by `vite.config.mts`) swap the site's icon and manifest for `public/images/stached-icon-v2-180.png` and `public/stached/manifest.json`, which is scoped to `/stached`, and add the iOS home-screen tags. The rest of the site keeps its own.
+- The icon is the logo's four bands on a slant, Gerald big across them, under the game's old-TV finish (glow, phosphor columns, dim corners). The slant keeps it reading as a TV ident, not a striped flag. The PNGs (180, 192 and 512 px) come from `card/art.html?icon`, drawn by `make-art.ts` with the card. iOS keeps the icon it saved, so a new one needs a new file name to reach anyone (bump the `v2` in `make-art.ts` and everything that names the files), and even then only on a fresh Add to Home Screen.
 - In a browser tab, home offers it once, ever: "Get Stached on your home screen" slides up from the bottom (`src/stached/HomeScreen.tsx`). On Android its Add button is one tap: Chrome's own install prompt, and the installed app shares Chrome's storage, so you stay signed in.
 - iOS lets no page add itself, so a small tip points at Safari's Share button. iOS also keeps a home-screen app's storage apart from Safari's, so while the tip is up it carries the sign-in over: it asks the API for a one-time code (`POST /handoff`) and puts it in the address (`?handoff=…`), which the app is saved with. On the app's first launch, `src/pages/Stached.tsx` trades it for a session (`POST /handoff/redeem`, limited like sign-in) and clears it from the address. Codes last 15 minutes, work once, and live in the API's memory. Only the home-screen app trades one, so a link shared by mistake signs no one in. The manifest has no `start_url`, so the app keeps the address it was saved from.
 - Without a code (expired, or added another way), the app's sign-in says to use the same name; streaks and games are kept by name, so nothing is lost.

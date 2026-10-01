@@ -43,7 +43,7 @@ Unlisted Connections-style game with a stache group and a leaderboard. **[`stach
 - **Schema changes are new numbered files in `stached-api/migrations/`.** They apply on API boot. Never edit a shipped migration.
 - **Deploy the API with `make deploy-stached`** (it backs up first). Deploy it before merging a site change that needs a new endpoint, since merging deploys the site.
 - Editing or removing a puzzle that people have played deletes their games for it.
-- The look is a 1984 TV-station ident, always dark. The palette is at the top of `src/stached/stached.module.css`.
+- The look is a 1984 TV-station ident, light by default (ink on cream), with the original dark look kept. `THEME` in `src/pages/Stached.tsx` picks one, and the static home-screen colors must change with it. Both palettes are at the top of `src/stached/stached.module.css`; see The look in the README.
 
 ## Testing on your phone (`make phone`)
 

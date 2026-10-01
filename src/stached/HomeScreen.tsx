@@ -157,7 +157,7 @@ const HomeScreen = () => {
     >
       <div className="flex items-center gap-3.5">
         <img
-          src="/images/stached-icon-180.png"
+          src="/images/stached-icon-v2-180.png"
           alt=""
           className={styles.tipIcon}
         />

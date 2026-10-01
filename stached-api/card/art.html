@@ -193,7 +193,8 @@
           document.getElementById(id).style.visibility = "hidden";
       // The home-screen icon: the logo's four bands fill it on a slant, Gerald
       // big across them, under the card's old-TV finish (a glow, phosphor
-      // columns coarse enough to survive shrinking, dim corners).
+      // columns coarse enough to survive shrinking, dim corners), kept faint
+      // so the bands stay bright on a home screen.
       function icon() {
         const rise = 90;
         const height = (512 + rise) / 4;
@@ -212,11 +213,11 @@
               <feMerge><feMergeNode in="soft" /><feMergeNode in="SourceGraphic" /></feMerge>
             </filter>
             <pattern id="icon-crt" width="10" height="10" patternUnits="userSpaceOnUse">
-              <rect width="3.5" height="10" fill="#000" opacity="0.42" />
+              <rect width="3.5" height="10" fill="#000" opacity="0.2" />
             </pattern>
             <radialGradient id="icon-corners" r="75%">
               <stop offset="55%" stop-color="#000" stop-opacity="0" />
-              <stop offset="100%" stop-color="#000" stop-opacity="0.6" />
+              <stop offset="100%" stop-color="#000" stop-opacity="0.25" />
             </radialGradient>
           </defs>
           <g filter="url(#icon-bloom)">
