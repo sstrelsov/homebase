@@ -1,5 +1,6 @@
 // Redraws the preview card's art from art.html, in a Chrome that's listening
-// for DevTools (chrome --remote-debugging-port=9222):
+// for DevTools (chrome --remote-debugging-port=9222; headless, also pass
+// --hide-scrollbars, or they land in the icons):
 //
 //   cd stached-api && bun card/make-art.ts http://127.0.0.1:9222
 //
@@ -81,10 +82,11 @@ Bun.spawnSync(["bunx", "biome", "format", "--write", metrics.pathname], {
 });
 
 // The home-screen icons, drawn at each size the Stached pages and their
-// manifest (public/stached/manifest.json) ask for.
+// manifest (public/stached/manifest.json) ask for. iOS keeps an icon it saved
+// by its address, so a changed icon gets the next version in its name.
 for (const size of [180, 192, 512]) {
   const icon = await draw("icon", size, size);
-  await save(`../../public/images/stached-icon-${size}.png`, icon.png);
+  await save(`../../public/images/stached-icon-v2-${size}.png`, icon.png);
 }
 
 await fetch(`${devtools}/json/close/${tab.id}`);

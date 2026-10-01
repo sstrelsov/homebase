@@ -68,7 +68,7 @@ export default defineConfig({
           // /stached, so a saved Stached opens full screen on the game.
           .replace(
             /<link rel="apple-touch-icon" href="[^"]*" \/>/,
-            '<link rel="apple-touch-icon" href="/images/stached-icon-180.png" />',
+            '<link rel="apple-touch-icon" href="/images/stached-icon-v2-180.png" />',
           )
           .replace(
             /<link rel="manifest" href="[^"]*" \/>/,
