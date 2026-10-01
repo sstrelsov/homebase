@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { api } from "./api";
 import { useStached } from "./session";
 import styles from "./stached.module.css";
@@ -6,11 +6,11 @@ import styles from "./stached.module.css";
 /** Running as a saved home-screen app, not in a browser tab. */
 export const isHomeScreenApp = () =>
   matchMedia("(display-mode: standalone)").matches ||
-  (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  ("standalone" in navigator && navigator.standalone === true);
 
 // An iPhone or iPad, which reports itself as a Mac with a touchscreen.
 const isIOS = () =>
-  /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+  /iPhone|iPad/.test(navigator.userAgent) ||
   (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
 
 // Safari on an iPhone, whose toolbar (and Share) is below the page.
@@ -18,8 +18,11 @@ const isIPhoneSafari = () =>
   /iPhone/.test(navigator.userAgent) &&
   !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
 
+const HANDOFF = "handoff";
+
 /** The address's sign-in code, which Stached.tsx trades for a session. */
-export const HANDOFF = "handoff";
+export const handoffCode = () =>
+  new URLSearchParams(location.search).get(HANDOFF);
 
 /** Sets or clears the sign-in code in the address, keeping the page's state. */
 export function setHandoffCode(code: string | null) {
@@ -48,6 +51,12 @@ const markSeen = () => {
   } catch {
     // Private mode: it may show again next visit.
   }
+};
+
+// A popover sits above the page, out of reach of home's animated layout,
+// so it stays pinned to the bottom.
+const showAsPopover = (tip: HTMLElement | null) => {
+  tip?.showPopover();
 };
 
 // The icons iOS shows for each step, drawn in the text's color.
@@ -90,9 +99,6 @@ const HomeScreen = () => {
     null,
   );
   const [open, setOpen] = useState(false);
-  const tip = useRef<HTMLDivElement>(null);
-  const [app] = useState(isHomeScreenApp);
-  const [ios] = useState(isIOS);
 
   useEffect(() => {
     const keep = (event: Event) => {
@@ -103,53 +109,53 @@ const HomeScreen = () => {
     return () => removeEventListener("beforeinstallprompt", keep);
   }, []);
 
-  const show = useCallback(() => {
-    markSeen();
-    setOpen(true);
-    if (ios)
-      api.handoff(session.token).then(
-        ({ code }) => setHandoffCode(code),
-        // Without one, the app asks for a name instead.
-        () => {},
-      );
-  }, [ios, session.token]);
-
-  // A moment after home appears, the first time only.
+  // A moment after home appears, the first time only. Browsers without
+  // popovers (before iOS 17) go without.
   useEffect(() => {
-    if (app || seen() || !(ios || installPrompt)) return;
-    const timer = setTimeout(show, 2500);
+    if (
+      isHomeScreenApp() ||
+      seen() ||
+      !("popover" in HTMLElement.prototype) ||
+      !(isIOS() || installPrompt)
+    )
+      return;
+    const timer = setTimeout(() => {
+      markSeen();
+      setOpen(true);
+    }, 2500);
     return () => clearTimeout(timer);
-  }, [app, ios, installPrompt, show]);
+  }, [installPrompt]);
 
-  // A popover sits above the page, out of reach of home's animated layout,
-  // so it stays pinned to the bottom.
+  // On iOS, the sign-in code sits in the address only while the tip is up.
+  // Closing it, or leaving home, takes the code back out.
   useEffect(() => {
-    if (open) tip.current?.showPopover();
-  }, [open]);
+    if (!open || !isIOS()) return;
+    let live = true;
+    api.handoff(session.token).then(
+      ({ code }) => {
+        if (live) setHandoffCode(code);
+      },
+      // Without one, the app asks for a name instead.
+      () => {},
+    );
+    return () => {
+      live = false;
+      setHandoffCode(null);
+    };
+  }, [open, session.token]);
 
   if (!open) return null;
 
-  const close = () => {
-    setHandoffCode(null);
-    setOpen(false);
-  };
-
-  const install = async () => {
-    setOpen(false);
-    await installPrompt?.prompt();
-    setInstallPrompt(null);
-  };
-
   return (
     <div
-      ref={tip}
+      ref={showAsPopover}
       popover="manual"
       role="dialog"
       aria-label="Get Stached on your home screen"
       className={styles.tip}
-      data-arrow={(!installPrompt && isIPhoneSafari()) || undefined}
+      data-arrow={isIPhoneSafari() || undefined}
     >
-      <div className="flex items-center gap-3.5 text-left">
+      <div className="flex items-center gap-3.5">
         <img
           src="/images/stached-icon-180.png"
           alt=""
@@ -160,7 +166,7 @@ const HomeScreen = () => {
         </p>
         <button
           type="button"
-          onClick={close}
+          onClick={() => setOpen(false)}
           aria-label="Close"
           className="-mr-1.5 self-start p-1.5 text-[26px] leading-none opacity-60"
         >
@@ -170,7 +176,10 @@ const HomeScreen = () => {
       {installPrompt ? (
         <button
           type="button"
-          onClick={install}
+          onClick={() => {
+            setOpen(false);
+            installPrompt.prompt();
+          }}
           className={`${styles.button} ${styles.primary} mt-4 w-full`}
         >
           Add to home screen

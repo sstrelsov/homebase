@@ -2,7 +2,7 @@ import { Outlet } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { api, loadSession, type Session, saveSession } from "../stached/api";
 import {
-  HANDOFF,
+  handoffCode,
   isHomeScreenApp,
   setHandoffCode,
 } from "../stached/HomeScreen";
@@ -26,30 +26,27 @@ const StachedPage = () => {
   const [rulesOpen, setRulesOpen] = useState(false);
   // A sign-in code from Safari (HomeScreen.tsx), on the home-screen app's
   // first launch. Only the app trades it, so a shared link signs no one in.
-  const [code] = useState(() =>
-    new URLSearchParams(location.search).get(HANDOFF),
-  );
+  const [code] = useState(handoffCode);
   const [redeeming, setRedeeming] = useState(
     () => Boolean(code) && !session && isHomeScreenApp(),
   );
+
+  const signIn = useCallback((next: Session) => {
+    saveSession(next);
+    setSession(next);
+  }, []);
 
   useEffect(() => {
     if (!code) return;
     setHandoffCode(null);
     if (!redeeming) return;
-    api.redeem(code).then(
-      (next) => {
-        saveSession(next);
-        setSession(next);
-      },
-      () => setRedeeming(false),
-    );
-  }, [code, redeeming]);
-
-  const signIn = (next: Session) => {
-    saveSession(next);
-    setSession(next);
-  };
+    api
+      .redeem(code)
+      .then(signIn)
+      // Spent or expired: sign in by name instead.
+      .catch(() => {})
+      .finally(() => setRedeeming(false));
+  }, [code, redeeming, signIn]);
 
   const signOut = useCallback(() => {
     saveSession(null);

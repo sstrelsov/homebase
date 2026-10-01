@@ -19,6 +19,8 @@
   --c3: #ff3b2f;
   --c4: #3d5bff;
   --tile: #110e14;
+  /* Dialogs and the home-screen tip */
+  --panel: #0a0908;
   --glow: 0 0 2px rgba(255, 241, 201, 0.7), 0 0 14px rgba(255, 196, 90, 0.55);
 
   position: relative;
@@ -534,7 +536,7 @@
   padding: 0;
   border: 2px solid var(--gold);
   border-radius: 12px;
-  background: #0a0908;
+  background: var(--panel);
   color: var(--ink);
   font-family: var(--text);
   font-weight: 500;
@@ -568,8 +570,9 @@
   padding: 16px 16px 18px;
   border: 2px solid var(--gold);
   border-radius: 18px;
-  background: #0a0908;
+  background: var(--panel);
   color: var(--ink);
+  text-align: left;
   box-shadow: 0 0 32px rgba(255, 210, 63, 0.28);
   animation: tip-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15);
 }
@@ -591,7 +594,7 @@
   rotate: 45deg;
   border-right: 2px solid var(--gold);
   border-bottom: 2px solid var(--gold);
-  background: #0a0908;
+  background: var(--panel);
 }
 
 .tipIcon {
@@ -609,7 +612,6 @@
   padding-top: 16px;
   border-top: 1px solid var(--line);
   font-size: 17px;
-  text-align: left;
 }
 
 .tipSteps li {

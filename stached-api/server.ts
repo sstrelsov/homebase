@@ -89,6 +89,10 @@ const sign = ({ id, name }: { id: number; name: string }) =>
     .update(`${id}:${name}`)
     .digest("base64url");
 
+/** The answer to signing in: the player's token, and their name as first typed. */
+const session = (user: { id: number; name: string }) =>
+  Response.json({ token: `${user.id}.${sign(user)}`, name: user.name });
+
 // Beacons can't set headers, so the token may also come in the body.
 async function authenticate(
   req: Request,
@@ -319,7 +323,7 @@ async function login({ name, password }: Record<string, unknown>) {
     insert into users (name) values (${clean})
     on conflict (lower(name)) do update set name = users.name
     returning id, name`;
-  return Response.json({ token: `${user.id}.${sign(user)}`, name: user.name });
+  return session(user);
 }
 
 // Signing in the home-screen app, which iOS keeps apart from Safari: Safari
@@ -348,7 +352,7 @@ function redeem({ code }: Record<string, unknown>) {
   const user = typeof code === "string" ? handoffs.get(code) : undefined;
   if (!user || user.expires < Date.now()) return fail(401, "Sign in first");
   handoffs.delete(code as string);
-  return Response.json({ token: `${user.id}.${sign(user)}`, name: user.name });
+  return session(user);
 }
 
 /** Starts a game (by date, or by id for older pages), or picks it back up. */
