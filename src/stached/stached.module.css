@@ -557,23 +557,27 @@
   }
 }
 
-/* "Get Stached on your home screen": a tip that slides up over the
-   browser's toolbar, pointing down at Safari's Share on an iPhone */
+/* "Get Stached on your home screen": an install card that slides up over
+   the browser's toolbar, pointing down at Safari's Share on an iPhone */
 .tip {
-  inset: auto 16px calc(14px + env(safe-area-inset-bottom));
+  inset: auto 12px calc(12px + env(safe-area-inset-bottom));
   width: auto;
   max-width: 440px;
   margin: 0 auto;
   overflow: visible;
-  padding: 12px 14px 12px 16px;
+  padding: 16px 16px 18px;
   border: 2px solid var(--gold);
-  border-radius: 12px;
+  border-radius: 18px;
   background: #0a0908;
   color: var(--ink);
-  font-size: 17px;
-  line-height: 1.3;
-  box-shadow: 0 0 32px rgba(255, 210, 63, 0.3);
+  box-shadow: 0 0 32px rgba(255, 210, 63, 0.28);
   animation: tip-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+/* A dark fade up from the bottom, so the card stands clear of the page */
+.tip::backdrop {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent 45%);
+  pointer-events: none;
 }
 
 .tip[data-arrow]::after {
@@ -588,6 +592,50 @@
   border-right: 2px solid var(--gold);
   border-bottom: 2px solid var(--gold);
   background: #0a0908;
+}
+
+.tipIcon {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.tipSteps {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 17px;
+  text-align: left;
+}
+
+.tipSteps li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.tipSteps strong {
+  font-weight: 600;
+}
+
+.tipStep {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  place-items: center;
+  margin-right: 3px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--bg);
+  font-family: var(--display);
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 800;
 }
 
 @keyframes tip-in {

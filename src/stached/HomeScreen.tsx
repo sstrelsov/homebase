@@ -50,20 +50,29 @@ const markSeen = () => {
   }
 };
 
-/** Safari's Share icon: a box with an arrow out of the top. */
+// The icons iOS shows for each step, drawn in the text's color.
+const icon = {
+  className: "h-[22px] w-[22px] shrink-0",
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+} as const;
+
+/** Share: a box with an arrow out of the top. */
 const ShareIcon = () => (
-  <svg
-    viewBox="0 0 20 24"
-    role="img"
-    aria-label="Share"
-    className="mx-0.5 inline-block h-[1.1em] w-[0.95em] -translate-y-[3px]"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="M10 2v13M5.5 6.5 10 2l4.5 4.5M6 10H3.5v12h13V10H14" />
+  <svg {...icon} aria-hidden="true">
+    <path d="M12 3v12M8 7l4-4 4 4M8 10H5v11h14V10h-3" />
+  </svg>
+);
+
+/** Add to Home Screen: a plus in a rounded square. */
+const AddIcon = () => (
+  <svg {...icon} aria-hidden="true">
+    <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
+    <path d="M12 8v8M8 12h8" />
   </svg>
 );
 
@@ -140,35 +149,44 @@ const HomeScreen = () => {
       className={styles.tip}
       data-arrow={(!installPrompt && isIPhoneSafari()) || undefined}
     >
-      <div className="flex items-center gap-3 text-left">
-        <div className="flex flex-1 flex-col gap-1">
-          <p className={`${styles.display} text-[14px]`}>
-            Get Stached on your home screen
-          </p>
-          {!installPrompt && (
-            <p className="text-[16px] opacity-80">
-              Tap <ShareIcon />, then Add to Home Screen.
-            </p>
-          )}
-        </div>
-        {installPrompt && (
-          <button
-            type="button"
-            onClick={install}
-            className={`${styles.button} ${styles.primary} px-5`}
-          >
-            Add
-          </button>
-        )}
+      <div className="flex items-center gap-3.5 text-left">
+        <img
+          src="/images/stached-icon-180.png"
+          alt=""
+          className={styles.tipIcon}
+        />
+        <p className="flex-1 text-[19px] font-semibold leading-tight [text-wrap:balance]">
+          Get Stached on your home screen
+        </p>
         <button
           type="button"
           onClick={close}
           aria-label="Close"
-          className="-m-2 p-2 text-2xl leading-none opacity-70"
+          className="-mr-1.5 self-start p-1.5 text-[26px] leading-none opacity-60"
         >
           ×
         </button>
       </div>
+      {installPrompt ? (
+        <button
+          type="button"
+          onClick={install}
+          className={`${styles.button} ${styles.primary} mt-4 w-full`}
+        >
+          Add to home screen
+        </button>
+      ) : (
+        <ol className={styles.tipSteps}>
+          <li>
+            <span className={styles.tipStep}>1</span>
+            Tap <ShareIcon /> <strong>Share</strong>
+          </li>
+          <li>
+            <span className={styles.tipStep}>2</span>
+            Tap <AddIcon /> <strong>Add to Home Screen</strong>
+          </li>
+        </ol>
+      )}
     </div>
   );
 };
