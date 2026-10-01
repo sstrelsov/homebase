@@ -27,13 +27,12 @@ React 19, TypeScript, Vite 6, TanStack Router, Tailwind CSS, NextUI, Three.js (t
 | `bun run lint` | Lint with Biome |
 | `bun run lint:fix` | Lint + auto-fix with Biome |
 | `bun run format` | Format with Biome |
-| `make deploy` | Build and deploy to `published` branch (GitHub Pages) |
 | `make phone` | Run the site on your phone over Tailscale and print a QR code (below) |
 | `make phone-preview` | Same with a production build, to see the link preview when sharing |
 
 ## Deployment
 
-Static SPA on GitHub Pages. `make deploy` builds to `build/`, then force-pushes that directory to the `published` branch via a git worktree. Run from `main`.
+Static SPA on GitHub Pages, deployed by CI (`.github/workflows/ci.yml`). Every push to `main` lints, builds, and publishes `build/`, so merging a PR deploys the site with no manual step. Pull requests run the same lint and build without publishing. The Stached API deploys separately, with `make deploy-stached` (below).
 
 ## Stached (`/stached`)
 
@@ -42,7 +41,7 @@ Unlisted Connections-style game with a stache group and a leaderboard. **[`stach
 - The UI is `src/pages/Stached.tsx` and `src/stached/`; the API is `stached-api/` (dependency-free Bun + Postgres), running on the Mac Studio behind a Cloudflare Tunnel at `https://api.spencerstrelsov.com`.
 - **This repo is public.** The real puzzles and the password live only on the Studio (`~/.config/stached/`). Never commit them; `stached-api/puzzles.example.json` is the made-up stand-in.
 - **Schema changes are new numbered files in `stached-api/migrations/`.** They apply on API boot. Never edit a shipped migration.
-- **Deploy the API with `make deploy-stached`** (it backs up first). Deploy it before merging a site change that needs a new endpoint.
+- **Deploy the API with `make deploy-stached`** (it backs up first). Deploy it before merging a site change that needs a new endpoint, since merging deploys the site.
 - Editing or removing a puzzle that people have played deletes their games for it.
 - The look is a 1984 TV-station ident, always dark. The palette is at the top of `src/stached/stached.module.css`.
 
