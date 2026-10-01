@@ -46,7 +46,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 
 A 1984 TV-station ident: heavy italic caps, the four broadcast colors, Gerald, and an old TV's phosphor columns over everything. It comes two ways, sharing every rule:
 
-- **Light** (the default): dark ink on cream paper. Glows give way to print: Gerald's red and blue fringes look like misregistered ink, bars sit flat, and the phosphor columns fade to a faint texture. Bright gold can't be read on cream, so gold type and outlines (`--accent`) are a deep amber; gold fills stay gold.
+- **Light** (the default): dark ink on cream paper. Glows give way to print: Gerald's red and blue fringes look like misregistered ink, and bars get a darker bottom edge like the buttons. The phosphor columns stay, two-tone (a dark line, then a faint light one), so the pixels show on the page, the bars and the black selected tiles alike. Bright gold can't be read on cream, so gold type and outlines (`--accent`) are a deep amber; gold fills stay gold.
 - **Dark**: warm phosphor cream on black, glowing.
 
 `THEME` in `src/pages/Stached.tsx` picks one for everyone; there's no switch on screen yet. Each look is a set of color tokens at the top of `src/stached/stached.module.css`, so style new things with the tokens, never a literal color, and check both. The home-screen app's launch and status-bar colors can't follow `THEME` (they're static), so switching it also means switching `background_color` and `theme_color` in `public/stached/manifest.json` and `apple-mobile-web-app-status-bar-style` in `vite.config.mts` (`default` for light, `black` for dark). The link-preview card and the home-screen icon stay dark either way.

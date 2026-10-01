@@ -33,9 +33,10 @@
   --glow-gold: #ffd23f;
   --glow-orange: #ff8c1a;
   --glow-cream: #fff1c9;
-  /* The old TV's columns and dim corners, and the shade behind dialogs and
-     the home-screen tip */
+  /* The old TV's columns (a dark line, then a light one for dark surfaces)
+     and dim corners, and the shade behind dialogs and the home-screen tip */
   --crt-line: rgba(0, 0, 0, 0.24);
+  --crt-glint: transparent;
   --crt-edge: rgba(0, 0, 0, 0.6);
   --scrim: rgba(0, 0, 0, 0.72);
   --scrim-tip: rgba(0, 0, 0, 0.85);
@@ -51,8 +52,8 @@
   -webkit-tap-highlight-color: transparent;
 }
 
-/* The light look: ink on cream paper. Glows give way to print, and the old
-   TV's columns fade to a faint texture. */
+/* The light look: ink on cream paper. Glows give way to print. The old TV's
+   columns stay, two-tone, so they show on the page, the bars and black tiles. */
 .stached[data-theme="light"] {
   --bg: #f4e9d0;
   --ink: #23180d;
@@ -65,7 +66,8 @@
   --glow-gold: transparent;
   --glow-orange: transparent;
   --glow-cream: transparent;
-  --crt-line: rgba(80, 50, 10, 0.06);
+  --crt-line: rgba(70, 40, 5, 0.13);
+  --crt-glint: rgba(255, 246, 225, 0.12);
   --crt-edge: rgba(110, 70, 20, 0.2);
   --scrim: rgba(35, 24, 13, 0.45);
   --scrim-tip: rgba(35, 24, 13, 0.45);
@@ -106,7 +108,12 @@
   pointer-events: none;
   background:
     radial-gradient(ellipse at center, transparent 55%, var(--crt-edge)),
-    repeating-linear-gradient(90deg, var(--crt-line) 0 1px, transparent 1px 3px);
+    repeating-linear-gradient(
+      90deg,
+      var(--crt-line) 0 1px,
+      var(--crt-glint) 1px 2px,
+      transparent 2px 3px
+    );
 }
 
 /* Heavy, wide, italic caps: the ident face */
@@ -403,9 +410,10 @@
   box-shadow: 0 0 18px color-mix(in srgb, var(--color) 50%, transparent);
 }
 
-/* On paper, bars print flat */
+/* On paper, bars get a printed edge like the buttons, and nothing to pulse */
 .stached[data-theme="light"] .bar {
-  box-shadow: none;
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--color) 62%, var(--ink));
+  animation: none;
 }
 
 .barTitle {
