@@ -30,9 +30,9 @@
   --panel: #0a0908;
   /* Phosphor glow: the light around type, tiles and buttons */
   --glow: 0 0 2px rgba(255, 241, 201, 0.7), 0 0 14px rgba(255, 196, 90, 0.55);
-  --glow-gold: #ffd23f;
-  --glow-orange: #ff8c1a;
-  --glow-cream: #fff1c9;
+  --glow-gold: var(--gold);
+  --glow-orange: var(--c2);
+  --glow-cream: var(--ink);
   /* The old TV's columns (a dark line, then a light one for dark surfaces)
      and dim corners, and the shade behind dialogs and the home-screen tip */
   --crt-line: rgba(0, 0, 0, 0.24);

@@ -74,6 +74,11 @@ export default defineConfig({
             /<link rel="manifest" href="[^"]*" \/>/,
             '<link rel="manifest" href="/stached/manifest.json" />',
           )
+          // The toolbar and status bar take the page's cream before any JS runs
+          .replace(
+            /<meta name="theme-color" content="[^"]*" \/>/,
+            '<meta name="theme-color" content="#f4e9d0" />',
+          )
           .replace(
             /<meta\s+name="description"\s+content="[^"]*"\s*\/>/,
             `<meta name="description" content="${STACHED_DESCRIPTION}" />`,
