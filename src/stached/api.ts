@@ -135,6 +135,12 @@ export const api = {
       `${API}/clock`,
       JSON.stringify({ token, puzzleId, state: "paused", at: Date.now() }),
     ),
+  /** A one-time code that signs the home-screen app in (HomeScreen.tsx). */
+  handoff: (token: string) =>
+    request<{ code: string }>("/handoff", { token, body: {} }),
+  /** Trades that code for a session, on the app's first launch. */
+  redeem: (code: string) =>
+    request<Session>("/handoff/redeem", { body: { code } }),
   guess: (token: string, puzzleId: number, words: string[]) =>
     request<Day & { result: GuessResult }>("/guess", {
       token,

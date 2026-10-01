@@ -4,6 +4,8 @@
   vector renderer. `bun card/make-art.ts` screenshots it into base.png (the
   card without its day or border) and glyphs.png (the day's letters), and
   card.ts adds the rest per request. Open it directly to see the whole card.
+  It also draws the home-screen icon (?icon: the bands on a slant, Gerald
+  big across them) into public/images.
   Gerald, the bands and the arcs follow src/stached/Logo.tsx; the colors are
   the palette at the top of src/stached/stached.module.css.
 -->
@@ -95,6 +97,18 @@
           radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.6)),
           repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.24) 0 1px, transparent 1px 3px);
       }
+      /* ?icon: the home-screen icon, filling the window */
+      .icon {
+        position: fixed;
+        inset: 0;
+        z-index: 1;
+        background: var(--bg);
+      }
+      .icon > svg {
+        display: block;
+        width: 100vw;
+        height: 100vw;
+      }
       /* The day's letters, one per cell, for card.ts to set any date with */
       .glyphs {
         display: flex;
@@ -177,6 +191,52 @@
       if (mode === "base")
         for (const id of ["day", "border", "crt"])
           document.getElementById(id).style.visibility = "hidden";
+      // The home-screen icon: the logo's four bands fill it on a slant, Gerald
+      // big across them, under the card's old-TV finish (a glow, phosphor
+      // columns coarse enough to survive shrinking, dim corners).
+      function icon() {
+        const rise = 90;
+        const height = (512 + rise) / 4;
+        const bands = BANDS.map((color, i) => {
+          const top = i * height;
+          return `<polygon style="fill: var(${color})" points="0,${top} 512,${top - rise} 512,${top + height - rise} 0,${top + height}" />`;
+        }).join("");
+        // Gerald's path is about 192 wide; centered a touch low, 420 wide.
+        const scale = 420 / 192;
+        const at = (dx) =>
+          `translate(${256 - 100 * scale + dx} ${262 - 37 * scale}) scale(${scale})`;
+        return `<svg viewBox="0 0 512 512">
+          <defs>
+            <filter id="icon-bloom" x="-20%" y="-20%" width="140%" height="140%">
+              <feGaussianBlur stdDeviation="10" result="soft" />
+              <feMerge><feMergeNode in="soft" /><feMergeNode in="SourceGraphic" /></feMerge>
+            </filter>
+            <pattern id="icon-crt" width="10" height="10" patternUnits="userSpaceOnUse">
+              <rect width="3.5" height="10" fill="#000" opacity="0.42" />
+            </pattern>
+            <radialGradient id="icon-corners" r="75%">
+              <stop offset="55%" stop-color="#000" stop-opacity="0" />
+              <stop offset="100%" stop-color="#000" stop-opacity="0.6" />
+            </radialGradient>
+          </defs>
+          <g filter="url(#icon-bloom)">
+            ${bands}
+            <path d="${MUSTACHE_PATH}" transform="${at(0)}" style="fill: var(--bg); stroke: var(--bg); stroke-width: 26; stroke-linejoin: round" />
+            <path d="${MUSTACHE_PATH}" transform="${at(-4)}" style="fill: var(--red); mix-blend-mode: screen; opacity: 0.9" />
+            <path d="${MUSTACHE_PATH}" transform="${at(4)}" style="fill: var(--blue); mix-blend-mode: screen; opacity: 0.9" />
+            <path d="${MUSTACHE_PATH}" transform="${at(0)}" style="fill: var(--face)" />
+          </g>
+          <rect width="512" height="512" fill="url(#icon-crt)" />
+          <rect width="512" height="512" fill="url(#icon-corners)" />
+        </svg>`;
+      }
+
+      if (mode === "icon") {
+        const holder = document.createElement("div");
+        holder.className = "icon";
+        holder.innerHTML = icon();
+        document.body.append(holder);
+      }
 
       // A letter's advance: its width plus the tracking after it.
       function advance(char) {

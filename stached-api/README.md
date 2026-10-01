@@ -25,6 +25,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 | Game UI | `src/pages/Stached.tsx` (the page and session), `src/stached/` (login, home, game, past games, clock, leaderboard, dialogs, logo, styles) |
 | API server | `stached-api/server.ts` (dependency-free Bun) |
 | Link-preview card | `stached-api/card.ts` (draws it), `stached-api/card/` (its art, from `art.html`) |
+| Home-screen app | `public/stached/manifest.json`, `public/images/stached-icon-*.png` (from `art.html?icon`) |
 | Database schema | `stached-api/migrations/*.sql`, applied by `stached-api/migrate.ts` |
 | Studio services | `stached-api/ops/install-daemons.sh` |
 | Backups to this Mac | `stached-api/ops/pull-backup.sh` |
@@ -49,7 +50,17 @@ Pasting `https://spencerstrelsov.com/stached` shows a card: Gerald, the title, t
 - `/card.png` is public, because chat apps fetch it signed out, and never cached, so every fetch is today's and takes the next color (a HEAD, which gets no picture, doesn't). It reads only today's puzzle number and date: never the words, and never a puzzle still to come.
 - The score Share button stays text only, with no link, so a shared score doesn't unfurl into a card.
 - Apps cache previews by link: pasting the same link again can bring back the card they fetched before (Slack keeps one for about 30 minutes). Change the link (`?1`, `?2`) for a fresh one.
-- The art is `card/art.html`, drawn by a browser: Gerald, the bands, the title, and a sheet of letters for the date. `card.ts` sets the date, draws the border and lays an old TV's phosphor columns over it all (no fonts or image libraries on the server). Open `art.html` in Chrome to see the whole card. To change the art, edit it, start a Chrome with `--remote-debugging-port=9222`, and redraw `base.png`, `glyphs.png` and `glyphs.json` with `cd stached-api && bun card/make-art.ts http://127.0.0.1:9222`.
+- The art is `card/art.html`, drawn by a browser: Gerald, the bands, the title, and a sheet of letters for the date. `card.ts` sets the date, draws the border and lays an old TV's phosphor columns over it all (no fonts or image libraries on the server). Open `art.html` in Chrome to see the whole card. To change the art, edit it, start a Chrome with `--remote-debugging-port=9222`, and redraw `base.png`, `glyphs.png` and `glyphs.json` (and the home-screen icons, below) with `cd stached-api && bun card/make-art.ts http://127.0.0.1:9222`.
+
+## Home screen
+
+Stached saves to a phone's home screen as its own app: in Safari, Share → Add to Home Screen. It gets Gerald's icon and the name Stached, and opens full screen on the game, never the rest of the site.
+
+- The Stached pages (written by `vite.config.mts`) swap the site's icon and manifest for `public/images/stached-icon-180.png` and `public/stached/manifest.json`, which is scoped to `/stached`, and add the iOS home-screen tags. The rest of the site keeps its own.
+- The icon is the logo's four bands on a slant, Gerald big across them, under the game's old-TV finish (glow, phosphor columns, dim corners). The slant keeps it reading as a TV ident, not a striped flag. The PNGs (180, 192 and 512 px) come from `card/art.html?icon`, drawn by `make-art.ts` with the card. iOS keeps the icon it saved, so a new one needs a new file name to reach anyone, and even then only on a fresh Add to Home Screen.
+- In a browser tab, home offers it once, ever: "Get Stached on your home screen" slides up from the bottom (`src/stached/HomeScreen.tsx`). On Android its Add button is one tap: Chrome's own install prompt, and the installed app shares Chrome's storage, so you stay signed in.
+- iOS lets no page add itself, so a small tip points at Safari's Share button. iOS also keeps a home-screen app's storage apart from Safari's, so while the tip is up it carries the sign-in over: it asks the API for a one-time code (`POST /handoff`) and puts it in the address (`?handoff=…`), which the app is saved with. On the app's first launch, `src/pages/Stached.tsx` trades it for a session (`POST /handoff/redeem`, limited like sign-in) and clears it from the address. Codes last 15 minutes, work once, and live in the API's memory. Only the home-screen app trades one, so a link shared by mistake signs no one in. The manifest has no `start_url`, so the app keeps the address it was saved from.
+- Without a code (expired, or added another way), the app's sign-in says to use the same name; streaks and games are kept by name, so nothing is lost.
 
 ## Puzzles
 

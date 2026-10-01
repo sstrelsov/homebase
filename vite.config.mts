@@ -56,10 +56,24 @@ export default defineConfig({
     <meta property="og:image" content="${STACHED_CARD}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta name="twitter:card" content="summary_large_image" />`;
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="apple-mobile-web-app-title" content="Stached" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />`;
         const page = readFileSync(index, "utf8")
           .replace("<head>", `<head>${stached}`)
           .replace(/<title>.*<\/title>/, "<title>Stached</title>")
+          // Its own home-screen app: Gerald's icon, and a manifest scoped to
+          // /stached, so a saved Stached opens full screen on the game.
+          .replace(
+            /<link rel="apple-touch-icon" href="[^"]*" \/>/,
+            '<link rel="apple-touch-icon" href="/images/stached-icon-180.png" />',
+          )
+          .replace(
+            /<link rel="manifest" href="[^"]*" \/>/,
+            '<link rel="manifest" href="/stached/manifest.json" />',
+          )
           .replace(
             /<meta\s+name="description"\s+content="[^"]*"\s*\/>/,
             `<meta name="description" content="${STACHED_DESCRIPTION}" />`,
