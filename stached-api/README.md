@@ -58,7 +58,9 @@ Stached saves to a phone's home screen as its own app: in Safari, Share → Add 
 
 - The Stached pages (written by `vite.config.mts`) swap the site's icon and manifest for `public/images/stached-icon-180.png` and `public/stached/manifest.json`, which is scoped to `/stached`, and add the iOS home-screen tags. The rest of the site keeps its own.
 - The icons (180, 192 and 512 px) come from `card/art.html?icon`, drawn by `make-art.ts` with the card.
-- iOS keeps a home-screen app's storage apart from Safari's, so players sign in once more there.
+- In a browser tab, home offers it once, ever: "Get Stached on your home screen" slides up from the bottom (`src/stached/HomeScreen.tsx`). On Android its Add button is one tap: Chrome's own install prompt, and the installed app shares Chrome's storage, so you stay signed in.
+- iOS lets no page add itself, so a small tip points at Safari's Share button. iOS also keeps a home-screen app's storage apart from Safari's, so while the tip is up it carries the sign-in over: it asks the API for a one-time code (`POST /handoff`) and puts it in the address (`?handoff=…`), which the app is saved with. On the app's first launch, `src/pages/Stached.tsx` trades it for a session (`POST /handoff/redeem`, limited like sign-in) and clears it from the address. Codes last 15 minutes, work once, and live in the API's memory. Only the home-screen app trades one, so a link shared by mistake signs no one in. The manifest has no `start_url`, so the app keeps the address it was saved from.
+- Without a code (expired, or added another way), the app's sign-in says to use the same name; streaks and games are kept by name, so nothing is lost.
 
 ## Puzzles
 

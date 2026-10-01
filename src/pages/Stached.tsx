@@ -1,6 +1,11 @@
 import { Outlet } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
-import { loadSession, type Session, saveSession } from "../stached/api";
+import { useCallback, useEffect, useState } from "react";
+import { api, loadSession, type Session, saveSession } from "../stached/api";
+import {
+  HANDOFF,
+  isHomeScreenApp,
+  setHandoffCode,
+} from "../stached/HomeScreen";
 import Login from "../stached/Login";
 import RulesDialog from "../stached/RulesDialog";
 import { StachedContext } from "../stached/session";
@@ -19,6 +24,27 @@ export { default as StachedPast } from "../stached/PastGames";
 const StachedPage = () => {
   const [session, setSession] = useState(loadSession);
   const [rulesOpen, setRulesOpen] = useState(false);
+  // A sign-in code from Safari (HomeScreen.tsx), on the home-screen app's
+  // first launch. Only the app trades it, so a shared link signs no one in.
+  const [code] = useState(() =>
+    new URLSearchParams(location.search).get(HANDOFF),
+  );
+  const [redeeming, setRedeeming] = useState(
+    () => Boolean(code) && !session && isHomeScreenApp(),
+  );
+
+  useEffect(() => {
+    if (!code) return;
+    setHandoffCode(null);
+    if (!redeeming) return;
+    api.redeem(code).then(
+      (next) => {
+        saveSession(next);
+        setSession(next);
+      },
+      () => setRedeeming(false),
+    );
+  }, [code, redeeming]);
 
   const signIn = (next: Session) => {
     saveSession(next);
@@ -41,6 +67,8 @@ const StachedPage = () => {
             <Outlet />
             <RulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
           </StachedContext>
+        ) : redeeming ? (
+          <p className={`${styles.label} pt-24 text-center`}>Signing you in…</p>
         ) : (
           <Login onSignIn={signIn} />
         )}

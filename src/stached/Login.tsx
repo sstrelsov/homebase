@@ -1,5 +1,6 @@
 import { type FormEvent, useState } from "react";
 import { api, type Session } from "./api";
+import { isHomeScreenApp } from "./HomeScreen";
 import Logo from "./Logo";
 import styles from "./stached.module.css";
 
@@ -48,6 +49,12 @@ const Login = ({ onSignIn }: LoginProps) => {
           Stached
         </h1>
       </div>
+
+      {isHomeScreenApp() && (
+        <p className={`${styles.label} text-center leading-relaxed`}>
+          Use the name you play with. Your streak comes with you.
+        </p>
+      )}
 
       <label className="flex flex-col gap-2">
         <span className={styles.label}>Name</span>

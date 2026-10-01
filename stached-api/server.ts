@@ -322,6 +322,35 @@ async function login({ name, password }: Record<string, unknown>) {
   return Response.json({ token: `${user.id}.${sign(user)}`, name: user.name });
 }
 
+// Signing in the home-screen app, which iOS keeps apart from Safari: Safari
+// asks for a one-time code and puts it in the address the app is saved with,
+// and the app trades it for a session on its first launch. Codes last 15
+// minutes and live in memory; after a restart, players sign in by name.
+const HANDOFF_MS = 15 * 60_000;
+const handoffs = new Map<
+  string,
+  { id: number; name: string; expires: number }
+>();
+
+async function handoff(userId: number) {
+  const now = Date.now();
+  for (const [code, { expires }] of handoffs)
+    if (expires < now) handoffs.delete(code);
+  const [user] = await sql`select id, name from users where id = ${userId}`;
+  const code = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString(
+    "base64url",
+  );
+  handoffs.set(code, { ...user, expires: now + HANDOFF_MS });
+  return Response.json({ code });
+}
+
+function redeem({ code }: Record<string, unknown>) {
+  const user = typeof code === "string" ? handoffs.get(code) : undefined;
+  if (!user || user.expires < Date.now()) return fail(401, "Sign in first");
+  handoffs.delete(code as string);
+  return Response.json({ token: `${user.id}.${sign(user)}`, name: user.name });
+}
+
 /** Starts a game (by date, or by id for older pages), or picks it back up. */
 async function start(
   userId: number,
@@ -471,6 +500,7 @@ async function route(req: Request): Promise<Response> {
   if (path === "GET /card.png") return card(req);
   const data = req.method === "POST" ? await body(req) : {};
   if (path === "POST /login") return login(data);
+  if (path === "POST /handoff/redeem") return redeem(data);
 
   const userId = await authenticate(req, data);
   if (!userId) return fail(401, "Sign in first");
@@ -490,6 +520,8 @@ async function route(req: Request): Promise<Response> {
       return Response.json(await leaderboard());
     case "GET /puzzles":
       return Response.json(await pastGames(userId));
+    case "POST /handoff":
+      return handoff(userId);
     default:
       return fail(404, "Not found");
   }
@@ -573,7 +605,10 @@ const server = Bun.serve({
       (BEHIND_TUNNEL && req.headers.get("cf-connecting-ip")) ||
       server.requestIP(req)?.address ||
       "unknown";
-    const login = new URL(req.url).pathname === "/login";
+    // Trading a code for a session counts as signing in.
+    const login = ["/login", "/handoff/redeem"].includes(
+      new URL(req.url).pathname,
+    );
     let res: Response;
     if (
       overLimit(

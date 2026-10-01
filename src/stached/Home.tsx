@@ -2,6 +2,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { api, type Day, formatDate, formatTime } from "./api";
 import Crawl from "./Crawl";
+import HomeScreen from "./HomeScreen";
 import Logo from "./Logo";
 import { Retry } from "./Screen";
 import { useLoad, useStached } from "./session";
@@ -96,6 +97,7 @@ const Home = () => {
             Past games
           </Link>
         </div>
+        <HomeScreen />
         <button
           type="button"
           onClick={signOut}

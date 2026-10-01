@@ -2,7 +2,6 @@
   "id": "/stached",
   "name": "Stached",
   "short_name": "Stached",
-  "start_url": "/stached",
   "scope": "/stached",
   "display": "standalone",
   "background_color": "#000000",
