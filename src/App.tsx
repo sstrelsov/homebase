@@ -8,7 +8,9 @@ import { HeadContent } from "./router";
 const App = () => {
   // Stached takes the whole screen and scrolls the page itself, so phone
   // browsers draw it under their toolbars instead of stopping at them.
-  const isStached = useLocation().pathname.startsWith("/stached");
+  const isStached = useLocation({
+    select: (location) => location.pathname.startsWith("/stached"),
+  });
 
   return (
     <Providers>

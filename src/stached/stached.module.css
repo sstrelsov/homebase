@@ -9,14 +9,16 @@
 
   --bg: #000;
   --ink: #fff1c9;
-  /* Gerald and the lives */
-  --face: #fff4d6;
   /* Light type on the blue and stache bars, in either look */
   --cream: #fff4d6;
+  /* Gerald and the lives */
+  --face: var(--cream);
+  /* Dark type on gold, in either look */
+  --on-gold: #1a1206;
   --muted: color-mix(in srgb, var(--ink) 55%, transparent);
   --line: color-mix(in srgb, var(--ink) 14%, transparent);
   --gold: #ffd23f;
-  /* Gold as type and outlines on the page */
+  /* Gold as type, outlines and thin marks on the page */
   --accent: var(--gold);
   --red: #ff3b2f;
   --blue: #3d5bff;
@@ -31,7 +33,6 @@
   /* Phosphor glow: the light around type, tiles and buttons */
   --glow: 0 0 2px rgba(255, 241, 201, 0.7), 0 0 14px rgba(255, 196, 90, 0.55);
   --glow-gold: var(--gold);
-  --glow-orange: var(--c2);
   --glow-cream: var(--ink);
   /* The old TV's columns (a dark line, then a light one for dark surfaces)
      and dim corners, and the shade behind dialogs and the home-screen tip */
@@ -55,7 +56,7 @@
 
 /* The light look: ink on cream paper. Glows give way to print. The old TV's
    columns stay, two-tone, so they show on the page, the bars and black tiles. */
-.stached[data-theme="light"] {
+.stached[data-look="light"] {
   --bg: #f4e9d0;
   --ink: #23180d;
   --face: var(--ink);
@@ -65,13 +66,12 @@
   --panel: #fbf5e7;
   --glow: 0 0 transparent;
   --glow-gold: transparent;
-  --glow-orange: transparent;
   --glow-cream: transparent;
   --crt-line: rgba(70, 40, 5, 0.13);
   --crt-glint: rgba(255, 246, 225, 0.12);
   --crt-edge: rgba(110, 70, 20, 0.2);
-  --scrim: rgba(35, 24, 13, 0.45);
-  --scrim-tip: rgba(35, 24, 13, 0.45);
+  --scrim: color-mix(in srgb, var(--ink) 45%, transparent);
+  --scrim-tip: var(--scrim);
 }
 
 /* Group colors, set on anything with data-color */
@@ -255,7 +255,7 @@
 .primary {
   border-color: var(--gold);
   background: var(--gold);
-  color: #1a1206;
+  color: var(--on-gold);
   box-shadow:
     0 4px 0 var(--c2),
     0 0 18px color-mix(in srgb, var(--glow-gold) 50%, transparent);
@@ -414,7 +414,7 @@
 }
 
 /* On paper, bars get a printed edge like the buttons, and nothing to pulse */
-.stached[data-theme="light"] .bar {
+.stached[data-look="light"] .bar {
   box-shadow: 0 4px 0 color-mix(in srgb, var(--color) 62%, var(--ink));
   animation: none;
 }
@@ -470,7 +470,7 @@
   50% {
     box-shadow:
       0 0 26px color-mix(in srgb, var(--glow-gold) 70%, transparent),
-      0 0 48px color-mix(in srgb, var(--glow-orange) 40%, transparent);
+      0 0 48px color-mix(in srgb, var(--c2) 40%, transparent);
   }
 }
 
@@ -684,7 +684,7 @@
   margin-right: 3px;
   border-radius: 50%;
   background: var(--gold);
-  color: #1a1206;
+  color: var(--on-gold);
   font-family: var(--display);
   font-size: 13px;
   font-style: italic;

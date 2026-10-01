@@ -80,7 +80,7 @@ const StachedPage = () => {
   }, []);
 
   return (
-    <div ref={page} data-theme={THEME} className={styles.stached}>
+    <div ref={page} data-look={THEME} className={styles.stached}>
       <div aria-hidden="true" className={styles.crt} />
       <div className="mx-auto w-full max-w-md px-4 pt-4 pb-6">
         {session ? (
