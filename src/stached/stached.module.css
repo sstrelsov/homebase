@@ -474,8 +474,7 @@
   }
 }
 
-/* Lives: one mustache per mistake you can still make. The bonus life wears
-   Gerald's red and blue fringes and flickers on like the logo. */
+/* Lives: one mustache per mistake you can still make */
 .life {
   width: 26px;
   height: 9px;
@@ -488,6 +487,8 @@
     fill 0.3s;
 }
 
+/* The bonus life wears Gerald's red and blue fringes and flickers on like the
+   logo. */
 .life[data-bonus] {
   filter: drop-shadow(-1px 0 var(--red)) drop-shadow(1px 0 var(--blue))
     drop-shadow(0 0 3px color-mix(in srgb, var(--glow-gold) 50%, transparent));

@@ -21,7 +21,7 @@ const CLOCK_GRACE_MS = 15_000;
 // Each theme paints them its own way.
 const COLORS = ["1", "2", "3", "4"];
 // The real puzzles live outside this public repo (on the Studio, next to the
-// password); puzzles.example.json is a made-up one for local testing.
+// password); puzzles.example.json holds made-up ones for local testing.
 const puzzles: Pick<Puzzle, "date" | "groups">[] = await Bun.file(
   env("PUZZLES_FILE"),
 ).json();

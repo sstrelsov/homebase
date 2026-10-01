@@ -15,9 +15,11 @@ interface Puzzle {
 }
 
 /** Solving the stache group earns a bonus life: one more mistake. */
-export const hasBonusLife = ({ date, groups }: Puzzle, solved: number[]) =>
-  date >= BONUS_LIFE_FROM &&
-  solved.some((index) => groups[index].stache === true);
+export function hasBonusLife({ date, groups }: Puzzle, solved: number[]) {
+  return (
+    date >= BONUS_LIFE_FROM && solved.some((index) => groups[index].stache)
+  );
+}
 
 /**
  * True once every group is solved, false once the mistakes run out, and null

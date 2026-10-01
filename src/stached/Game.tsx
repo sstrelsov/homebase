@@ -200,7 +200,7 @@ const Game = ({
           await sleep(2600);
           setStached(false);
           setBonusLife(result.bonusLife);
-          say("Bonus life!");
+          if (result.bonusLife) say("Bonus life!");
         }
       } else if (next.result === "repeat") {
         await alreadyGuessed();
