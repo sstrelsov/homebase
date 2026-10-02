@@ -24,7 +24,7 @@ const STACHED_TODAY = new Date().toLocaleDateString("en-CA", {
 });
 
 /**
- * "2026-09-29" through tomorrow: tomorrow's page is up before the nightly
+ * "2026-09-29" through tomorrow: tomorrow's page is up before the morning
  * build (.github/workflows/ci.yml) adds the day after.
  */
 function stachedDays() {
@@ -70,7 +70,7 @@ export default defineConfig({
         // plus its own title and preview card for when the link is shared.
         // The API draws the card: today's puzzle number and date, with the next
         // border color on each fetch (stached-api/card.ts). The day in its URL
-        // changes with each nightly build, so an app that caches pictures by
+        // changes with each morning's build, so an app that caches pictures by
         // URL fetches the new day's card.
         const stached = `
     <meta name="robots" content="noindex, nofollow" />
