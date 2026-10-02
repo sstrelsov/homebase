@@ -4,6 +4,7 @@ import { api, type Day, formatDate, formatTime } from "./api";
 import Crawl from "./Crawl";
 import HomeScreen from "./HomeScreen";
 import Logo from "./Logo";
+import { useNotifications } from "./push";
 import { Retry } from "./Screen";
 import { useLoad, useStached } from "./session";
 import styles from "./stached.module.css";
@@ -21,11 +22,30 @@ function status({ play }: Day) {
 // The logo powers on once per visit, not every time you come back home.
 let introShown = false;
 
+/** A bell, ringing: drawn in the text's color, like the home-screen tip's. */
+const BellIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    aria-hidden="true"
+    className="h-6 w-6"
+  >
+    <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9" />
+    <path d="M10 20.5a2.2 2.2 0 0 0 4 0" />
+    <path d="M2.5 9a9.5 9.5 0 0 1 2.5-6M21.5 9A9.5 9.5 0 0 0 19 3" />
+  </svg>
+);
+
 /** The logo, Rules and Play, and ways to the leaderboard and past games. */
 const Home = () => {
   const navigate = useNavigate();
   const { session, signOut, openRules } = useStached();
   const { data: today, error, load, fail } = useLoad(api.today);
+  const notifications = useNotifications();
   const [intro] = useState(() => !introShown);
 
   useEffect(() => {
@@ -58,18 +78,31 @@ const Home = () => {
           {today ? formatDate(today.puzzle.date) : " "}
         </p>
       </div>
-      <div
-        className={`${rise} grid grid-cols-2 gap-3`}
-        style={{ animationDelay: "1.3s" }}
-      >
-        <button type="button" onClick={openRules} className={styles.button}>
+      <div className={`${rise} flex gap-3`} style={{ animationDelay: "1.3s" }}>
+        {/* Until notifications are on: iOS asks only right after a tap. */}
+        {notifications.bell && (
+          <button
+            type="button"
+            onClick={notifications.turnOn}
+            disabled={notifications.busy}
+            aria-label="Get notified when a puzzle is up"
+            className={`${styles.button} ${styles.rise} w-12 shrink-0`}
+          >
+            <BellIcon />
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={openRules}
+          className={`${styles.button} flex-1`}
+        >
           Rules
         </button>
         <button
           type="button"
           onClick={play}
           disabled={!today}
-          className={`${styles.button} ${styles.primary}`}
+          className={`${styles.button} ${styles.primary} flex-1`}
         >
           Play
         </button>

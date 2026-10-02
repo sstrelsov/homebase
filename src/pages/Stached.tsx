@@ -1,4 +1,4 @@
-import { Outlet } from "@tanstack/react-router";
+import { Outlet, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, loadSession, type Session, saveSession } from "../stached/api";
 import {
@@ -73,6 +73,21 @@ const StachedPage = () => {
       if (meta) meta.content = before.theme;
     };
   }, []);
+
+  // A notification tapped while Stached is open: the service worker
+  // (public/stached/sw.js) asks for home here, instead of a new window.
+  const router = useRouter();
+  useEffect(() => {
+    const container = navigator.serviceWorker;
+    if (!container) return;
+    const open = (event: MessageEvent) => {
+      if (typeof event.data?.open === "string")
+        router.history.push(event.data.open);
+    };
+    container.addEventListener("message", open);
+    container.startMessages();
+    return () => container.removeEventListener("message", open);
+  }, [router]);
 
   const signOut = useCallback(() => {
     saveSession(null);
