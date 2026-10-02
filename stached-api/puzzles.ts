@@ -1,6 +1,6 @@
 // The puzzles file and its rules, shared by the API and the puzzle CLI. The
 // real file lives on the Studio (PUZZLES_FILE), outside this public repo;
-// puzzles.example.json is a made-up one. Postgres mirrors it.
+// puzzles.example.json holds made-up ones. Postgres mirrors it.
 import { sql } from "bun";
 
 export interface Group {

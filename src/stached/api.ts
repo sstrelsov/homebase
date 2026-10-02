@@ -54,6 +54,7 @@ export interface Day {
     today: boolean;
     words: string[];
     groupCount: number;
+    /** Before any bonus life (Play.bonusLife). */
     maxMistakes: number;
   };
   play: Play | null;
