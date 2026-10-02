@@ -43,7 +43,7 @@ const Day = ({ mark, children }: { mark: Mark; children?: ReactNode }) => (
   </span>
 );
 
-/** A titled part of the screen, with a note on the right. */
+/** A titled part of the screen, with a note on the right (or under). */
 const Section = ({
   title,
   note,
@@ -54,7 +54,8 @@ const Section = ({
   children: ReactNode;
 }) => (
   <section className="flex flex-col gap-3">
-    <div className="flex items-baseline justify-between gap-3">
+    {/* A note too long to sit beside the title goes under it, whole. */}
+    <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 whitespace-nowrap">
       <h2 className={`${styles.display} text-[15px]`}>{title}</h2>
       {note && <p className={styles.label}>{note}</p>}
     </div>
@@ -372,7 +373,7 @@ export const Simple = ({ week }: { week: Week }) => (
 export const PointEach = ({ week }: { week: Week }) => (
   <GreenAndRed
     week={week}
-    note="1 per solve · 1 per stache"
+    note="1 point per solve and stache"
     rows={byPointEach(week.players)}
     totals={[{ label: "Pts", value: (row) => row.solved + row.wins }]}
   />
