@@ -22,6 +22,8 @@
   --accent: var(--gold);
   --red: #ff3b2f;
   --blue: #3d5bff;
+  /* A solve on the leaderboard */
+  --green: #3fd45c;
   /* Group color slots, easiest first */
   --c1: #ffd23f;
   --c2: #ff8c1a;
@@ -62,6 +64,7 @@
   --face: var(--ink);
   --muted: color-mix(in srgb, var(--ink) 65%, transparent);
   --accent: #9a5a00;
+  --green: #2f9e47;
   --tile: #e9dcbf;
   --panel: #fbf5e7;
   --glow: 0 0 transparent;
@@ -771,88 +774,143 @@
   border-top: 1px solid var(--line);
 }
 
-/* Leaderboard */
-.standing {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px;
+/* The admin's totals: three big numbers in a card */
+.totals {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 16px;
   border: 1px solid var(--line);
   border-radius: 10px;
   background: var(--tile);
 }
 
-.standing[data-me] {
-  border-color: var(--accent);
-  box-shadow: 0 0 14px color-mix(in srgb, var(--glow-gold) 25%, transparent);
-}
-
-.standingStats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.standingStats dd {
+.totals dd {
   margin-top: 2px;
   font-family: var(--display);
   font-style: italic;
   font-weight: 900;
   font-stretch: 110%;
-  font-size: 16px;
-  font-variant-numeric: tabular-nums;
-}
-
-/* The admin's totals, bigger than a player's stats */
-.totals {
-  padding: 16px;
-}
-
-.totals dd {
   font-size: 26px;
-}
-
-.recent {
-  display: grid;
-  grid-template-columns: repeat(var(--days), minmax(0, 1fr));
-  gap: 4px;
-}
-
-.recentDay {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.recentBar {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  width: 100%;
-  height: 34px;
-  border-bottom: 1px solid var(--line);
-}
-
-.recentFill {
-  width: 14px;
-  border-radius: 4px 4px 0 0;
-  background: var(--accent);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--glow-gold) 40%, transparent);
-}
-
-.recentNone {
-  width: 8px;
-  height: 2px;
-  margin-bottom: 4px;
-  background: var(--muted);
-}
-
-.recentValue {
-  font-family: var(--text);
-  font-size: 11px;
-  color: var(--muted);
   font-variant-numeric: tabular-nums;
+}
+
+/* Leaderboard: a row per player (rank, name, a square per day, points) under
+   a row of weekdays. Every column but the name has a fixed width, so the
+   rows line up. */
+.standing {
+  display: grid;
+  grid-template-columns: 2ch minmax(0, 1fr) auto 26px;
+  align-items: center;
+  column-gap: 6px;
+  min-height: 38px;
+  padding: 4px 0;
+}
+
+.standingHead {
+  composes: standing;
+  min-height: 0;
+}
+
+.week {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 22px;
+  gap: 2px;
+}
+
+.weekday {
+  composes: label;
+  letter-spacing: 0;
+  text-align: center;
+}
+
+.weekday[data-today] {
+  color: var(--accent);
+}
+
+.points {
+  composes: display;
+  font-size: 17px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A day: green solved, red missed, Gerald on the day's fastest stache, a dot
+   for a day not played, and a dashed outline for today until it's finished */
+.mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.mark[data-mark="won"],
+.mark[data-mark="solved"] {
+  --fill: var(--green);
+}
+
+.mark[data-mark="won-missed"],
+.mark[data-mark="missed"] {
+  --fill: var(--red);
+}
+
+.mark[data-mark="won"],
+.mark[data-mark="won-missed"],
+.mark[data-mark="solved"],
+.mark[data-mark="missed"] {
+  background: var(--fill);
+  color: var(--on-gold);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--fill) 45%, transparent);
+}
+
+/* On paper, a printed edge like the bars, and no glow */
+.stached[data-look="light"] .mark[data-mark="won"],
+.stached[data-look="light"] .mark[data-mark="won-missed"],
+.stached[data-look="light"] .mark[data-mark="solved"],
+.stached[data-look="light"] .mark[data-mark="missed"] {
+  box-shadow: 0 2px 0 color-mix(in srgb, var(--fill) 62%, var(--ink));
+}
+
+.mark[data-mark="open"] {
+  border: 1.5px dashed color-mix(in srgb, var(--ink) 30%, transparent);
+}
+
+.markStache {
+  width: 18px;
+  height: 6px;
+  fill: currentColor;
+}
+
+/* The score's key, beside "This week": a small green square +1, Gerald +1 */
+.pointKey {
+  composes: display;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+}
+
+.pointKey > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pointKey .mark {
+  width: 18px;
+  height: 18px;
+}
+
+.pointKeyStache {
+  width: 26px;
+  height: 8px;
+  fill: currentColor;
 }
 
 /* Past games: a tile per day */

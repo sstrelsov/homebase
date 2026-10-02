@@ -61,20 +61,42 @@ export interface Day {
   board: Score[];
 }
 
+/**
+ * A player's day on the leaderboard: solved or missed, "won" or "won-missed"
+ * with the day's fastest stache, "none" if not finished on its day, and
+ * "open" for today's until it's finished.
+ */
+export type Mark = "won" | "won-missed" | "solved" | "missed" | "none" | "open";
+
 export interface Standing {
   name: string;
-  games: number;
+  /** Ties share a place: 1, 2, 2, 4. */
+  rank: number;
+  /** One per day of the week, oldest first; the last is today. */
+  marks: Mark[];
   solved: number;
+  /** Days with the fastest stache. */
+  fastest: number;
+  /** A point for each solve and each fastest stache. */
+  points: number;
+  /** Puzzles solved in a row. */
   streak: number;
-  bestStacheMs: number | null;
-  avgStacheMs: number | null;
-  /** Stache time on each of the recent puzzles, oldest first. */
-  recent: (number | null)[];
 }
 
+/** Today's fastest stache, on a finished game. */
+export interface Fastest {
+  name: string;
+  stachedMs: number;
+  solved: boolean;
+}
+
+/** The last week's puzzles, ranked (stached-api/leaderboard.ts). */
 export interface Leaderboard {
-  /** The recent puzzles' dates, oldest first, matching each `recent`. */
-  recentDates: string[];
+  /** The last 7 puzzles out, oldest first; the last is today's. */
+  days: Pick<Day["puzzle"], "number" | "date">[];
+  /** Everyone tied for today's fastest stache. */
+  fastestToday: Fastest[];
+  /** Everyone who finished a game this week, most points first. */
   players: Standing[];
 }
 

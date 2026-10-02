@@ -109,9 +109,7 @@ const Admin = () => {
     <Screen title="Admin" error={error} onRetry={load}>
       {stats && (
         <div className="flex flex-col gap-8">
-          <dl
-            className={`${styles.standing} ${styles.standingStats} ${styles.totals}`}
-          >
+          <dl className={styles.totals}>
             <div>
               <dt className={styles.label}>Players</dt>
               <dd>{stats.players}</dd>

@@ -1,150 +1,182 @@
-import type { CSSProperties } from "react";
 import {
   api,
   type Leaderboard as Board,
   formatDate,
   formatTime,
-  type Standing,
+  type Mark,
 } from "./api";
+import { Mustache } from "./Logo";
 import Screen from "./Screen";
 import { useLoad, useStached } from "./session";
 import styles from "./stached.module.css";
 
-/** "2026-09-29" → "9/29". */
-const shortDate = (date: string) =>
-  formatDate(date, { month: "numeric", day: "numeric" });
+const MARKS: Record<Mark, string> = {
+  won: "Solved, with the fastest stache",
+  "won-missed": "Missed, with the fastest stache",
+  solved: "Solved",
+  missed: "Missed",
+  none: "Didn't play",
+  open: "Still to play",
+};
 
-interface RecentProps {
-  standing: Standing;
-  dates: string[];
-  /** The slowest recent time on the board, so every row shares one scale. */
-  slowest: number;
-}
-
-/** Stache times on the last few puzzles: a bar per day, the time beneath. */
-const Recent = ({ standing, dates, slowest }: RecentProps) => (
-  <div
-    className={styles.recent}
-    style={{ "--days": dates.length } as CSSProperties}
+/** A day: green solved, red missed, Gerald on the day's fastest stache. */
+const Square = ({ mark }: { mark: Mark }) => (
+  <span
+    className={styles.mark}
+    data-mark={mark}
+    role="img"
+    aria-label={MARKS[mark]}
+    title={MARKS[mark]}
   >
-    {standing.recent.map((ms, i) => (
-      <div
-        key={dates[i]}
-        className={styles.recentDay}
-        role="img"
-        aria-label={`${shortDate(dates[i])}: ${ms === null ? "no stache" : formatTime(ms)}`}
-      >
-        <div className={styles.recentBar}>
-          {ms === null ? (
-            <span className={styles.recentNone} />
-          ) : (
-            <span
-              className={styles.recentFill}
-              style={{ height: `${Math.max(8, (ms / slowest) * 100)}%` }}
-            />
-          )}
-        </div>
-        <span className={styles.recentValue}>
-          {ms === null ? "—" : formatTime(ms, false)}
-        </span>
-      </div>
-    ))}
-  </div>
+    {mark === "won" || mark === "won-missed" ? (
+      <Mustache className={styles.markStache} />
+    ) : (
+      mark === "none" && "·"
+    )}
+  </span>
 );
 
-interface LeaderboardViewProps {
-  /** Null until it loads. */
-  board: Board | null;
-  error: string | null;
-  onRetry: () => void;
-}
-
-/** Everyone's streaks and stache times, ranked by streak, then best time. */
-export const LeaderboardView = ({
-  board,
-  error,
-  onRetry,
-}: LeaderboardViewProps) => {
+/** Today's fastest stache, in a gold box. Ties share it. */
+const FastestToday = ({ board }: { board: Board }) => {
   const { session } = useStached();
-
-  const slowest = Math.max(
-    1,
-    ...(board?.players.flatMap((p) => p.recent) ?? []).filter(
-      (ms): ms is number => ms !== null,
-    ),
-  );
-  const dates = board?.recentDates ?? [];
-
+  const today = board.days.at(-1);
+  if (!today) return null;
   return (
-    <Screen
-      title="Leaderboard"
-      subtitle={
-        dates.length > 0 && (
-          <p className={styles.label}>
-            Last {dates.length} {dates.length === 1 ? "puzzle" : "puzzles"} ·{" "}
-            {shortDate(dates[0])}
-            {dates.length > 1 && `–${shortDate(dates[dates.length - 1])}`}
+    <div className={`${styles.stacheBox} flex flex-col gap-1 p-3`}>
+      <p className={styles.label}>
+        Fastest stache today · #{today.number} ·{" "}
+        {formatDate(today.date, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+        })}
+      </p>
+      {board.fastestToday.length > 0 ? (
+        board.fastestToday.map((fastest) => (
+          <p
+            key={fastest.name}
+            className={`flex items-center gap-3 text-[22px] leading-tight ${
+              fastest.name === session.name ? styles.me : ""
+            }`}
+          >
+            <Square mark={fastest.solved ? "won" : "won-missed"} />
+            <span className="flex-1 truncate">{fastest.name}</span>
+            <span className={styles.stacheText}>
+              {formatTime(fastest.stachedMs)}
+            </span>
           </p>
-        )
-      }
-      error={error}
-      onRetry={onRetry}
-    >
-      {board &&
-        (board.players.length === 0 ? (
-          <p className="text-[19px]">No one has played yet. Be the first!</p>
-        ) : (
-          <ol className="flex flex-col gap-3">
-            {board.players.map((standing, i) => (
-              <li
-                key={standing.name}
-                className={styles.standing}
-                data-me={standing.name === session.name || undefined}
-              >
-                <div className="flex items-baseline justify-between gap-3">
-                  <span className="flex min-w-0 items-baseline gap-3">
-                    <span className={`${styles.label} w-5 shrink-0`}>
-                      {i + 1}
-                    </span>
-                    <span className={`${styles.display} truncate text-[15px]`}>
-                      {standing.name}
-                    </span>
-                  </span>
-                  <span className="flex shrink-0 items-baseline gap-2">
-                    <span className={styles.label}>Streak</span>
-                    <span className={`${styles.stacheText} text-[17px]`}>
-                      {standing.streak}
-                    </span>
-                  </span>
-                </div>
-                <dl className={styles.standingStats}>
-                  <div>
-                    <dt className={styles.label}>Best</dt>
-                    <dd>{formatTime(standing.bestStacheMs)}</dd>
-                  </div>
-                  <div>
-                    <dt className={styles.label}>Average</dt>
-                    <dd>{formatTime(standing.avgStacheMs)}</dd>
-                  </div>
-                  <div>
-                    <dt className={styles.label}>Solved</dt>
-                    <dd>
-                      {standing.solved}/{standing.games}
-                    </dd>
-                  </div>
-                </dl>
-                <Recent standing={standing} dates={dates} slowest={slowest} />
-              </li>
-            ))}
-          </ol>
-        ))}
-    </Screen>
+        ))
+      ) : (
+        <p className="text-[19px]">Still up for grabs.</p>
+      )}
+    </div>
   );
 };
 
+/** The score, without words: a green square is a point, and so is Gerald. */
+const PointKey = () => (
+  <p className={styles.pointKey}>
+    <span>
+      <Square mark="solved" />
+      +1
+    </span>
+    <span>
+      <Mustache className={styles.pointKeyStache} />
+      <span className="sr-only">Fastest stache</span>
+      +1
+    </span>
+  </p>
+);
+
+/** The week: a row per player, a square per day, and their points. */
+const Week = ({ board: { days, players } }: { board: Board }) => {
+  const { session } = useStached();
+  return (
+    <section className="flex flex-col gap-3">
+      {/* The key goes under the title if it can't fit beside it. */}
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 whitespace-nowrap">
+        <h2 className={`${styles.display} text-[15px]`}>This week</h2>
+        <PointKey />
+      </div>
+      {players.length === 0 ? (
+        <p className="text-[19px]">
+          No one has finished a puzzle this week. Be the first!
+        </p>
+      ) : (
+        <div>
+          <div className={`${styles.standingHead} ${styles.rule}`}>
+            <span />
+            <span />
+            <span className={styles.week}>
+              {days.map((day, i) => (
+                <span
+                  key={day.date}
+                  className={styles.weekday}
+                  data-today={i === days.length - 1 || undefined}
+                >
+                  {formatDate(day.date, { weekday: "short" }).slice(0, 2)}
+                </span>
+              ))}
+            </span>
+            <span className={`${styles.label} text-right`}>Pts</span>
+          </div>
+          <ol>
+            {players.map((player) => (
+              <li
+                key={player.name}
+                className={`${styles.standing} ${styles.rule} ${
+                  player.name === session.name ? styles.me : ""
+                }`}
+              >
+                <span className="opacity-50">{player.rank}</span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-[18px] leading-tight">
+                    {player.name}
+                  </span>
+                  {player.streak >= 2 && (
+                    <span
+                      className={`${styles.label} ${styles.stacheText} whitespace-nowrap`}
+                    >
+                      {player.streak} in a row
+                    </span>
+                  )}
+                </span>
+                <span className={styles.week}>
+                  {player.marks.map((mark, i) => (
+                    <Square key={days[i].date} mark={mark} />
+                  ))}
+                </span>
+                <span
+                  className={`${styles.points} ${styles.stacheText}`}
+                  title={`${player.solved} solved, ${player.fastest} fastest`}
+                >
+                  {player.points}
+                </span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+    </section>
+  );
+};
+
+/**
+ * Today's fastest stache, then the last week's puzzles: a point for each solve
+ * and each fastest stache.
+ */
 const Leaderboard = () => {
-  const { data, error, load } = useLoad(api.leaderboard);
-  return <LeaderboardView board={data} error={error} onRetry={load} />;
+  const { data: board, error, load } = useLoad(api.leaderboard);
+  return (
+    <Screen title="Leaderboard" error={error} onRetry={load}>
+      {board && (
+        <div className="flex flex-col gap-6">
+          <FastestToday board={board} />
+          <Week board={board} />
+        </div>
+      )}
+    </Screen>
+  );
 };
 
 export default Leaderboard;
