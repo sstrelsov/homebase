@@ -73,9 +73,11 @@ function env(name: string): string {
 
 // Tokens are "userId.hmac(userId:name)": nothing to store, nothing to expire,
 // and a reset database can't hand an old token to whoever gets its id next.
+// The admin's also sign ADMIN_PASSWORD, so a token from when anyone could take
+// the name stops working, as does every admin token when it changes.
 const sign = ({ id, name }: { id: number; name: string }) =>
   new Bun.CryptoHasher("sha256", SECRET)
-    .update(`${id}:${name}`)
+    .update(`${id}:${name}${isAdmin(name) ? `:${ADMIN_PASSWORD}` : ""}`)
     .digest("base64url");
 
 /**
@@ -341,11 +343,10 @@ const handoffs = new Map<
   { id: number; name: string; expires: number }
 >();
 
-async function handoff(userId: number) {
+function handoff(user: { id: number; name: string }) {
   const now = Date.now();
   for (const [code, { expires }] of handoffs)
     if (expires < now) handoffs.delete(code);
-  const [user] = await sql`select id, name from users where id = ${userId}`;
   const code = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString(
     "base64url",
   );
@@ -512,13 +513,14 @@ async function adminStats() {
           join users u on u.id = s.user_id
           where lower(u.name) <> ${ADMIN_NAME})::int as notifications`,
   ]);
-  const week = new Set(puzzles.slice(0, 7).map((puzzle) => puzzle.id));
+  const week = new Set(puzzles.slice(0, RECENT_PUZZLES).map((p) => p.id));
   const thisWeek = plays.filter((g) => !g.late && week.has(g.puzzle_id));
+  const byPuzzle = Map.groupBy(plays, (g) => g.puzzle_id);
   return {
     ...counts,
     playedThisWeek: new Set(thisWeek.map((g) => g.name)).size,
     puzzles: puzzles.map((puzzle) => {
-      const games = plays.filter((g) => g.puzzle_id === puzzle.id);
+      const games = byPuzzle.get(puzzle.id) ?? [];
       const onTheDay = games.filter((g) => !g.late);
       return {
         number: puzzle.number,
@@ -590,7 +592,7 @@ async function route(req: Request): Promise<Response> {
     case "GET /puzzles":
       return Response.json(await pastGames(userId));
     case "POST /handoff":
-      return handoff(userId);
+      return handoff(user);
     case "GET /admin":
       if (!isAdmin(user.name)) return fail(404, "Not found");
       return Response.json(await adminStats());

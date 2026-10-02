@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import {
   type AdminGame,
   type AdminPuzzle,
@@ -47,22 +47,32 @@ interface RowProps {
   children: ReactNode[];
 }
 
-/** A row that opens to show its games, two to a line. */
-const Row = ({ title, detail, children }: RowProps) => (
-  <details className={styles.disclosure}>
-    <summary>
-      <span className="flex flex-col gap-1">
-        <span className={`${styles.display} text-[14px]`}>{title}</span>
-        <span className={styles.label}>{detail}</span>
-      </span>
-    </summary>
-    {children.length > 0 ? (
-      <ul className="mt-3 grid grid-cols-2 gap-3">{children}</ul>
-    ) : (
-      <p className={`${styles.label} mt-3`}>No finished games yet</p>
-    )}
-  </details>
-);
+/**
+ * A row that opens to show its games, two to a line. They mount only while it's
+ * open, since every game appears twice, under its puzzle and its player.
+ */
+const Row = ({ title, detail, children }: RowProps) => {
+  const [open, setOpen] = useState(false);
+  return (
+    <details
+      className={styles.disclosure}
+      onToggle={(e) => setOpen(e.currentTarget.open)}
+    >
+      <summary>
+        <span className="flex flex-col gap-1">
+          <span className={`${styles.display} text-[14px]`}>{title}</span>
+          <span className={styles.label}>{detail}</span>
+        </span>
+      </summary>
+      {open &&
+        (children.length > 0 ? (
+          <ul className="mt-3 grid grid-cols-2 gap-3">{children}</ul>
+        ) : (
+          <p className={`${styles.label} mt-3`}>No finished games yet</p>
+        ))}
+    </details>
+  );
+};
 
 /**
  * For the admin: how many play, and how each puzzle went. Open a puzzle to see

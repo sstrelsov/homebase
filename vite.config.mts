@@ -86,7 +86,12 @@ export default defineConfig({
         // The game's fixed pages, so direct loads get a 200 and the card.
         // Day pages (/stached/2026-09-29) fall back to 404.html, which still
         // runs the app; their dates live in the private puzzles file.
-        for (const route of ["stached", "stached/leaderboard", "stached/past"]) {
+        for (const route of [
+          "stached",
+          "stached/leaderboard",
+          "stached/past",
+          "stached/admin",
+        ]) {
           mkdirSync(resolve(outDir, route), { recursive: true });
           writeFileSync(resolve(outDir, route, "index.html"), page);
         }

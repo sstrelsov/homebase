@@ -100,7 +100,7 @@ Then restart the API (`make deploy-stached`). The private key never leaves the S
 
 `/stached/admin` is for one player, the admin (`ADMIN_NAME`; Spencer on the live game). Only the admin's home links to it, and the API answers anyone else's `GET /admin` with a 404.
 
-- **Signing in:** the admin's name takes `ADMIN_PASSWORD`, not the shared password, so no friend can sign in as them. The admin stays off the leaderboard and the day's scoreboard, but plays and gets pushes like anyone. A session from before the admin was set up has no Admin link: switch player and sign in again with the admin password.
+- **Signing in:** the admin's name takes `ADMIN_PASSWORD`, not the shared password, so no friend can sign in as them. The admin stays off the leaderboard and the day's scoreboard, but plays and gets pushes like anyone. The admin's sessions also depend on `ADMIN_PASSWORD`, so setting up the admin or changing that password signs the admin out everywhere, along with anyone who took the name with the shared password before.
 - **What it shows:** how many players there are, how many played one of the last seven puzzles on its day, and how many have notifications on. Then each puzzle: how many played and solved it on its day, and how many played it late. Open a puzzle to see every finished game's share grid for it, to judge how hard it was, or open a player to see their grids across puzzles. It all comes from the games and push subscriptions the game already keeps; nothing new is recorded, like when anyone visits.
 
 ## Puzzles
@@ -250,7 +250,7 @@ Everything runs as `sstrelsov-personal` (`ssh personal-studio`), from a clone at
 ## Security
 
 - The password, the admin password, the real puzzles and the VAPID private key exist only on the Studio. Changing the password (edit `STACHE_PASSWORD` in `api.env`, then `make deploy-stached`) doesn't sign anyone out.
-- Changing `SESSION_SECRET` signs everyone out. Deleting a player signs that player out.
+- Changing `SESSION_SECRET` signs everyone out, and changing `ADMIN_PASSWORD` signs the admin out. Deleting a player signs that player out.
 - The API allows browsers only from the site's origins. It limits each client to 10 sign-ins and 180 other requests a minute, and caps request bodies at 16 KB. Behind the tunnel it identifies clients by Cloudflare's `CF-Connecting-IP`, which only the tunnel can set, because the API listens on loopback.
 - These limits count per IP address, so a crowd on one Wi-Fi shares them.
 

@@ -54,7 +54,7 @@ Unlisted Connections-style game with a stache group and a leaderboard. **[`stach
 `make phone` runs a throwaway Postgres, the Stached API, and the dev server, then puts them behind Tailscale Serve at `https://<this-mac>.<tailnet>.ts.net:8443` and prints a QR code for `/stached`. Ctrl-C stops everything and removes the Serve entry.
 
 - The phone needs the Tailscale app connected; it doesn't need to be on the same Wi-Fi. HTTPS matters because phone browsers in HTTPS-only mode refuse the plain `http://` LAN address.
-- The database is recreated on every run, so every name gets a fresh try. It uses a local test password (`test`, or `STACHE_PASSWORD`) and the made-up `stached-api/puzzles.example.json` (or `PUZZLES_FILE`), both printed on start.
+- The database is recreated on every run, so every name gets a fresh try. It uses a local test password (`test`, or `STACHE_PASSWORD`), an admin named `admin` with password `admin` for `/stached/admin`, and the made-up `stached-api/puzzles.example.json` (or `PUZZLES_FILE`), all printed on start.
 - Each run makes its own push keys and writes its settings to `.phone/api.env`, so the puzzle CLI can drive it: `STACHED_ENV=.phone/api.env scripts/stached confirm`. Pushes go out as soon as a puzzle is live, with no wait for 9:12. To get them on a phone, run `make phone-preview` (the dev server doesn't serve the home-screen app's manifest), add its `/stached/` to the home screen, open it, and tap the bell. It's a separate app from the real one.
 - The script only touches Serve port 8443 and refuses to start if something else already uses it. Other Serve entries on this Mac belong to other projects; leave them alone.
 - Needs `bun`, `node`, `tailscale`, and Homebrew's `postgresql@17` (`initdb`, `pg_ctl`, `createdb`).
