@@ -725,6 +725,32 @@
   background: var(--color);
 }
 
+/* Admin rows that open to show their games */
+.disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure > summary::after {
+  content: "+";
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--muted);
+}
+
+.disclosure[open] > summary::after {
+  content: "–";
+}
+
 /* Leaderboard */
 .standing {
   display: flex;

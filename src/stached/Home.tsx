@@ -130,6 +130,14 @@ const Home = () => {
             Past games
           </Link>
         </div>
+        {session.admin && (
+          <Link
+            to="/stached/admin"
+            className={`${styles.display} ${styles.stacheText} text-[13px]`}
+          >
+            Admin
+          </Link>
+        )}
         <HomeScreen />
         <button
           type="button"
