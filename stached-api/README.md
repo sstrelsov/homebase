@@ -24,12 +24,15 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 |---|---|
 | Game UI | `src/pages/Stached.tsx` (the page and session), `src/stached/` (login, home, game, past games, clock, leaderboard, dialogs, logo, styles) |
 | API server | `stached-api/server.ts` (dependency-free Bun) |
+| Puzzle rules | `stached-api/puzzles.ts` (shared by the API and the puzzle CLI) |
+| Puzzle CLI | `stached-api/cli.ts`, run with `scripts/stached`; the `stached-puzzles` skill walks through it |
+| Push notifications | `stached-api/push.ts` (who gets them, and when), `stached-api/webpush.ts` (encryption and signing), `public/stached/sw.js` (shows them), `src/stached/push.ts` (the bell) |
 | Link-preview card | `stached-api/card.ts` (draws it), `stached-api/card/` (its art, from `art.html`) |
 | Home-screen app | `public/stached/manifest.json`, `public/images/stached-icon-v2-*.png` (from `art.html?icon`) |
 | Database schema | `stached-api/migrations/*.sql`, applied by `stached-api/migrate.ts` |
 | Studio services | `stached-api/ops/install-daemons.sh` |
 | Backups to this Mac | `stached-api/ops/pull-backup.sh` |
-| Real puzzles and password | on the Studio only, in `~/.config/stached/` (never in this public repo) |
+| Real puzzles, password and push keys | on the Studio only, in `~/.config/stached/` (never in this public repo) |
 | Sample puzzle for local testing | `stached-api/puzzles.example.json` |
 
 ## How the game works
@@ -40,6 +43,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 - **Stache time** counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; if a phone sleeps before it can say so, the gap counts for at most 15 seconds. The server keeps the real clock.
 - **The leaderboard** ranks everyone by streak, then best stache time. A streak is puzzles solved in a row; today's puzzle doesn't break it until you finish (or miss) it. Each player also shows their best and average stache time, games solved, and a bar per day for the last seven puzzles.
 - **The daily puzzle** is the newest one dated on or before today in New York; a day without a puzzle of its own keeps the last one. Puzzles are numbered by date (#1 is the first).
+- **Notifications:** in the home-screen app, a bell left of Rules turns on a push for each new puzzle (Push notifications, below).
 - **Past games** shows a tile per day so far. A finished day opens your board, the answers, and that day's scoreboard. A missed day can be played any time after, and an unfinished one finished, but that game is marked **late** (started or guessed after its day): it shows in your history and on that day's scoreboard (tagged late), and it never counts toward streaks or leaderboard times.
 
 ## The look
@@ -71,9 +75,30 @@ Stached saves to a phone's home screen as its own app: in Safari, Share → Add 
 - iOS lets no page add itself, so a small tip points at Safari's Share button. iOS also keeps a home-screen app's storage apart from Safari's, so while the tip is up it carries the sign-in over: it asks the API for a one-time code (`POST /handoff`) and puts it in the address (`?handoff=…`), which the app is saved with. On the app's first launch, `src/pages/Stached.tsx` trades it for a session (`POST /handoff/redeem`, limited like sign-in) and clears it from the address. Codes last 15 minutes, work once, and live in the API's memory. Only the home-screen app trades one, so a link shared by mistake signs no one in. The manifest has no `start_url`, so the app keeps the address it was saved from.
 - Without a code (expired, or added another way), the app's sign-in says to use the same name; streaks and games are kept by name, so nothing is lost.
 
+## Push notifications
+
+Each puzzle sends one push to the home-screen apps that asked for it: "Puzzle #12 is up" as the title, then a random line from the crawl on home. Tapping it opens home, not the game, so the stache clock waits for Play.
+
+- **Turning them on:** home shows a bell to the left of Rules until notifications are on in that browser. On an iPhone only the home-screen app can get pushes (iOS 16.4 and later), and iOS asks permission only right after a tap, so the bell is that tap. Desktop Chrome and Android show it too. Stached has no off switch; iOS Settings → Notifications has one. After a "Don't Allow" the bell stays hidden, since only Settings can undo it.
+- **When:** at 9:12am New York time on the puzzle's date (`ANNOUNCE_AT`). A puzzle published on its date after that pushes within a minute, and one dated before today never does. The API checks every minute.
+- **Never twice:** the API records the date in `announcements` before sending, and only the first claim sends. A restart, a second API, or editing and republishing a puzzle can't repeat it. The migration recorded the puzzles already out, so they never push.
+- **Subscriptions** (`push_subscriptions`): one per browser, tied to the player who tapped the bell there. Home sends it again on every visit, so it survives a database reset and renews itself if the keys change. When a push service answers 404 or 410 (the app was deleted, say), it's dropped. The API only takes subscriptions from Apple's, Google's, Mozilla's and Microsoft's push services, so nobody can point it at another address.
+- **The protocol** is standard Web Push with no dependencies: `webpush.ts` encrypts each message for its browser (RFC 8291) and signs a VAPID token (RFC 8292) with WebCrypto. Its test checks the encryption against RFC 8291's published example. The service worker is scoped to `/stached/` and has no fetch handler, so it changes nothing about how pages load.
+- iOS adds "from Stached" (the home-screen app's name) under the title, and fills an empty title with "Stached" (an invisible one leaves a blank line). A web app can't turn either off, so the title is the puzzle.
+
+### Push keys
+
+The API signs pushes with a VAPID key pair from its environment. Without the keys, push is off: no bell, and nothing sent. To make them, on the Studio:
+
+```bash
+~/dev/homebase/scripts/stached vapid-keys >> ~/.config/stached/api.env
+```
+
+Then restart the API (`make deploy-stached`). The private key never leaves the Studio. New keys are fine later: each browser renews its subscription the next time it opens home. `make phone` makes throwaway keys for each run.
+
 ## Puzzles
 
-Puzzles live in `~/.config/stached/puzzles.json` on the Studio (mode 600), because this repo is public. The format matches `puzzles.example.json`:
+Puzzles live in `~/.config/stached/puzzles.json` on the Studio (mode 600), because this repo is public. Publish them with the puzzle CLI (below), not by hand. The format matches `puzzles.example.json`:
 
 ```json
 [
@@ -89,12 +114,33 @@ Puzzles live in `~/.config/stached/puzzles.json` on the Studio (mode 600), becau
 ]
 ```
 
-- One puzzle per date, four words per group, no word twice, exactly one `"stache": true` group. The server refuses to start otherwise.
+- One puzzle per date, a title and four words per group, no word twice (ignoring case), no title twice, exactly one `"stache": true` group, at most five groups. The server refuses to start otherwise, and the CLI won't stage it.
 - Non-stache groups are colored in file order (yellow, orange, red, blue), so list them easiest first.
 - Add upcoming days ahead of time; each goes live on its date.
-- **Editing or removing a puzzle that people have played deletes their games for it.** Scores against old words wouldn't mean anything.
+- **Editing or removing a puzzle that people have played deletes their games for it.** Scores against old words wouldn't mean anything. The CLI refuses to unless you add `--delete-games`.
 
-To change puzzles: `ssh personal-studio`, edit the file, then run `make deploy-stached` from this repo (it restarts the API, which re-reads the file).
+### The puzzle CLI
+
+`scripts/stached` stages, previews and publishes puzzles (the code is `stached-api/cli.ts`, and the [`stached-puzzles`](../.claude/skills/stached-puzzles/SKILL.md) skill walks through it). It runs on the Studio with the API's settings. From this Mac it runs there over SSH, sending a puzzle file along. Publishing needs no deploy.
+
+```bash
+scripts/stached stage oct-2.json   # check it and stage it, not live (- reads stdin)
+scripts/stached preview            # play it on your phone first
+scripts/stached confirm            # publish it
+scripts/stached list               # every puzzle: status, games, push
+```
+
+| Command | What it does |
+|---|---|
+| `stage <file>` | Checks one puzzle, or a list, with the server's rules, and stages it in `staged.json` next to `puzzles.json`, replacing what was staged. Says each puzzle's number and when it goes live and pushes |
+| `preview [date]` | Runs `make phone` on the Studio (ports 3998 and 8443) with just that staged puzzle, as today's, in a tmux session (`stached-preview`) that outlives your terminal. Prints the link and a QR code: Tailscale on, password `test`. Nothing played there reaches the live game. The first one installs the site's packages in the Studio's clone |
+| `preview stop` | Stops it, as Ctrl-C would |
+| `confirm` | Publishes what's staged: writes `puzzles.json` (keeping the old one as `puzzles.json.bak-…`), syncs Postgres as the API does when it starts, and stops the preview. The API serves it without a restart |
+| `remove <date>` | Takes a published puzzle down |
+| `list` | Every puzzle with its number, status (out, today, upcoming, staged), games, and push (sent, none, or when) |
+| `vapid-keys` | Prints a new push key pair (Push keys, above) |
+
+`confirm` and `remove` won't change or remove a puzzle anyone has played: they name it and its games, and stop. Add `--delete-games` to go ahead. A puzzle nobody has played can change freely. With `STACHED_ENV=.phone/api.env`, the CLI drives a `make phone` run instead of the live game.
 
 ## Local development
 
@@ -104,7 +150,7 @@ make phone-preview  # the same, with a production build, to test the link-previe
 make phone-live-data  # the same, starting from a copy of the live database and puzzles
 ```
 
-All three run a throwaway Postgres (recreated every run), the API, and the site on this Mac, with the password `test` (override with `STACHE_PASSWORD`). The first two use the sample puzzle (override with `PUZZLES_FILE`). `phone-live-data` copies the live database and puzzles from the Studio into the owner-only `.phone` folder, so the leaderboard and past games look real. It's still a copy, so nothing you do there reaches the live game. See the Testing on your phone section of `AGENTS.md` for details. For desktop-only work, run the API on port 3999 and `bun run dev`; Vite proxies `/stached-api` to it. On the Studio the live API already has 3999, so pick another port there with `STACHED_API_PORT` (`STACHED_API_PORT=3998 make phone-preview`), which Vite's proxy follows; `make phone` refuses to start on a port that's taken.
+All three run a throwaway Postgres (recreated every run), the API, and the site on this Mac, with the password `test` (override with `STACHE_PASSWORD`). The first two use the sample puzzle (override with `PUZZLES_FILE`). `phone-live-data` copies the live database and puzzles from the Studio into the owner-only `.phone` folder, so the leaderboard and past games look real. It's still a copy, so nothing you do there reaches the live game. Each run writes its settings, with throwaway push keys, to `.phone/api.env` for the puzzle CLI, and pushes as soon as a puzzle is live (`ANNOUNCE_AT=00:00`). See the Testing on your phone section of `AGENTS.md` for details. For desktop-only work, run the API on port 3999 and `bun run dev`; Vite proxies `/stached-api` to it. On the Studio the live API already has 3999, so pick another port there with `STACHED_API_PORT` (`STACHED_API_PORT=3998 make phone-preview`), which Vite's proxy follows; `make phone` refuses to start on a port that's taken.
 
 The API reads its settings from the environment (on the Studio, `~/.config/stached/api.env`) and won't start without the first five:
 
@@ -117,6 +163,8 @@ The API reads its settings from the environment (on the Studio, `~/.config/stach
 | `ALLOWED_ORIGINS` | comma-separated site origins allowed to call the API |
 | `HOST` | bind address, default `0.0.0.0`. `127.0.0.1` means behind the tunnel, so `CF-Connecting-IP` is trusted |
 | `PORT` | default `3000` (`3999` on the Studio) |
+| `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | the push key pair (Push keys, above). Without them, push is off |
+| `ANNOUNCE_AT` | when a puzzle's push goes out on its date, New York time: default `09:12` |
 
 The site calls `https://api.spencerstrelsov.com` in production and `/stached-api` in dev; `VITE_STACHED_API` overrides either.
 
@@ -129,19 +177,22 @@ Checks: `bun run lint` (Biome, for the site and the API), `bun run build`, and `
 
 Deploy the API before merging a site change that needs a new endpoint. The old site keeps working against the new API.
 
+Publishing a puzzle is not a deploy: the CLI writes the file and Postgres, and the running API serves it.
+
 ## Database and migrations
 
-Three tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the puzzles file), and `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result, and whether it was played late).
+Five tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the puzzles file), `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result, and whether it was played late), `push_subscriptions` (one per browser that tapped the bell), and `announcements` (each date whose push has gone out).
 
 | Migration | What it did |
 |---|---|
 | `0001_initial.sql` | The schema as of 2026-09-30 |
 | `0002_plays_late.sql` | `plays.late`, for games played after their day |
+| `0003_push.sql` | `push_subscriptions` and `announcements`, for push notifications |
 
 `schema_migrations` records which migrations ran. To change the schema, add the next numbered file:
 
 ```sql
--- stached-api/migrations/0003_track_shuffles.sql
+-- stached-api/migrations/0004_track_shuffles.sql
 alter table plays add column shuffles int not null default 0;
 ```
 
@@ -178,7 +229,7 @@ To try a backup without touching production, restore it into a throwaway Postgre
 Everything runs as `sstrelsov-personal` (`ssh personal-studio`), from a clone at `~/dev/homebase`, and listens only on 127.0.0.1.
 
 - **Services:** LaunchDaemons `me.strelsov.stached.{postgres,api,tunnel,backup}` start at boot with nobody logged in. Install them, or re-install after changing `ops/install-daemons.sh`, with `ssh -t personal-studio 'sudo ~/dev/homebase/stached-api/ops/install-daemons.sh'`. FileVault is on, so after a reboot nothing starts until the disk is unlocked.
-- **Files in `~/.config/stached/`** (all mode 600): `api.env` (the password, a generated session secret, and settings), `puzzles.json`, `tunnel-token`, and a log per service.
+- **Files in `~/.config/stached/`** (all mode 600): `api.env` (the password, a generated session secret, the push keys, and settings), `puzzles.json`, `staged.json` (puzzles staged with the CLI) and its backups of `puzzles.json`, `tunnel-token`, and a log per service.
 - **Postgres** is Homebrew's `postgresql@17`, with data in `/opt/homebrew/var/postgresql@17`. Local connections authenticate as the macOS user; the API uses its own password-protected `stached` role over TCP.
 - **Health:** `curl -s http://127.0.0.1:3999/health` on the Studio, or `https://api.spencerstrelsov.com/health` from anywhere.
 
@@ -188,7 +239,7 @@ Everything runs as `sstrelsov-personal` (`ssh personal-studio`), from a clone at
 
 ## Security
 
-- The password and the real puzzles exist only on the Studio. Changing the password (edit `STACHE_PASSWORD` in `api.env`, then `make deploy-stached`) doesn't sign anyone out.
+- The password, the real puzzles and the VAPID private key exist only on the Studio. Changing the password (edit `STACHE_PASSWORD` in `api.env`, then `make deploy-stached`) doesn't sign anyone out.
 - Changing `SESSION_SECRET` signs everyone out. Deleting a player signs that player out.
 - The API allows browsers only from the site's origins. It limits each client to 10 sign-ins and 180 other requests a minute, and caps request bodies at 16 KB. Behind the tunnel it identifies clients by Cloudflare's `CF-Connecting-IP`, which only the tunnel can set, because the API listens on loopback.
 - These limits count per IP address, so a crowd on one Wi-Fi shares them.
@@ -202,3 +253,5 @@ Everything runs as `sstrelsov-personal` (`ssh personal-studio`), from a clone at
 | API won't start | the API log: a failing migration, a broken `puzzles.json`, or Postgres down (`…stached.postgres.log`) |
 | Everyone signed out | `SESSION_SECRET` changed, or the database was reset |
 | Someone stuck at "Wrong password" | the password is exact and case-sensitive |
+| No push for today's puzzle | `scripts/stached list` (sent, none, or when); the API log's `Announced #N: … sent, … gone, … failed` line, or "Push notifications are off" at start (no keys) |
+| No bell on home | push only works in the home-screen app on iPhone; the bell hides once notifications are on, or after "Don't Allow" (iOS Settings → Notifications to undo) |
