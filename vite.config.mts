@@ -18,18 +18,14 @@ const STACHED_CARD = new URL(
 const STACHED_DESCRIPTION = "Got ’stache?";
 // The first puzzle's day. Every day since has its own page (/stached/<date>).
 const STACHED_FIRST_DAY = "2026-09-29";
-// Puzzle days turn over in New York, as on the API.
-const STACHED_TODAY = new Date().toLocaleDateString("en-CA", {
-  timeZone: "America/New_York",
-});
 
 /**
- * "2026-09-29" through tomorrow: tomorrow's page is up before the morning
- * build (.github/workflows/ci.yml) adds the day after.
+ * "2026-09-29" through a year from the build, so no day waits on a build for
+ * its page. Every push moves the year along.
  */
 function stachedDays() {
-  const last = new Date(`${STACHED_TODAY}T00:00Z`);
-  last.setUTCDate(last.getUTCDate() + 1);
+  const last = new Date();
+  last.setUTCFullYear(last.getUTCFullYear() + 1);
   const days: string[] = [];
   for (
     const day = new Date(`${STACHED_FIRST_DAY}T00:00Z`);
@@ -69,16 +65,14 @@ export default defineConfig({
         // Stached is unlisted: noindex in the static HTML, before any JS runs,
         // plus its own title and preview card for when the link is shared.
         // The API draws the card: today's puzzle number and date, with the next
-        // border color on each fetch (stached-api/card.ts). The day in its URL
-        // changes with each morning's build, so an app that caches pictures by
-        // URL fetches the new day's card.
+        // border color on each fetch (stached-api/card.ts).
         const stached = `
     <meta name="robots" content="noindex, nofollow" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Stached" />
     <meta property="og:description" content="${STACHED_DESCRIPTION}" />
     <meta property="og:url" content="${SITE}/stached" />
-    <meta property="og:image" content="${STACHED_CARD}?day=${STACHED_TODAY}" />
+    <meta property="og:image" content="${STACHED_CARD}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
