@@ -80,7 +80,7 @@ const Home = () => {
       </div>
       <div className={`${rise} flex gap-3`} style={{ animationDelay: "1.3s" }}>
         {/* Until notifications are on: iOS asks only right after a tap. */}
-        {notifications.state === "off" && (
+        {notifications.bell && (
           <button
             type="button"
             onClick={notifications.turnOn}

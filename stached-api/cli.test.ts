@@ -81,6 +81,12 @@ describe("removing a puzzle", () => {
       "No published puzzle on 2026-12-25.",
     );
   });
+
+  test("never takes down the only puzzle", () => {
+    expect(() => unpublish([SAMPLE], SAMPLE.date, new Map())).toThrow(
+      /only puzzle/,
+    );
+  });
 });
 
 describe("timing", () => {

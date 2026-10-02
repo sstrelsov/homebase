@@ -5,12 +5,19 @@
 // is served without a restart. scripts/stached runs it there from anywhere.
 // The stached-puzzles skill walks through it.
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, renameSync, rmSync } from "node:fs";
+import {
+  copyFileSync,
+  existsSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { sql } from "bun";
-import { ANNOUNCE_AT, newYorkTime } from "./push";
+import { ANNOUNCE_AT, announceDue, newYorkTime } from "./push";
 import {
+  byDate,
   type DayPuzzle,
   gamesByDate,
   puzzleProblems,
@@ -61,13 +68,12 @@ async function readStaged(): Promise<DayPuzzle[]> {
 }
 
 /** Writes JSON that only its owner can read, all at once. */
-async function writePrivate(file: string, data: unknown) {
+function writePrivate(file: string, data: unknown) {
   const temp = `${file}.tmp`;
-  await Bun.write(temp, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
+  // Bun.write ignores mode, so node:fs writes it.
+  writeFileSync(temp, `${JSON.stringify(data, null, 2)}\n`, { mode: 0o600 });
   renameSync(temp, file);
 }
-
-const byDate = (a: DayPuzzle, b: DayPuzzle) => a.date.localeCompare(b.date);
 
 /** "Fri, Oct 2" */
 const day = (date: string) =>
@@ -88,27 +94,32 @@ const today = (now = new Date()) => newYorkTime(now).slice(0, 10);
 
 /** When a puzzle published now goes live, and when its push goes out. */
 export function timing(date: string, kind: Change["kind"], now = new Date()) {
-  const time = newYorkTime(now);
-  if (kind !== "new" && date <= today(now))
+  const current = today(now);
+  if (kind !== "new" && date <= current)
     return "It's out already, so the change is live right away. A puzzle never pushes twice.";
-  if (date < today(now)) return "It's dated before today, so it gets no push.";
-  if (date > today(now))
+  if (date < current) return "It's dated before today, so it gets no push.";
+  if (date > current)
     return `It goes live at midnight New York time on ${day(date)}, with its push at ${pushTime}.`;
-  return time < `${date} ${ANNOUNCE_AT}`
-    ? `It goes live right away, with its push at ${pushTime}.`
-    : "It goes live right away, with its push within a minute.";
+  return announceDue(date, now)
+    ? "It goes live right away, with its push within a minute."
+    : `It goes live right away, with its push at ${pushTime}.`;
 }
 
-/** The same puzzle, give or take how its JSON is spelled. */
-const sameGroups = (a: DayPuzzle, b: DayPuzzle) => {
-  const plain = ({ groups }: DayPuzzle) =>
-    JSON.stringify(
-      groups.map(({ title, words, stache }) => [title, words, !!stache]),
-    );
-  return plain(a) === plain(b);
-};
+/** A puzzle kept plain: its date, and each group's title, words and stache flag. */
+const plain = ({ date, groups }: DayPuzzle): DayPuzzle => ({
+  date,
+  groups: groups.map(({ title, words, stache }) => ({
+    title,
+    words,
+    ...(stache && { stache: true }),
+  })),
+});
 
-export interface Change {
+/** The same puzzle, give or take how its JSON is spelled. */
+const sameGroups = (a: DayPuzzle, b: DayPuzzle) =>
+  JSON.stringify(plain(a).groups) === JSON.stringify(plain(b).groups);
+
+interface Change {
   date: string;
   kind: "new" | "edit" | "same";
   /** Games that publishing deletes. */
@@ -179,6 +190,10 @@ export function unpublish(
 ) {
   if (!published.some((p) => p.date === date))
     throw new Stop(`No published puzzle on ${date}.`);
+  if (published.length === 1)
+    throw new Stop(
+      "It's the only puzzle. Stage and confirm a replacement for it instead.",
+    );
   guard([{ date, games: games.get(date) ?? 0 }], "remove it", deleteGames);
   return published.filter((p) => p.date !== date);
 }
@@ -188,7 +203,7 @@ async function savePuzzles(puzzles: DayPuzzle[]) {
   const file = puzzlesFile();
   const stamp = new Date().toISOString().replace(/\D/g, "").slice(0, 14);
   copyFileSync(file, `${file}.bak-${stamp.slice(0, 8)}-${stamp.slice(8)}`);
-  await writePrivate(file, puzzles);
+  writePrivate(file, puzzles);
   await syncPuzzles(puzzles);
 }
 
@@ -206,23 +221,23 @@ async function list() {
     ),
   ]);
   const now = new Date();
-  const released = published.filter((p) => p.date <= today(now));
-  const newest = released.at(-1)?.date;
+  const current = today(now);
+  const newest = published.findLast((p) => p.date <= current)?.date;
   const push = (date: string) =>
     announced.has(date)
       ? "sent"
-      : date < today(now)
+      : date < current
         ? "none"
-        : date > today(now) || newYorkTime(now) < `${date} ${ANNOUNCE_AT}`
-          ? pushTime
-          : "any minute";
+        : announceDue(date, now)
+          ? "any minute"
+          : pushTime;
   const rows = [
     ["", "DATE", "", "STATUS", "GAMES", "PUSH"],
     ...published.map((p, i) => [
       `#${i + 1}`,
       p.date,
       day(p.date),
-      p.date === newest ? "today" : p.date < today(now) ? "out" : "upcoming",
+      p.date === newest ? "today" : p.date < current ? "out" : "upcoming",
       String(games.get(p.date) ?? 0),
       push(p.date),
     ]),
@@ -264,22 +279,12 @@ async function stage(source: string | undefined) {
   const problems = puzzleProblems(incoming);
   if (problems.length) throw new Stop(problems.join("\n"));
 
-  // Kept plain: the date, and each group's title, words and stache flag.
-  const staged = (incoming as DayPuzzle[])
-    .map(({ date, groups }) => ({
-      date,
-      groups: groups.map(({ title, words, stache }) => ({
-        title,
-        words,
-        ...(stache && { stache }),
-      })),
-    }))
-    .sort(byDate);
+  const staged = (incoming as DayPuzzle[]).map(plain).sort(byDate);
   const [published, games] = await Promise.all([
     readPuzzles(puzzlesFile()),
     gamesByDate(),
   ]);
-  await writePrivate(stagedFile(), staged);
+  writePrivate(stagedFile(), staged);
 
   const number = numbers(
     publish(published, staged, games, { deleteGames: true }),
@@ -341,7 +346,7 @@ async function preview(arg: string | undefined) {
         : "Nothing staged. Stage a puzzle first: stached stage <file>",
     );
 
-  await writePrivate(PREVIEW.puzzles, [{ ...puzzle, date: today() }]);
+  writePrivate(PREVIEW.puzzles, [{ ...puzzle, date: today() }]);
   await stopPreview();
   if (!existsSync(join(ROOT, "node_modules/.bin/vite"))) {
     console.log(

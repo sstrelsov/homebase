@@ -37,7 +37,6 @@ DATA=.phone
 # PUZZLES_FILE at a private copy to test a real puzzle.
 PASSWORD="${STACHE_PASSWORD:-test}"
 PUZZLES="${PUZZLES_FILE:-stached-api/puzzles.example.json}"
-case "$PUZZLES" in /*) ;; *) PUZZLES="$PWD/$PUZZLES" ;; esac
 PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 
 for tool in bun node tailscale nc initdb pg_ctl createdb; do
@@ -79,18 +78,15 @@ if [ -z "$LIVE" ]; then
   cp "$PUZZLES" "$DATA/puzzles.json"
 else
   # The copy includes the puzzle answers, so it stays in the owner-only .phone
-  # folder, which the next run deletes.
+  # folder, which the next run deletes. It leaves out the push subscriptions:
+  # a copy never pushes to real players, and their keys never leave the Studio.
   echo "phone: copying the live database and puzzles from the Studio"
   ssh -o BatchMode=yes personal-studio \
-    'set -o pipefail; /opt/homebrew/opt/postgresql@17/bin/pg_dump -d stached | gzip' >"$DATA/live.sql.gz"
+    'set -o pipefail; /opt/homebrew/opt/postgresql@17/bin/pg_dump -d stached --exclude-table-data=push_subscriptions | gzip' >"$DATA/live.sql.gz"
   ssh -o BatchMode=yes personal-studio 'cat ~/.config/stached/puzzles.json' >"$DATA/puzzles.json"
   psql -q -h localhost -p "$PG_PORT" -U postgres -c "create role stached login"
   gunzip -c "$DATA/live.sql.gz" |
     psql -q -h localhost -p "$PG_PORT" -U postgres -v ON_ERROR_STOP=1 -d stached >/dev/null
-  # A copy never pushes to real players. Push services would refuse it anyway,
-  # since their subscriptions answer only to the live keys.
-  psql -q -h localhost -p "$PG_PORT" -U postgres -d stached \
-    -c "delete from push_subscriptions" >/dev/null 2>&1 || true
 fi
 
 # The API's settings, which the puzzle CLI reads too. Fresh push keys every

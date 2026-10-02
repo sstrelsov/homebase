@@ -16,8 +16,9 @@ self.addEventListener("push", (event) => {
     self.registration.showNotification(message.title, {
       body: message.body,
       icon: "/images/stached-icon-v2-192.png",
-      // Today's replaces yesterday's, if it's still there.
+      // Today's replaces yesterday's, if it's still there, and still alerts.
       tag: "puzzle",
+      renotify: true,
     }),
   );
 });

@@ -62,7 +62,7 @@ export function puzzleProblems(puzzles: unknown): string[] {
     const titles = groups.map((g) => fold(String(g.title)));
     if (new Set(titles).size !== titles.length)
       problem("two groups share a title");
-    if (groups.filter((g) => g.stache === true).length !== 1)
+    if (groups.filter((g) => g.stache).length !== 1)
       problem("needs exactly one stache group");
     if (groups.length > COLORS.length + 1) problem("too many groups");
   });
@@ -72,17 +72,15 @@ export function puzzleProblems(puzzles: unknown): string[] {
 // "Snow" and " snow" are the same word on the board.
 const fold = (text: string) => text.trim().toLowerCase();
 
-/** Throws everything wrong with a list of puzzles at once. */
-export function checkPuzzles(puzzles: unknown): asserts puzzles is DayPuzzle[] {
-  const problems = puzzleProblems(puzzles);
-  if (problems.length) throw new Error(problems.join("\n"));
-}
+export const byDate = (a: DayPuzzle, b: DayPuzzle) =>
+  a.date.localeCompare(b.date);
 
-/** A puzzles file, checked. */
+/** A puzzles file, checked, in date order. Throws everything wrong at once. */
 export async function readPuzzles(file: string): Promise<DayPuzzle[]> {
   const puzzles = await Bun.file(file).json();
-  checkPuzzles(puzzles);
-  return puzzles;
+  const problems = puzzleProblems(puzzles);
+  if (problems.length) throw new Error(problems.join("\n"));
+  return (puzzles as DayPuzzle[]).sort(byDate);
 }
 
 /**

@@ -16,8 +16,3 @@ create table announcements (
   date date primary key,
   sent_at timestamptz not null default now()
 );
-
--- Puzzles already out came before push, so they're never announced.
-insert into announcements (date)
-select date from puzzles
-where date <= (now() at time zone 'America/New_York')::date;

@@ -28,16 +28,6 @@ export interface VapidKeys {
 // Bytes WebCrypto takes: backed by a plain ArrayBuffer.
 type Bytes = Uint8Array<ArrayBuffer>;
 
-const concat = (...parts: Uint8Array[]) => {
-  const out = new Uint8Array(parts.reduce((n, part) => n + part.length, 0));
-  let offset = 0;
-  for (const part of parts) {
-    out.set(part, offset);
-    offset += part.length;
-  }
-  return out;
-};
-
 async function hkdf(
   salt: Bytes,
   ikm: Bytes,
@@ -109,7 +99,11 @@ export async function encrypt(
   const ikm = await hkdf(
     base64url.decode(auth),
     secret,
-    concat(encoder.encode("WebPush: info\0"), browserPublic, serverPublic),
+    Buffer.concat([
+      encoder.encode("WebPush: info\0"),
+      browserPublic,
+      serverPublic,
+    ]),
     32,
   );
   const cek = await hkdf(salt, ikm, "Content-Encoding: aes128gcm\0", 16);
@@ -121,14 +115,14 @@ export async function encrypt(
   const ciphertext = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv: nonce },
     aes,
-    concat(plaintext, Uint8Array.of(2)),
+    Buffer.concat([plaintext, Uint8Array.of(2)]),
   );
   // The header: salt, record size, and our public key as the key id.
   const header = new Uint8Array(21);
   header.set(salt);
   new DataView(header.buffer).setUint32(16, RECORD_SIZE);
   header[20] = serverPublic.length;
-  return concat(header, serverPublic, new Uint8Array(ciphertext));
+  return Buffer.concat([header, serverPublic, new Uint8Array(ciphertext)]);
 }
 
 /**

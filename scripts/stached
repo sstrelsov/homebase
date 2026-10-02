@@ -7,9 +7,9 @@
 set -euo pipefail
 env_file="${STACHED_ENV:-$HOME/.config/stached/api.env}"
 if [ -f "$env_file" ]; then
-  env_file="$(cd "$(dirname "$env_file")" && pwd)/$(basename "$env_file")"
-  cd "$(dirname "$0")/.."
-  exec bun --env-file="$env_file" stached-api/cli.ts "$@"
+  # --env-file doesn't override the shell, so the file's names are cleared first.
+  unset $(sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' "$env_file")
+  exec bun --env-file="$env_file" "$(dirname "$0")/../stached-api/cli.ts" "$@"
 fi
 if [ -n "${STACHED_ENV:-}" ]; then
   echo "stached: no $STACHED_ENV" >&2

@@ -566,10 +566,9 @@ await syncPuzzles(puzzles);
 // Today's puzzle announces itself once its push is due (push.ts). Checking
 // every minute catches a puzzle published after 9:12am, or a restart then.
 if (VAPID) {
-  const keys = VAPID;
   const announceToday = () =>
     findPuzzle()
-      .then((puzzle) => puzzle && announce(puzzle, keys))
+      .then((puzzle) => puzzle && announce(puzzle, VAPID))
       .catch(console.error);
   announceToday();
   setInterval(announceToday, 60_000);

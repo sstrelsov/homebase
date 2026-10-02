@@ -7,9 +7,6 @@ import { useStached } from "./session";
 // home-screen app can get them, and iOS asks permission only right after a
 // tap, so home has a bell to tap until they're on.
 
-/** "unsupported" covers browsers without push, and an API without keys. */
-export type NotificationState = "unsupported" | "off" | "on" | "blocked";
-
 const supported = () =>
   "serviceWorker" in navigator &&
   "PushManager" in window &&
@@ -50,18 +47,20 @@ const subscribe = (registration: ServiceWorkerRegistration, key: string) =>
   });
 
 /**
- * Whether this player gets a push when a puzzle is up, and taps to change it.
- * Each visit sends the browser's subscription again, so the API keeps it
- * after a reset, and renews it if the API's keys have changed.
+ * Whether home shows the bell (until this browser gets a push when a puzzle
+ * is up), and the tap that turns them on. Each visit sends the browser's
+ * subscription again, so the API keeps it after a reset, and renews it if the
+ * API's keys have changed.
  */
 export function useNotifications() {
   const { session } = useStached();
-  const [state, setState] = useState<NotificationState>("unsupported");
+  const [bell, setBell] = useState(false);
   const [key, setKey] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!supported()) return;
+    // No bell without push, or after "Don't Allow": only Settings undoes it.
+    if (!supported() || Notification.permission === "denied") return;
     let live = true;
     (async () => {
       const { key } = await api.pushKey(session.token);
@@ -76,13 +75,7 @@ export function useNotifications() {
       }
       if (!live) return;
       setKey(key);
-      setState(
-        Notification.permission === "denied"
-          ? "blocked"
-          : subscription
-            ? "on"
-            : "off",
-      );
+      setBell(!subscription);
     })()
       // Notifications are off at the API, or the browser said no.
       .catch(() => {});
@@ -97,12 +90,12 @@ export function useNotifications() {
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
-        if (permission === "denied") setState("blocked");
+        if (permission === "denied") setBell(false);
         return;
       }
       const subscription = await subscribe(await worker(), key);
       await api.subscribe(session.token, subscription.toJSON());
-      setState("on");
+      setBell(false);
     } catch {
       // The bell stays, to try again.
     } finally {
@@ -110,5 +103,5 @@ export function useNotifications() {
     }
   }, [key, session.token]);
 
-  return { state, busy, turnOn };
+  return { bell, busy, turnOn };
 }
