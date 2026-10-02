@@ -29,6 +29,7 @@ React 19, TypeScript, Vite 6, TanStack Router, Tailwind CSS, NextUI, Three.js (t
 | `bun run format` | Format with Biome |
 | `make phone` | Run the site on your phone over Tailscale and print a QR code (below) |
 | `make phone-preview` | Same with a production build, to see the link preview when sharing |
+| `scripts/stached` | Stage, preview and publish Stached puzzles, on the Studio (below) |
 
 ## Deployment
 
@@ -42,7 +43,9 @@ Unlisted Connections-style game with a stache group and a leaderboard. **[`stach
 - **This repo is public.** The real puzzles and the password live only on the Studio (`~/.config/stached/`). Never commit them; `stached-api/puzzles.example.json` is the made-up stand-in.
 - **Schema changes are new numbered files in `stached-api/migrations/`.** They apply on API boot. Never edit a shipped migration.
 - **Deploy the API with `make deploy-stached`** (it backs up first). Deploy it before merging a site change that needs a new endpoint, since merging deploys the site.
-- Editing or removing a puzzle that people have played deletes their games for it.
+- **Publish puzzles with the puzzle CLI, `scripts/stached`** (`stage`, `preview`, `confirm`, `list`), never by editing `puzzles.json`. It runs on the Studio, from anywhere, and needs no deploy. **The [`stached-puzzles`](.claude/skills/stached-puzzles/SKILL.md) skill** walks through it.
+- Editing or removing a puzzle that people have played deletes their games for it, so the CLI refuses without `--delete-games`. Only Spencer decides that.
+- Each puzzle sends one push notification to the home-screen apps that tapped the bell on home: at 9:12am New York time on its date, or within a minute if it goes live later that day. The VAPID private key lives only in the Studio's `api.env`.
 - The look is a 1984 TV-station ident, light by default (ink on cream), with the original dark look kept. `THEME` in `src/pages/Stached.tsx` picks one, and the static home-screen colors must change with it. Both palettes are at the top of `src/stached/stached.module.css`; see The look in the README.
 
 ## Testing on your phone (`make phone`)
@@ -51,6 +54,7 @@ Unlisted Connections-style game with a stache group and a leaderboard. **[`stach
 
 - The phone needs the Tailscale app connected; it doesn't need to be on the same Wi-Fi. HTTPS matters because phone browsers in HTTPS-only mode refuse the plain `http://` LAN address.
 - The database is recreated on every run, so every name gets a fresh try. It uses a local test password (`test`, or `STACHE_PASSWORD`) and the made-up `stached-api/puzzles.example.json` (or `PUZZLES_FILE`), both printed on start.
+- Each run makes its own push keys and writes its settings to `.phone/api.env`, so the puzzle CLI can drive it: `STACHED_ENV=.phone/api.env scripts/stached confirm`. Pushes go out as soon as a puzzle is live, with no wait for 9:12. To get them on a phone, run `make phone-preview` (the dev server doesn't serve the home-screen app's manifest), add its `/stached/` to the home screen, open it, and tap the bell. It's a separate app from the real one.
 - The script only touches Serve port 8443 and refuses to start if something else already uses it. Other Serve entries on this Mac belong to other projects; leave them alone.
 - Needs `bun`, `node`, `tailscale`, and Homebrew's `postgresql@17` (`initdb`, `pg_ctl`, `createdb`).
 - On the Studio, the live Stached API has port 3999: run `STACHED_API_PORT=3998 make phone` (or `phone-preview`). The script refuses to start if the API port is taken, since Vite would otherwise send `/stached-api` to the live API. Never stop or touch the live API, its Postgres, or its LaunchDaemons.

@@ -143,6 +143,11 @@ export const api = {
   /** Trades that code for a session, on the app's first launch. */
   redeem: (code: string) =>
     request<Session>("/handoff/redeem", { body: { code } }),
+  /** The API's push key; a 404 means notifications are off (push.ts). */
+  pushKey: (token: string) => request<{ key: string }>("/push/key", { token }),
+  /** Keeps this browser's push subscription, for this player. */
+  subscribe: (token: string, subscription: PushSubscriptionJSON) =>
+    request<void>("/push/subscribe", { token, body: subscription }),
   guess: (token: string, puzzleId: number, words: string[]) =>
     request<Day & { result: GuessResult }>("/guess", {
       token,

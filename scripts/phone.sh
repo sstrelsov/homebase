@@ -10,6 +10,10 @@
 # `make phone-live-data` (--live-data) starts from a copy of the live database
 # and puzzles, pulled from the Studio, so the leaderboard and past games look
 # real. It's still a throwaway copy: nothing you do reaches the live game.
+#
+# Each run makes its own push keys and writes the API's settings to
+# .phone/api.env, so the puzzle CLI can drive it (STACHED_ENV=.phone/api.env
+# scripts/stached …). `scripts/stached preview` runs this with one puzzle.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PREVIEW=""
@@ -32,7 +36,7 @@ DATA=.phone
 # A local-only password and puzzle; the real ones live on the Studio. Point
 # PUZZLES_FILE at a private copy to test a real puzzle.
 PASSWORD="${STACHE_PASSWORD:-test}"
-PUZZLES="$PWD/${PUZZLES_FILE:-stached-api/puzzles.example.json}"
+PUZZLES="${PUZZLES_FILE:-stached-api/puzzles.example.json}"
 PATH="/opt/homebrew/opt/postgresql@17/bin:$PATH"
 
 for tool in bun node tailscale nc initdb pg_ctl createdb; do
@@ -59,7 +63,8 @@ cleanup() {
   pg_ctl -D "$DATA/pg" stop -m fast >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
-trap 'exit 130' INT TERM
+# HUP too: closing its tmux session (a preview's) cleans up like Ctrl-C.
+trap 'exit 130' INT TERM HUP
 
 # A fresh database every run, so everyone gets a new try at the puzzle.
 rm -rf "$DATA" && mkdir -p "$DATA" && chmod 700 "$DATA"
@@ -68,26 +73,37 @@ pg_ctl -D "$DATA/pg" -l "$DATA/postgres.log" -w \
   -o "-p $PG_PORT -k '' -c listen_addresses=localhost" start >/dev/null
 createdb -h localhost -p "$PG_PORT" -U postgres stached
 
-if [ -n "$LIVE" ]; then
+if [ -z "$LIVE" ]; then
+  # A copy, so publishing with the puzzle CLI never touches the original.
+  cp "$PUZZLES" "$DATA/puzzles.json"
+else
   # The copy includes the puzzle answers, so it stays in the owner-only .phone
-  # folder, which the next run deletes.
+  # folder, which the next run deletes. It leaves out the push subscriptions:
+  # a copy never pushes to real players, and their keys never leave the Studio.
   echo "phone: copying the live database and puzzles from the Studio"
   ssh -o BatchMode=yes personal-studio \
-    'set -o pipefail; /opt/homebrew/opt/postgresql@17/bin/pg_dump -d stached | gzip' >"$DATA/live.sql.gz"
+    'set -o pipefail; /opt/homebrew/opt/postgresql@17/bin/pg_dump -d stached --exclude-table-data=push_subscriptions | gzip' >"$DATA/live.sql.gz"
   ssh -o BatchMode=yes personal-studio 'cat ~/.config/stached/puzzles.json' >"$DATA/puzzles.json"
   psql -q -h localhost -p "$PG_PORT" -U postgres -c "create role stached login"
   gunzip -c "$DATA/live.sql.gz" |
     psql -q -h localhost -p "$PG_PORT" -U postgres -v ON_ERROR_STOP=1 -d stached >/dev/null
-  PUZZLES="$PWD/$DATA/puzzles.json"
 fi
 
-(
-  cd stached-api
-  DATABASE_URL="postgres://postgres@localhost:$PG_PORT/stached" \
-    STACHE_PASSWORD="$PASSWORD" SESSION_SECRET=phone PUZZLES_FILE="$PUZZLES" \
-    ALLOWED_ORIGINS="http://localhost:$WEB_PORT" PORT="$STACHED_API_PORT" \
-    exec bun server.ts
-) &
+# The API's settings, which the puzzle CLI reads too. Fresh push keys every
+# run, so a browser's old subscription renews itself on the next visit.
+(umask 077 && cat >"$DATA/api.env") <<ENV
+DATABASE_URL=postgres://postgres@localhost:$PG_PORT/stached
+STACHE_PASSWORD=$PASSWORD
+SESSION_SECRET=phone
+PUZZLES_FILE=$PWD/$DATA/puzzles.json
+ALLOWED_ORIGINS=http://localhost:$WEB_PORT
+HOST=127.0.0.1
+PORT=$STACHED_API_PORT
+ANNOUNCE_AT=00:00
+$(bun stached-api/cli.ts vapid-keys)
+ENV
+# Sourced, not --env-file, so these win over anything set in your shell.
+(cd stached-api && set -a && . "../$DATA/api.env" && exec bun server.ts) &
 if [ -n "$PREVIEW" ]; then
   echo "phone: building with link previews pointing at $site"
   STACHED_SITE="$site" VITE_STACHED_API=/stached-api bun run build >/dev/null
@@ -101,8 +117,10 @@ tailscale serve --bg --https="$HTTPS_PORT" "http://127.0.0.1:$WEB_PORT" >/dev/nu
 url="$site/stached${PREVIEW:+/}"
 
 sleep 2
+echo "$url" >"$DATA/url"
 echo
 bunx qrcode --small "$url"
 echo "  $url"
 echo "  Tailscale on, password $PASSWORD. Ctrl-C to stop."
+echo "  Puzzle CLI on this run: STACHED_ENV=$DATA/api.env scripts/stached list"
 wait

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# Stage, preview and publish Stached puzzles: `scripts/stached help` (the CLI
+# is stached-api/cli.ts). It runs where the puzzles live, with the API's
+# settings: on the Studio, right there; anywhere else, on the Studio over SSH,
+# sending a puzzle file to stage along. STACHED_ENV points it at another
+# settings file instead, such as a `make phone` run's .phone/api.env.
+set -euo pipefail
+env_file="${STACHED_ENV:-$HOME/.config/stached/api.env}"
+if [ -f "$env_file" ]; then
+  # --env-file doesn't override the shell, so the file's names are cleared first.
+  unset $(sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' "$env_file")
+  exec bun --env-file="$env_file" "$(dirname "$0")/../stached-api/cli.ts" "$@"
+fi
+if [ -n "${STACHED_ENV:-}" ]; then
+  echo "stached: no $STACHED_ENV" >&2
+  exit 1
+fi
+
+remote() { ssh -o BatchMode=yes personal-studio "~/dev/homebase/scripts/stached $(printf '%q ' "$@")"; }
+if [ "${1:-}" = stage ] && [ -f "${2:-}" ]; then
+  remote stage - <"$2"
+else
+  remote "$@"
+fi

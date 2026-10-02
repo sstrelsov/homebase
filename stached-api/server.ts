@@ -1,7 +1,7 @@
 // The Stached API: sign-in, the day's puzzles, guesses, scoreboards, past
-// games, the leaderboard, and the link-preview card. The server holds the
-// answers and the clock, so scores can't be fudged from the browser. Bun.sql
-// connects with DATABASE_URL.
+// games, the leaderboard, the link-preview card, and push notifications. The
+// server holds the answers and the clock, so scores can't be fudged from the
+// browser. Bun.sql connects with DATABASE_URL.
 //
 // The stache clock only runs while the board is on screen: the game checks in
 // every few seconds while it's visible and says when it's hidden. A stretch
@@ -11,26 +11,24 @@ import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
 import { type CardPuzzle, nextColor, renderCard } from "./card";
 import { migrate } from "./migrate";
+import {
+  announce,
+  parseSubscription,
+  saveSubscription,
+  vapidKeys,
+} from "./push";
+import { COLORS, type Group, readPuzzles, syncPuzzles } from "./puzzles";
 import { hasBonusLife, MAX_MISTAKES, outcome } from "./rules";
 
 const PASSWORD = env("STACHE_PASSWORD");
 const SECRET = env("SESSION_SECRET");
 const ORIGINS = env("ALLOWED_ORIGINS").split(",");
 const CLOCK_GRACE_MS = 15_000;
-// Color slots for the non-stache groups, easiest first, like Connections.
-// Each theme paints them its own way.
-const COLORS = ["1", "2", "3", "4"];
 // The real puzzles live outside this public repo (on the Studio, next to the
 // password); puzzles.example.json holds made-up ones for local testing.
-const puzzles: Pick<Puzzle, "date" | "groups">[] = await Bun.file(
-  env("PUZZLES_FILE"),
-).json();
-
-interface Group {
-  title: string;
-  words: string[];
-  stache?: boolean;
-}
+const puzzles = await readPuzzles(env("PUZZLES_FILE"));
+// Push notifications are on once the VAPID keys are set (push.ts).
+const VAPID = vapidKeys();
 
 interface Puzzle {
   id: number;
@@ -63,23 +61,6 @@ function env(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`${name} is not set`);
   return value;
-}
-
-function checkPuzzles() {
-  const dates = puzzles.map((p) => p.date);
-  if (new Set(dates).size !== dates.length)
-    throw new Error("Two puzzles share a date");
-  for (const { date, groups } of puzzles) {
-    const words = groups.flatMap((g) => g.words);
-    if (groups.some((g) => g.words.length !== 4))
-      throw new Error(`${date}: every group needs four words`);
-    if (new Set(words).size !== words.length)
-      throw new Error(`${date}: a word appears twice`);
-    if (groups.filter((g) => g.stache).length !== 1)
-      throw new Error(`${date}: needs exactly one stache group`);
-    if (groups.length > COLORS.length + 1)
-      throw new Error(`${date}: too many groups`);
-  }
 }
 
 // Tokens are "userId.hmac(userId:name)": nothing to store, nothing to expire,
@@ -522,6 +503,15 @@ async function route(req: Request): Promise<Response> {
       return Response.json(await pastGames(userId));
     case "POST /handoff":
       return handoff(userId);
+    case "GET /push/key":
+      if (!VAPID) return fail(404, "Notifications are off");
+      return Response.json({ key: VAPID.publicKey });
+    case "POST /push/subscribe": {
+      const subscription = VAPID && parseSubscription(data);
+      if (!subscription) return fail(400, "That's not a push subscription");
+      await saveSubscription(userId, subscription);
+      return new Response(null, { status: 204 });
+    }
     default:
       return fail(404, "Not found");
   }
@@ -566,28 +556,19 @@ function cors(req: Request): Record<string, string> {
   };
 }
 
-checkPuzzles();
 await migrate();
-// Postgres mirrors the puzzles file. Editing or dropping a puzzle that people have
-// played wipes their games: scores from the old words wouldn't mean anything
-// against the new ones.
-const dropped = await sql`
-  delete from puzzles where date not in ${sql(puzzles.map((p) => p.date))}`;
-if (dropped.count) console.log(`Dropped ${dropped.count} puzzles`);
-for (const { date, groups } of puzzles) {
-  const [changed] = await sql`
-    insert into puzzles (date, groups)
-    values (${date}, ${groups}::jsonb)
-    on conflict (date) do update set groups = excluded.groups
-    where puzzles.groups is distinct from excluded.groups
-    returning id`;
-  if (changed) {
-    const cleared =
-      await sql`delete from plays where puzzle_id = ${changed.id}`;
-    if (cleared.count)
-      console.log(`${date} changed: cleared ${cleared.count} plays`);
-  }
-}
+await syncPuzzles(puzzles);
+
+// Today's puzzle announces itself once its push is due (push.ts). Checking
+// every minute catches a puzzle published after 9:12am, or a restart then.
+if (VAPID) {
+  const announceToday = () =>
+    findPuzzle()
+      .then((puzzle) => puzzle && announce(puzzle, VAPID))
+      .catch(console.error);
+  announceToday();
+  setInterval(announceToday, 60_000);
+} else console.log("Push notifications are off: no VAPID keys");
 
 const server = Bun.serve({
   hostname: HOST,
