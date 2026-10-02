@@ -146,7 +146,8 @@ const SolvedTable = ({ week }: { week: Week }) => (
     <Legend marks={["won", "solved", "missed", "none", "open"]} />
     <p className={x.note}>
       Most puzzles solved, then most wins, then fastest stache on a solved
-      puzzle. A win is the day's fastest stache among those who solved it.
+      puzzle, then most played. A win is the day's fastest stache among those
+      who solved it.
     </p>
   </>
 );

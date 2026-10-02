@@ -91,6 +91,8 @@ export interface Player {
   /** Solve 2, find the stache 1, the day's win 1; null if not played. */
   points: (number | null)[];
   solved: number;
+  /** Games finished, solved or missed. */
+  played: number;
   wins: number;
   /** Fastest stache on a solved game. */
   fastestMs: number | null;
@@ -190,6 +192,7 @@ function weekOf(
       marks,
       points,
       solved: times.length,
+      played: games.filter(finished).length,
       wins: marks.filter((mark) => mark === "won").length,
       fastestMs: times.length ? Math.min(...times) : null,
       streak: streak(games),
@@ -232,14 +235,18 @@ function ranked<T extends { name: string }>(
 const byTime = (a: number | null, b: number | null) =>
   a === b ? 0 : a === null ? 1 : b === null ? -1 : a - b;
 
-/** Design A and C: most solved, then most wins, then fastest solved stache. */
+/**
+ * Designs A, C and D: most solved, then most wins, then fastest solved stache,
+ * then most played, so a loss ranks above not playing.
+ */
 export const byWeek = (players: Player[]) =>
   ranked(
     players,
     (a, b) =>
       b.solved - a.solved ||
       b.wins - a.wins ||
-      byTime(a.fastestMs, b.fastestMs),
+      byTime(a.fastestMs, b.fastestMs) ||
+      b.played - a.played,
   );
 
 /** Design B: most points. */
