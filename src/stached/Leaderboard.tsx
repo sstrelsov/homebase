@@ -15,7 +15,7 @@ const MARKS: Record<Mark, string> = {
   "won-missed": "Missed, with the fastest stache",
   solved: "Solved",
   missed: "Missed",
-  none: "Didn't play",
+  none: "Not finished on its day",
   open: "Still to play",
 };
 

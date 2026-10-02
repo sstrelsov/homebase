@@ -1,6 +1,8 @@
 // Client for the Stached API (stached-api/ at the repo root, on the Studio). In
 // dev it goes through Vite's proxy to a local API, unless VITE_STACHED_API
 // points somewhere else.
+import type { Leaderboard, Mark } from "../../stached-api/leaderboard";
+
 const API =
   import.meta.env.VITE_STACHED_API ??
   (import.meta.env.DEV ? "/stached-api" : "https://api.spencerstrelsov.com");
@@ -61,44 +63,8 @@ export interface Day {
   board: Score[];
 }
 
-/**
- * A player's day on the leaderboard: solved or missed, "won" or "won-missed"
- * with the day's fastest stache, "none" if not finished on its day, and
- * "open" for today's until it's finished.
- */
-export type Mark = "won" | "won-missed" | "solved" | "missed" | "none" | "open";
-
-export interface Standing {
-  name: string;
-  /** Ties share a place: 1, 2, 2, 4. */
-  rank: number;
-  /** One per day of the week, oldest first; the last is today. */
-  marks: Mark[];
-  solved: number;
-  /** Days with the fastest stache. */
-  fastest: number;
-  /** A point for each solve and each fastest stache. */
-  points: number;
-  /** Puzzles solved in a row. */
-  streak: number;
-}
-
-/** Today's fastest stache, on a finished game. */
-export interface Fastest {
-  name: string;
-  stachedMs: number;
-  solved: boolean;
-}
-
-/** The last week's puzzles, ranked (stached-api/leaderboard.ts). */
-export interface Leaderboard {
-  /** The last 7 puzzles out, oldest first; the last is today's. */
-  days: Pick<Day["puzzle"], "number" | "date">[];
-  /** Everyone tied for today's fastest stache. */
-  fastestToday: Fastest[];
-  /** Everyone who finished a game this week, most points first. */
-  players: Standing[];
-}
+// The leaderboard's shape comes with its rules, so the two can't drift apart.
+export type { Leaderboard, Mark };
 
 export type GuessResult = "correct" | "one_away" | "wrong" | "repeat";
 
