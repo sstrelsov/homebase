@@ -117,12 +117,45 @@ function todayGame({ games, later }: Sample, today: TodayState) {
 
 /** The sample as of `today`, over the last 3 puzzles or a full week. */
 export function sample(today: TodayState, days: 3 | 7): Week {
-  const dates = DATES.slice(-days);
-  const games = PLAYERS.map((player) => ({
-    name: player.name,
-    games: [...player.games.slice(-days, -1), todayGame(player, today)],
-  })).filter(({ games }) => games.some((game) => game !== null));
+  return weekOf(
+    DATES.slice(-days),
+    PLAYERS.map((player) => ({
+      name: player.name,
+      games: [...player.games.slice(-days, -1), todayGame(player, today)],
+    })).filter(({ games }) => games.some((game) => game !== null)),
+  );
+}
 
+/** Rows from the live database, as fetch-prod.sh writes them. */
+export interface ProdRows {
+  /** The last 7 puzzles out, oldest first. */
+  dates: string[];
+  /** Every game on them, late ones left out. */
+  plays: ({ name: string; date: string } & Game)[];
+}
+
+/** The real players' week, from the live database's rows. */
+export function prod({ dates, plays }: ProdRows): Week {
+  const names = [...new Set(plays.map((play) => play.name))];
+  return weekOf(
+    dates,
+    names.map((name) => ({
+      name,
+      games: dates.map((date) => {
+        const play = plays.find((p) => p.name === name && p.date === date);
+        return play
+          ? { completed: play.completed, stachedMs: play.stachedMs }
+          : null;
+      }),
+    })),
+  );
+}
+
+/** Ranks, marks and points for everyone's games, a game per date or null. */
+function weekOf(
+  dates: string[],
+  games: { name: string; games: (Game | null)[] }[],
+): Week {
   // The winning time on each day, or Infinity if nobody has solved it.
   const winning = dates.map((_, day) =>
     Math.min(
