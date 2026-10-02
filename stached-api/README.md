@@ -222,6 +222,8 @@ gunzip -c ~/backups/stached/stached-2026-09-30.sql.gz | psql -d stached
 sudo launchctl bootstrap system /Library/LaunchDaemons/me.strelsov.stached.api.plist
 ```
 
+Restoring a dump from earlier the same day forgets that day's push, so the API sends it again. Restore after 9:12am only if that's all right.
+
 To try a backup without touching production, restore it into a throwaway Postgres on any Mac (create a `stached` role first, since the dump assigns ownership to it).
 
 ## The Studio

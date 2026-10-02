@@ -87,6 +87,10 @@ else
   psql -q -h localhost -p "$PG_PORT" -U postgres -c "create role stached login"
   gunzip -c "$DATA/live.sql.gz" |
     psql -q -h localhost -p "$PG_PORT" -U postgres -v ON_ERROR_STOP=1 -d stached >/dev/null
+  # A copy never pushes to real players. Push services would refuse it anyway,
+  # since their subscriptions answer only to the live keys.
+  psql -q -h localhost -p "$PG_PORT" -U postgres -d stached \
+    -c "delete from push_subscriptions" >/dev/null 2>&1 || true
 fi
 
 # The API's settings, which the puzzle CLI reads too. Fresh push keys every
