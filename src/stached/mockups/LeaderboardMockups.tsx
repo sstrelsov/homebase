@@ -27,12 +27,12 @@ const PROD = Object.values(
 const noop = () => {};
 
 const NOTES: Record<MockupSearch["design"], string> = {
-  now: "The leaderboard as it is: by streak, then best stache time, losses included.",
-  a: "A, recommended: today's games, then the week by puzzles solved.",
+  now: "The leaderboard as it is, on these puzzles only: by streak, then best stache time, losses included.",
+  a: "A: today's games, then the week by puzzles solved.",
   b: "B: points for the week.",
   c: "C, simpler: today's fastest, then the week by puzzles solved.",
   d: "D, simplest: C with green for solved, red for missed, Gerald on the day's fastest stache.",
-  e: "E: a point per solve and per fastest stache, one total.",
+  e: "E, chosen: a point per solve and per fastest stache, one total.",
   f: "F: solves and fastest staches in two columns, ranked by solves.",
 };
 

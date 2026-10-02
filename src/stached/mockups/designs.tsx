@@ -13,6 +13,7 @@ import {
   isWin,
   type Mark,
   type Player,
+  pointEach,
   today,
   type Week,
 } from "./sample";
@@ -172,6 +173,8 @@ const SolvedTable = ({ week }: { week: Week }) => (
   </>
 );
 
+const lastPuzzles = (week: Week) => `Last ${week.dates.length} puzzles`;
+
 /** Today's date: "Fri, Oct 2". */
 const todayDate = ({ dates }: Week) =>
   formatDate(dates[dates.length - 1], {
@@ -242,7 +245,7 @@ export const TodayAndWeek = ({ week }: { week: Week }) => (
       <Section title={`Today · #${week.number}`} note={todayDate(week)}>
         <TodayBoard week={week} />
       </Section>
-      <Section title="This week" note={`Last ${week.dates.length} puzzles`}>
+      <Section title="This week" note={lastPuzzles(week)}>
         <SolvedTable week={week} />
       </Section>
     </div>
@@ -280,14 +283,17 @@ export const Points = ({ week }: { week: Week }) => (
   </Screen>
 );
 
-/** D's day: green for a solve, red for a miss, Gerald on green for the win. */
+/** D's day: green for a solve, red for a miss, Gerald on the day's fastest. */
 const Fill = ({ mark }: { mark: Mark }) => (
   <span className={x.fill} data-mark={mark} title={MARK_LABELS[mark]}>
     {isWin(mark) ? <Mustache /> : mark === "none" && "·"}
   </span>
 );
 
-/** Today's fastest stache, solved or not, in a gold box, marked like `Cell`. */
+/**
+ * Today's fastest stache, solved or not, in a gold box, marked like `Cell`.
+ * Ties share it.
+ */
 const FastestToday = ({
   week,
   Cell,
@@ -295,20 +301,25 @@ const FastestToday = ({
   week: Week;
   Cell: (props: { mark: Mark }) => ReactNode;
 }) => {
-  const winner = today(week).scores.find((score) => isWin(score.mark));
+  const winners = today(week).scores.filter((score) => isWin(score.mark));
   return (
     <div className={`${styles.stacheBox} flex flex-col gap-1 p-3`}>
       <p className={styles.label}>
         Fastest stache today · #{week.number} · {todayDate(week)}
       </p>
-      {winner ? (
-        <p className="flex items-center gap-3 text-[22px] leading-tight">
-          <Cell mark={winner.mark} />
-          <span className="flex-1 truncate">{winner.name}</span>
-          <span className={styles.stacheText}>
-            {formatTime(winner.stachedMs)}
-          </span>
-        </p>
+      {winners.length > 0 ? (
+        winners.map((winner) => (
+          <p
+            key={winner.name}
+            className="flex items-center gap-3 text-[22px] leading-tight"
+          >
+            <Cell mark={winner.mark} />
+            <span className="flex-1 truncate">{winner.name}</span>
+            <span className={styles.stacheText}>
+              {formatTime(winner.stachedMs)}
+            </span>
+          </p>
+        ))
       ) : (
         <p className="text-[19px]">No one has found the stache yet.</p>
       )}
@@ -321,7 +332,7 @@ export const OneTable = ({ week }: { week: Week }) => (
   <Screen title="Leaderboard" error={null} onRetry={noop}>
     <div className="flex flex-col gap-6">
       <FastestToday week={week} Cell={Day} />
-      <Section title="This week" note={`Last ${week.dates.length} puzzles`}>
+      <Section title="This week" note={lastPuzzles(week)}>
         <SolvedTable week={week} />
       </Section>
     </div>
@@ -357,8 +368,6 @@ const GreenAndRed = ({
   </Screen>
 );
 
-const lastPuzzles = (week: Week) => `Last ${week.dates.length} puzzles`;
-
 /** D: C in green and red, with nothing to explain. */
 export const Simple = ({ week }: { week: Week }) => (
   <GreenAndRed
@@ -389,7 +398,7 @@ export const PointEach = ({ week }: { week: Week }) => (
     week={week}
     note={<PointKey />}
     rows={byPointEach(week.players)}
-    totals={[{ label: "Pts", value: (row) => row.solved + row.wins }]}
+    totals={[{ label: "Pts", value: pointEach }]}
   />
 );
 

@@ -30,4 +30,4 @@ references/
 .phone
 
 # Leaderboard mockups: real players, copied from the live database
-/src/stached/mockups/prod.local.json
+/src/stached/mockups/prod.local.json*

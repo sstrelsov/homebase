@@ -52,9 +52,9 @@ interface Sample {
 }
 
 // Most streaks are 0. Ozzie's only game is a loss with a fast stache; Hazel
-// has a fast stache on a game still going; Lupe and Archie signed in and
-// never played. Priya, Marisol and Wendell tie on solved this week; Ozzie,
-// Captain Whiskers and Hazel tie on nothing.
+// has a fast stache on a game still going. At midday over 3 puzzles, Priya,
+// Marisol and Wendell tie on solved, and Ozzie, Captain Whiskers and Hazel
+// on nothing.
 // biome-ignore format: a table, one column per date
 const PLAYERS: Sample[] = [
   //                                  9/26      9/27      9/28      9/29      9/30      10/1      10/2, today
@@ -67,8 +67,6 @@ const PLAYERS: Sample[] = [
   { name: "Wendell",          games: [__,       S(70),    S(66.6),  S(88.8),  S(62.4),  __,       S(61)] },
   { name: "Captain Whiskers", games: [__,       __,       M(),      __,       M(130),   __,       M()] },
   { name: "Bea",              games: [S(95),    S(101.4), __,       __,       S(65.3),  __,       __],       later: S(100) },
-  { name: "Lupe",             games: [__,       __,       __,       __,       __,       __,       __] },
-  { name: "Archie",           games: [__,       __,       __,       __,       __,       __,       __] },
 ];
 
 /** The signed-in player in the mockups. */
@@ -124,6 +122,7 @@ function todayGame({ games, later }: Sample, today: TodayState) {
 export function sample(today: TodayState, days: 3 | 7): Week {
   return weekOf(
     DATES.slice(-days),
+    days,
     PLAYERS.map((player) => ({
       name: player.name,
       games: [...player.games.slice(-days, -1), todayGame(player, today)],
@@ -135,15 +134,18 @@ export function sample(today: TodayState, days: 3 | 7): Week {
 export interface ProdRows {
   /** The last 7 puzzles out, oldest first. */
   dates: string[];
+  /** Today's puzzle number. */
+  number: number;
   /** Every game on them, late ones left out. */
   plays: ({ name: string; date: string } & Game)[];
 }
 
 /** The real players' week, from the live database's rows. */
-export function prod({ dates, plays }: ProdRows): Week {
+export function prod({ dates, number, plays }: ProdRows): Week {
   const names = [...new Set(plays.map((play) => play.name))];
   return weekOf(
     dates,
+    number,
     names.map((name) => ({
       name,
       games: dates.map((date) => {
@@ -159,6 +161,7 @@ export function prod({ dates, plays }: ProdRows): Week {
 /** Ranks, marks and points for everyone's games, a game per date or null. */
 function weekOf(
   dates: string[],
+  number: number,
   games: { name: string; games: (Game | null)[] }[],
 ): Week {
   // Each day's fastest stache on a finished game, or Infinity if none.
@@ -193,7 +196,7 @@ function weekOf(
       games,
       marks,
       points,
-      solved: times.length,
+      solved: games.filter((game) => game?.completed).length,
       played: games.filter(finished).length,
       wins: marks.filter(isWin).length,
       fastestMs: times.length ? Math.min(...times) : null,
@@ -202,7 +205,7 @@ function weekOf(
     };
   });
 
-  return { dates, number: dates.length, players };
+  return { dates, number, players };
 }
 
 /**
@@ -254,9 +257,12 @@ export const byWeek = (players: Player[]) =>
 /** Everyone who has finished a game, so not playing never ties a loss. */
 const finishers = (players: Player[]) => players.filter((p) => p.played > 0);
 
-/** Design E: a point for each solve and each fastest stache. */
+/** Design E's score: a point for each solve and each fastest stache. */
+export const pointEach = (player: Player) => player.solved + player.wins;
+
+/** Design E: most points. */
 export const byPointEach = (players: Player[]) =>
-  ranked(finishers(players), (a, b) => b.solved + b.wins - (a.solved + a.wins));
+  ranked(finishers(players), (a, b) => pointEach(b) - pointEach(a));
 
 /** Design F: most solved, then most fastest staches. */
 export const bySolves = (players: Player[]) =>

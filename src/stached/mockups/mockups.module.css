@@ -4,7 +4,7 @@
 /* A row per player: rank, name, a mark per day, and a total */
 .row {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto repeat(var(--totals), 26px);
+  grid-template-columns: 2ch minmax(0, 1fr) auto repeat(var(--totals), 26px);
   align-items: center;
   column-gap: 6px;
   min-height: 38px;
@@ -100,13 +100,6 @@
 [data-look="light"] .fill[data-mark="solved"],
 [data-look="light"] .fill[data-mark="missed"] {
   box-shadow: 0 2px 0 color-mix(in srgb, var(--fill) 62%, var(--ink));
-}
-
-.fill[data-mark="won"] svg,
-.fill[data-mark="won-missed"] svg {
-  width: 18px;
-  height: 6px;
-  fill: var(--on-gold);
 }
 
 /* Column heads: the day, today in gold, and Gerald over the staches */
