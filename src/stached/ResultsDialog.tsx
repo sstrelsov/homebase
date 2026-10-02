@@ -9,6 +9,7 @@ import {
   type Score,
 } from "./api";
 import Dialog from "./Dialog";
+import GuessGrid from "./GuessGrid";
 import styles from "./stached.module.css";
 
 // Share squares in the board's colors; the stache group is Gerald.
@@ -90,21 +91,7 @@ const ResultsDialog = ({
         </div>
       </div>
 
-      <div className="flex flex-col items-center gap-1" aria-hidden="true">
-        {grid.map((row, i) => (
-          // biome-ignore lint/suspicious/noArrayIndexKey: guesses never reorder
-          <div key={i} className="flex gap-1">
-            {row.map((color, j) => (
-              <span
-                // biome-ignore lint/suspicious/noArrayIndexKey: same as above
-                key={j}
-                className={styles.swatch}
-                data-color={color}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
+      <GuessGrid grid={grid} className="items-center" />
 
       <button
         type="button"

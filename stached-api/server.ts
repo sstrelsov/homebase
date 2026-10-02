@@ -1,7 +1,7 @@
 // The Stached API: sign-in, the day's puzzles, guesses, scoreboards, past
-// games, the leaderboard, and the link-preview card. The server holds the
-// answers and the clock, so scores can't be fudged from the browser. Bun.sql
-// connects with DATABASE_URL.
+// games, the leaderboard, the link-preview card, push notifications, and the
+// admin page. The server holds the answers and the clock, so scores can't be
+// fudged from the browser. Bun.sql connects with DATABASE_URL.
 //
 // The stache clock only runs while the board is on screen: the game checks in
 // every few seconds while it's visible and says when it's hidden. A stretch
@@ -11,26 +11,32 @@ import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
 import { type CardPuzzle, nextColor, renderCard } from "./card";
 import { migrate } from "./migrate";
+import {
+  announce,
+  parseSubscription,
+  saveSubscription,
+  vapidKeys,
+} from "./push";
+import { COLORS, type Group, readPuzzles, syncPuzzles } from "./puzzles";
+import { hasBonusLife, MAX_MISTAKES, outcome } from "./rules";
 
 const PASSWORD = env("STACHE_PASSWORD");
 const SECRET = env("SESSION_SECRET");
 const ORIGINS = env("ALLOWED_ORIGINS").split(",");
-const MAX_MISTAKES = 4;
 const CLOCK_GRACE_MS = 15_000;
-// Color slots for the non-stache groups, easiest first, like Connections.
-// Each theme paints them its own way.
-const COLORS = ["1", "2", "3", "4"];
 // The real puzzles live outside this public repo (on the Studio, next to the
-// password); puzzles.example.json is a made-up one for local testing.
-const puzzles: Pick<Puzzle, "date" | "groups">[] = await Bun.file(
-  env("PUZZLES_FILE"),
-).json();
-
-interface Group {
-  title: string;
-  words: string[];
-  stache?: boolean;
-}
+// password); puzzles.example.json holds made-up ones for local testing.
+const puzzles = await readPuzzles(env("PUZZLES_FILE"));
+// Push notifications are on once the VAPID keys are set (push.ts).
+const VAPID = vapidKeys();
+// The admin (ADMIN_NAME) signs in with ADMIN_PASSWORD instead of the shared
+// one, stays off the scoreboards, and gets the admin page. Unset, there's no
+// admin: names can't be empty, so "" matches no one.
+const ADMIN_NAME = process.env.ADMIN_NAME?.trim().toLowerCase() ?? "";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "";
+if (!ADMIN_NAME !== !ADMIN_PASSWORD)
+  throw new Error("Set ADMIN_NAME and ADMIN_PASSWORD together");
+const isAdmin = (name: string) => name.toLowerCase() === ADMIN_NAME;
 
 interface Puzzle {
   id: number;
@@ -65,35 +71,31 @@ function env(name: string): string {
   return value;
 }
 
-function checkPuzzles() {
-  const dates = puzzles.map((p) => p.date);
-  if (new Set(dates).size !== dates.length)
-    throw new Error("Two puzzles share a date");
-  for (const { date, groups } of puzzles) {
-    const words = groups.flatMap((g) => g.words);
-    if (groups.some((g) => g.words.length !== 4))
-      throw new Error(`${date}: every group needs four words`);
-    if (new Set(words).size !== words.length)
-      throw new Error(`${date}: a word appears twice`);
-    if (groups.filter((g) => g.stache).length !== 1)
-      throw new Error(`${date}: needs exactly one stache group`);
-    if (groups.length > COLORS.length + 1)
-      throw new Error(`${date}: too many groups`);
-  }
-}
-
 // Tokens are "userId.hmac(userId:name)": nothing to store, nothing to expire,
 // and a reset database can't hand an old token to whoever gets its id next.
+// The admin's also sign ADMIN_PASSWORD, so a token from when anyone could take
+// the name stops working, as does every admin token when it changes.
 const sign = ({ id, name }: { id: number; name: string }) =>
   new Bun.CryptoHasher("sha256", SECRET)
-    .update(`${id}:${name}`)
+    .update(`${id}:${name}${isAdmin(name) ? `:${ADMIN_PASSWORD}` : ""}`)
     .digest("base64url");
+
+/**
+ * The answer to signing in: the player's token, their name as first typed, and
+ * whether they're the admin.
+ */
+const session = (user: { id: number; name: string }) =>
+  Response.json({
+    token: `${user.id}.${sign(user)}`,
+    name: user.name,
+    admin: isAdmin(user.name),
+  });
 
 // Beacons can't set headers, so the token may also come in the body.
 async function authenticate(
   req: Request,
   data: Record<string, unknown>,
-): Promise<number | null> {
+): Promise<{ id: number; name: string } | null> {
   const token =
     req.headers.get("authorization")?.replace(/^Bearer /, "") ??
     (typeof data.token === "string" ? data.token : undefined);
@@ -105,7 +107,7 @@ async function authenticate(
   const expected = Buffer.from(sign(user));
   const given = Buffer.from(signature);
   return expected.length === given.length && timingSafeEqual(expected, given)
-    ? userId
+    ? user
     : null;
 }
 
@@ -202,7 +204,7 @@ async function leaderboard() {
       select u.name, p.puzzle_id, p.completed, p.stached_ms,
              p.finished_at is not null as finished
       from plays p join users u on u.id = p.user_id
-      where not p.late`,
+      where not p.late and lower(u.name) <> ${ADMIN_NAME}`,
   ]);
   const byPlayer = new Map<string, Map<number, GameRow>>();
   for (const play of plays) {
@@ -257,6 +259,15 @@ function colorOf(puzzle: Puzzle, index: number) {
   return COLORS[puzzle.groups.slice(0, index).filter((g) => !g.stache).length];
 }
 
+/** A game's guesses as the colors of their words' groups, as shared. */
+function gridOf(puzzle: Puzzle, guesses: string[][]) {
+  const groupOf = (word: string) =>
+    puzzle.groups.findIndex((g) => g.words.includes(word));
+  return guesses.map((guess) =>
+    guess.map((word) => colorOf(puzzle, groupOf(word))),
+  );
+}
+
 function groupView(puzzle: Puzzle, index: number) {
   const { title, words } = puzzle.groups[index];
   return { title, words, color: colorOf(puzzle, index) };
@@ -264,12 +275,11 @@ function groupView(puzzle: Puzzle, index: number) {
 
 function playView(puzzle: Puzzle, play: Play) {
   const finished = play.finished_at !== null;
-  const groupOf = (word: string) =>
-    puzzle.groups.findIndex((g) => g.words.includes(word));
   return {
     elapsedMs: activeMs(play, new Date()),
     guesses: play.guesses,
     mistakes: play.mistakes,
+    bonusLife: hasBonusLife(puzzle, play.solved),
     solved: play.solved.map((i) => groupView(puzzle, i)),
     stachedMs: play.stached_ms,
     finished,
@@ -277,9 +287,7 @@ function playView(puzzle: Puzzle, play: Play) {
     // The answers and the colored guess grid only once the game is over.
     ...(finished && {
       answers: puzzle.groups.map((_, i) => groupView(puzzle, i)),
-      grid: play.guesses.map((guess) =>
-        guess.map((word) => colorOf(puzzle, groupOf(word))),
-      ),
+      grid: gridOf(puzzle, play.guesses),
     }),
   };
 }
@@ -292,6 +300,7 @@ async function snapshot(userId: number, puzzle: Puzzle) {
       select u.name, p.completed, p.stached_ms as "stachedMs", p.late
       from plays p join users u on u.id = p.user_id
       where p.puzzle_id = ${puzzle.id} and p.finished_at is not null
+        and lower(u.name) <> ${ADMIN_NAME}
       order by p.stached_ms nulls last, p.completed desc, p.mistakes, p.finished_at`,
   ]);
   return {
@@ -314,12 +323,42 @@ async function login({ name, password }: Record<string, unknown>) {
   const clean =
     typeof name === "string" ? name.trim().replace(/\s+/g, " ") : "";
   if (!clean || clean.length > 24) return fail(400, "Enter your name");
-  if (password !== PASSWORD) return fail(401, "Wrong password");
+  // The admin's name takes the admin's password, so no one else can be them.
+  if (password !== (isAdmin(clean) ? ADMIN_PASSWORD : PASSWORD))
+    return fail(401, "Wrong password");
   const [user] = await sql`
     insert into users (name) values (${clean})
     on conflict (lower(name)) do update set name = users.name
     returning id, name`;
-  return Response.json({ token: `${user.id}.${sign(user)}`, name: user.name });
+  return session(user);
+}
+
+// Signing in the home-screen app, which iOS keeps apart from Safari: Safari
+// asks for a one-time code and puts it in the address the app is saved with,
+// and the app trades it for a session on its first launch. Codes last 15
+// minutes and live in memory; after a restart, players sign in by name.
+const HANDOFF_MS = 15 * 60_000;
+const handoffs = new Map<
+  string,
+  { id: number; name: string; expires: number }
+>();
+
+function handoff(user: { id: number; name: string }) {
+  const now = Date.now();
+  for (const [code, { expires }] of handoffs)
+    if (expires < now) handoffs.delete(code);
+  const code = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString(
+    "base64url",
+  );
+  handoffs.set(code, { ...user, expires: now + HANDOFF_MS });
+  return Response.json({ code });
+}
+
+function redeem({ code }: Record<string, unknown>) {
+  const user = typeof code === "string" ? handoffs.get(code) : undefined;
+  if (!user || user.expires < Date.now()) return fail(401, "Sign in first");
+  handoffs.delete(code as string);
+  return session(user);
 }
 
 /** Starts a game (by date, or by id for older pages), or picks it back up. */
@@ -416,12 +455,7 @@ async function guess(
     const stachedMs =
       play.stached_ms ??
       (correct && puzzle.groups[best.index].stache ? elapsed : null);
-    const completed =
-      solved.length === puzzle.groups.length
-        ? true
-        : mistakes >= MAX_MISTAKES
-          ? false
-          : null;
+    const completed = outcome(puzzle, solved, mistakes);
 
     await tx`
       update plays set
@@ -442,6 +476,71 @@ async function guess(
 
   if (!result) return fail(409, "That guess doesn't fit this game");
   return Response.json({ result, ...(await snapshot(userId, puzzle)) });
+}
+
+/**
+ * The admin page: how many play, and each puzzle's turnout and finished games,
+ * with their grids, to show how hard it was. Late games don't count as played
+ * on the day, as on the leaderboard, and the admin's own games don't count.
+ */
+async function adminStats() {
+  const [puzzles, plays, [counts]]: [
+    Puzzle[],
+    {
+      puzzle_id: number;
+      name: string;
+      guesses: string[][];
+      completed: boolean | null;
+      mistakes: number;
+      stached_ms: number | null;
+      late: boolean;
+      finished: boolean;
+    }[],
+    { players: number; notifications: number }[],
+  ] = await Promise.all([
+    sql`select * from ${released()} order by date desc`,
+    sql`
+      select p.puzzle_id, u.name, p.guesses, p.completed, p.mistakes,
+             p.stached_ms, p.late, p.finished_at is not null as finished
+      from plays p join users u on u.id = p.user_id
+      where lower(u.name) <> ${ADMIN_NAME}
+      order by p.finished_at`,
+    sql`
+      select
+        (select count(*) from users where lower(name) <> ${ADMIN_NAME})::int
+          as players,
+        (select count(distinct s.user_id) from push_subscriptions s
+          join users u on u.id = s.user_id
+          where lower(u.name) <> ${ADMIN_NAME})::int as notifications`,
+  ]);
+  const week = new Set(puzzles.slice(0, RECENT_PUZZLES).map((p) => p.id));
+  const thisWeek = plays.filter((g) => !g.late && week.has(g.puzzle_id));
+  const byPuzzle = Map.groupBy(plays, (g) => g.puzzle_id);
+  return {
+    ...counts,
+    playedThisWeek: new Set(thisWeek.map((g) => g.name)).size,
+    puzzles: puzzles.map((puzzle) => {
+      const games = byPuzzle.get(puzzle.id) ?? [];
+      const onTheDay = games.filter((g) => !g.late);
+      return {
+        number: puzzle.number,
+        date: puzzle.date,
+        played: onTheDay.length,
+        solved: onTheDay.filter((g) => g.completed).length,
+        late: games.length - onTheDay.length,
+        games: games
+          .filter((g) => g.finished)
+          .map((g) => ({
+            name: g.name,
+            completed: g.completed,
+            mistakes: g.mistakes,
+            stachedMs: g.stached_ms,
+            late: g.late,
+            grid: gridOf(puzzle, g.guesses),
+          })),
+      };
+    }),
+  };
 }
 
 /**
@@ -471,9 +570,11 @@ async function route(req: Request): Promise<Response> {
   if (path === "GET /card.png") return card(req);
   const data = req.method === "POST" ? await body(req) : {};
   if (path === "POST /login") return login(data);
+  if (path === "POST /handoff/redeem") return redeem(data);
 
-  const userId = await authenticate(req, data);
-  if (!userId) return fail(401, "Sign in first");
+  const user = await authenticate(req, data);
+  if (!user) return fail(401, "Sign in first");
+  const userId = user.id;
   switch (path) {
     case "GET /today": {
       const puzzle = await findPuzzle();
@@ -490,6 +591,20 @@ async function route(req: Request): Promise<Response> {
       return Response.json(await leaderboard());
     case "GET /puzzles":
       return Response.json(await pastGames(userId));
+    case "POST /handoff":
+      return handoff(user);
+    case "GET /admin":
+      if (!isAdmin(user.name)) return fail(404, "Not found");
+      return Response.json(await adminStats());
+    case "GET /push/key":
+      if (!VAPID) return fail(404, "Notifications are off");
+      return Response.json({ key: VAPID.publicKey });
+    case "POST /push/subscribe": {
+      const subscription = VAPID && parseSubscription(data);
+      if (!subscription) return fail(400, "That's not a push subscription");
+      await saveSubscription(userId, subscription);
+      return new Response(null, { status: 204 });
+    }
     default:
       return fail(404, "Not found");
   }
@@ -534,28 +649,19 @@ function cors(req: Request): Record<string, string> {
   };
 }
 
-checkPuzzles();
 await migrate();
-// Postgres mirrors the puzzles file. Editing or dropping a puzzle that people have
-// played wipes their games: scores from the old words wouldn't mean anything
-// against the new ones.
-const dropped = await sql`
-  delete from puzzles where date not in ${sql(puzzles.map((p) => p.date))}`;
-if (dropped.count) console.log(`Dropped ${dropped.count} puzzles`);
-for (const { date, groups } of puzzles) {
-  const [changed] = await sql`
-    insert into puzzles (date, groups)
-    values (${date}, ${groups}::jsonb)
-    on conflict (date) do update set groups = excluded.groups
-    where puzzles.groups is distinct from excluded.groups
-    returning id`;
-  if (changed) {
-    const cleared =
-      await sql`delete from plays where puzzle_id = ${changed.id}`;
-    if (cleared.count)
-      console.log(`${date} changed: cleared ${cleared.count} plays`);
-  }
-}
+await syncPuzzles(puzzles);
+
+// Today's puzzle announces itself once its push is due (push.ts). Checking
+// every minute catches a puzzle published after 9:12am, or a restart then.
+if (VAPID) {
+  const announceToday = () =>
+    findPuzzle()
+      .then((puzzle) => puzzle && announce(puzzle, VAPID))
+      .catch(console.error);
+  announceToday();
+  setInterval(announceToday, 60_000);
+} else console.log("Push notifications are off: no VAPID keys");
 
 const server = Bun.serve({
   hostname: HOST,
@@ -573,7 +679,10 @@ const server = Bun.serve({
       (BEHIND_TUNNEL && req.headers.get("cf-connecting-ip")) ||
       server.requestIP(req)?.address ||
       "unknown";
-    const login = new URL(req.url).pathname === "/login";
+    // Trading a code for a session counts as signing in.
+    const login = ["/login", "/handoff/redeem"].includes(
+      new URL(req.url).pathname,
+    );
     let res: Response;
     if (
       overLimit(

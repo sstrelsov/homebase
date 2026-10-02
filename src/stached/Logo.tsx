@@ -41,7 +41,10 @@ interface LogoProps {
   intro?: boolean;
 }
 
-/** Gerald as a 1984 TV-station ident: broadcast arcs, color bands, a glow. */
+/**
+ * Gerald as a 1984 TV-station ident: broadcast arcs, color bands, and a glow
+ * in the dark look.
+ */
 const Logo = ({ intro = false }: LogoProps) => {
   // SVG url(#id) references need plain characters.
   const id = useId().replace(/[^\w-]/g, "");
@@ -71,7 +74,7 @@ const Logo = ({ intro = false }: LogoProps) => {
         />
       </defs>
 
-      <g filter={`url(#${bloom})`}>
+      <g filter={`url(#${bloom})`} className={styles.bloom}>
         {BANDS.map((color, i) => {
           const y = BANDS_TOP + i * (BAND.height + BAND.gap);
           const { left, right, slant, height } = BAND;

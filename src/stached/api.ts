@@ -18,6 +18,8 @@ export interface Play {
   elapsedMs: number;
   guesses: string[][];
   mistakes: number;
+  /** Earned by solving the stache group: one more mistake before it's over. */
+  bonusLife: boolean;
   solved: Group[];
   stachedMs: number | null;
   finished: boolean;
@@ -52,6 +54,7 @@ export interface Day {
     today: boolean;
     words: string[];
     groupCount: number;
+    /** Before any bonus life (Play.bonusLife). */
     maxMistakes: number;
   };
   play: Play | null;
@@ -80,6 +83,40 @@ export type GuessResult = "correct" | "one_away" | "wrong" | "repeat";
 export interface Session {
   token: string;
   name: string;
+  /** The admin (ADMIN_NAME on the API), who gets the admin page. */
+  admin?: boolean;
+}
+
+/** A finished game on the admin page, with its share grid. */
+export interface AdminGame {
+  name: string;
+  completed: boolean;
+  mistakes: number;
+  stachedMs: number | null;
+  late: boolean;
+  grid: Color[][];
+}
+
+/** A puzzle's turnout: played and solved count games on its day. */
+export interface AdminPuzzle {
+  number: number;
+  date: string;
+  played: number;
+  solved: number;
+  late: number;
+  /** Every finished game, late ones too, first finished first. */
+  games: AdminGame[];
+}
+
+/** The admin page: how many play, and how each puzzle went. */
+export interface AdminStats {
+  /** Everyone signed up, but the admin. */
+  players: number;
+  /** Played one of the last 7 puzzles on its day. */
+  playedThisWeek: number;
+  notifications: number;
+  /** Newest first. */
+  puzzles: AdminPuzzle[];
 }
 
 export class ApiError extends Error {
@@ -135,6 +172,19 @@ export const api = {
       `${API}/clock`,
       JSON.stringify({ token, puzzleId, state: "paused", at: Date.now() }),
     ),
+  /** A one-time code that signs the home-screen app in (HomeScreen.tsx). */
+  handoff: (token: string) =>
+    request<{ code: string }>("/handoff", { token, body: {} }),
+  /** Trades that code for a session, on the app's first launch. */
+  redeem: (code: string) =>
+    request<Session>("/handoff/redeem", { body: { code } }),
+  /** The API's push key; a 404 means notifications are off (push.ts). */
+  pushKey: (token: string) => request<{ key: string }>("/push/key", { token }),
+  /** Keeps this browser's push subscription, for this player. */
+  subscribe: (token: string, subscription: PushSubscriptionJSON) =>
+    request<void>("/push/subscribe", { token, body: subscription }),
+  /** The admin page's numbers and games; anyone else gets a 404. */
+  admin: (token: string) => request<AdminStats>("/admin", { token }),
   guess: (token: string, puzzleId: number, words: string[]) =>
     request<Day & { result: GuessResult }>("/guess", {
       token,

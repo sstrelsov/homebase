@@ -81,10 +81,29 @@ export default defineConfig({
     <meta property="og:image" content="${STACHED_CARD}?day=${STACHED_TODAY}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta name="twitter:card" content="summary_large_image" />`;
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="apple-mobile-web-app-title" content="Stached" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />`;
         const page = readFileSync(index, "utf8")
           .replace("<head>", `<head>${stached}`)
           .replace(/<title>.*<\/title>/, "<title>Stached</title>")
+          // Its own home-screen app: Gerald's icon, and a manifest scoped to
+          // /stached, so a saved Stached opens full screen on the game.
+          .replace(
+            /<link rel="apple-touch-icon" href="[^"]*" \/>/,
+            '<link rel="apple-touch-icon" href="/images/stached-icon-v2-180.png" />',
+          )
+          .replace(
+            /<link rel="manifest" href="[^"]*" \/>/,
+            '<link rel="manifest" href="/stached/manifest.json" />',
+          )
+          // The toolbar and status bar take the page's cream before any JS runs
+          .replace(
+            /<meta name="theme-color" content="[^"]*" \/>/,
+            '<meta name="theme-color" content="#f4e9d0" />',
+          )
           .replace(
             /<meta\s+name="description"\s+content="[^"]*"\s*\/>/,
             `<meta name="description" content="${STACHED_DESCRIPTION}" />`,
@@ -98,6 +117,7 @@ export default defineConfig({
           "stached",
           "stached/leaderboard",
           "stached/past",
+          "stached/admin",
           ...stachedDays().map((day) => `stached/${day}`),
         ]) {
           mkdirSync(resolve(outDir, route), { recursive: true });

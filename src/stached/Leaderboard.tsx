@@ -1,5 +1,11 @@
 import type { CSSProperties } from "react";
-import { api, formatDate, formatTime, type Standing } from "./api";
+import {
+  api,
+  type Leaderboard as Board,
+  formatDate,
+  formatTime,
+  type Standing,
+} from "./api";
 import Screen from "./Screen";
 import { useLoad, useStached } from "./session";
 import styles from "./stached.module.css";
@@ -46,10 +52,20 @@ const Recent = ({ standing, dates, slowest }: RecentProps) => (
   </div>
 );
 
+interface LeaderboardViewProps {
+  /** Null until it loads. */
+  board: Board | null;
+  error: string | null;
+  onRetry: () => void;
+}
+
 /** Everyone's streaks and stache times, ranked by streak, then best time. */
-const Leaderboard = () => {
+export const LeaderboardView = ({
+  board,
+  error,
+  onRetry,
+}: LeaderboardViewProps) => {
   const { session } = useStached();
-  const { data: board, error, load } = useLoad(api.leaderboard);
 
   const slowest = Math.max(
     1,
@@ -72,7 +88,7 @@ const Leaderboard = () => {
         )
       }
       error={error}
-      onRetry={load}
+      onRetry={onRetry}
     >
       {board &&
         (board.players.length === 0 ? (
@@ -124,6 +140,11 @@ const Leaderboard = () => {
         ))}
     </Screen>
   );
+};
+
+const Leaderboard = () => {
+  const { data, error, load } = useLoad(api.leaderboard);
+  return <LeaderboardView board={data} error={error} onRetry={load} />;
 };
 
 export default Leaderboard;

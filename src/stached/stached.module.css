@@ -1,16 +1,25 @@
 /* Stached: a 1984 TV-station ident wrapped around a Connections board. Heavy
-   italic caps, warm phosphor cream, four broadcast colors, and an old TV's
-   glow and phosphor columns over everything. */
+   italic caps, four broadcast colors, and an old TV's phosphor columns over
+   everything. Two looks share these rules: dark (warm phosphor cream on black,
+   glowing) and light (ink on cream paper, printed). THEME in
+   src/pages/Stached.tsx picks one. */
 .stached {
   --display: "Archivo", sans-serif;
   --text: "Fredoka", sans-serif;
 
   --bg: #000;
   --ink: #fff1c9;
-  --face: #fff4d6;
-  --muted: rgba(255, 241, 201, 0.55);
-  --line: rgba(255, 241, 201, 0.14);
+  /* Light type on the blue and stache bars, in either look */
+  --cream: #fff4d6;
+  /* Gerald and the lives */
+  --face: var(--cream);
+  /* Dark type on gold, in either look */
+  --on-gold: #1a1206;
+  --muted: color-mix(in srgb, var(--ink) 55%, transparent);
+  --line: color-mix(in srgb, var(--ink) 14%, transparent);
   --gold: #ffd23f;
+  /* Gold as type, outlines and thin marks on the page */
+  --accent: var(--gold);
   --red: #ff3b2f;
   --blue: #3d5bff;
   /* Group color slots, easiest first */
@@ -19,10 +28,23 @@
   --c3: #ff3b2f;
   --c4: #3d5bff;
   --tile: #110e14;
+  /* Dialogs and the home-screen tip */
+  --panel: #0a0908;
+  /* Phosphor glow: the light around type, tiles and buttons */
   --glow: 0 0 2px rgba(255, 241, 201, 0.7), 0 0 14px rgba(255, 196, 90, 0.55);
+  --glow-gold: var(--gold);
+  --glow-cream: var(--ink);
+  /* The old TV's columns (a dark line, then a light one for dark surfaces)
+     and dim corners, and the shade behind dialogs and the home-screen tip */
+  --crt-line: rgba(0, 0, 0, 0.24);
+  --crt-glint: transparent;
+  --crt-edge: rgba(0, 0, 0, 0.6);
+  --scrim: rgba(0, 0, 0, 0.72);
+  --scrim-tip: rgba(0, 0, 0, 0.85);
 
   position: relative;
-  min-height: 100%;
+  /* The whole screen, with the browser's toolbar space, so it runs under it */
+  min-height: 100lvh;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--text);
@@ -30,6 +52,26 @@
   /* No double-tap zoom, no grey tap flash: this page is all taps. */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* The light look: ink on cream paper. Glows give way to print. The old TV's
+   columns stay, two-tone, so they show on the page, the bars and black tiles. */
+.stached[data-look="light"] {
+  --bg: #f4e9d0;
+  --ink: #23180d;
+  --face: var(--ink);
+  --muted: color-mix(in srgb, var(--ink) 65%, transparent);
+  --accent: #9a5a00;
+  --tile: #e9dcbf;
+  --panel: #fbf5e7;
+  --glow: 0 0 transparent;
+  --glow-gold: transparent;
+  --glow-cream: transparent;
+  --crt-line: rgba(70, 40, 5, 0.13);
+  --crt-glint: rgba(255, 246, 225, 0.12);
+  --crt-edge: rgba(110, 70, 20, 0.2);
+  --scrim: color-mix(in srgb, var(--ink) 45%, transparent);
+  --scrim-tip: var(--scrim);
 }
 
 /* Group colors, set on anything with data-color */
@@ -51,26 +93,29 @@
 
 .stached [data-color="4"] {
   --color: var(--c4);
-  --on-color: var(--face);
+  --on-color: var(--cream);
 }
 
 .stached [data-color="stache"] {
   --color: var(--gold);
-  --on-color: var(--face);
+  --on-color: var(--cream);
 }
 
-/* An old TV over everything: phosphor columns and dim corners */
+/* An old TV over everything: phosphor columns and dim corners. It covers the
+   page, not the screen: iOS Safari lays a flat band over its toolbar for
+   anything fixed to the screen's edge, which would cut the page off there. */
 .crt {
-  position: fixed;
+  position: absolute;
   inset: 0;
   z-index: 50;
   pointer-events: none;
   background:
-    radial-gradient(ellipse at center, transparent 55%, rgba(0, 0, 0, 0.6)),
+    radial-gradient(ellipse at center, transparent 55%, var(--crt-edge)),
     repeating-linear-gradient(
       90deg,
-      rgba(0, 0, 0, 0.24) 0 1px,
-      transparent 1px 3px
+      var(--crt-line) 0 1px,
+      var(--crt-glint) 1px 2px,
+      transparent 2px 3px
     );
 }
 
@@ -104,8 +149,8 @@
 }
 
 .stacheText {
-  color: var(--gold);
-  text-shadow: 0 0 12px rgba(255, 210, 63, 0.6);
+  color: var(--accent);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--glow-gold) 60%, transparent);
 }
 
 .alert {
@@ -113,7 +158,7 @@
 }
 
 .me {
-  color: var(--gold);
+  color: var(--accent);
 }
 
 .panel {
@@ -126,7 +171,7 @@
 }
 
 .stacheBox {
-  border: 2px solid var(--gold);
+  border: 2px solid var(--accent);
   border-radius: 8px;
 }
 
@@ -151,11 +196,11 @@
   width: 100%;
   height: 52px;
   padding: 0 14px;
-  border: 2px solid rgba(255, 241, 201, 0.2);
+  border: 2px solid color-mix(in srgb, var(--ink) 20%, transparent);
   border-radius: 8px;
   background: var(--tile);
   color: var(--ink);
-  caret-color: var(--gold);
+  caret-color: var(--accent);
   font-family: var(--text);
   font-weight: 500;
   font-size: 24px;
@@ -166,12 +211,12 @@
 }
 
 .input::placeholder {
-  color: rgba(255, 241, 201, 0.3);
+  color: color-mix(in srgb, var(--ink) 30%, transparent);
 }
 
 .input:focus {
-  border-color: var(--gold);
-  box-shadow: 0 0 0 3px rgba(255, 210, 63, 0.22);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 
 .button {
@@ -191,8 +236,8 @@
   user-select: none;
   -webkit-user-select: none;
   box-shadow:
-    0 4px 0 rgba(255, 241, 201, 0.35),
-    0 0 14px rgba(255, 241, 201, 0.2);
+    0 4px 0 color-mix(in srgb, var(--ink) 35%, transparent),
+    0 0 14px color-mix(in srgb, var(--glow-cream) 20%, transparent);
   transition:
     transform 0.08s,
     opacity 0.15s,
@@ -210,16 +255,16 @@
 .primary {
   border-color: var(--gold);
   background: var(--gold);
-  color: #1a1206;
+  color: var(--on-gold);
   box-shadow:
     0 4px 0 var(--c2),
-    0 0 18px rgba(255, 210, 63, 0.5);
+    0 0 18px color-mix(in srgb, var(--glow-gold) 50%, transparent);
 }
 
 .primary:active:not(:disabled) {
   box-shadow:
     0 2px 0 var(--c2),
-    0 0 18px rgba(255, 210, 63, 0.5);
+    0 0 18px color-mix(in srgb, var(--glow-gold) 50%, transparent);
 }
 
 .shake {
@@ -271,14 +316,14 @@
   left: 4%;
   right: 4%;
   transform-origin: 50% 0;
-  color: var(--gold);
+  color: var(--accent);
   font-family: var(--display);
   font-weight: 800;
   font-size: 25px;
   line-height: 1.1;
   text-align: center;
   text-transform: uppercase;
-  text-shadow: 0 0 12px rgba(255, 210, 63, 0.5);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--glow-gold) 50%, transparent);
   animation: crawl 50s linear infinite;
 }
 
@@ -316,7 +361,7 @@
   align-items: center;
   justify-content: center;
   padding: 4px 2px;
-  border: 1px solid rgba(255, 241, 201, 0.16);
+  border: 1px solid color-mix(in srgb, var(--ink) 16%, transparent);
   border-radius: 7px;
   background: var(--tile);
   color: var(--ink);
@@ -339,7 +384,7 @@
   box-shadow:
     -3px 0 0 var(--red),
     3px 0 0 var(--blue),
-    0 0 16px rgba(255, 241, 201, 0.5);
+    0 0 16px color-mix(in srgb, var(--glow-cream) 50%, transparent);
 }
 
 /* Tile words: chunky, rounded, a little narrow so long ones fit */
@@ -366,6 +411,12 @@
   color: var(--on-color);
   text-align: center;
   box-shadow: 0 0 18px color-mix(in srgb, var(--color) 50%, transparent);
+}
+
+/* On paper, bars get a printed edge like the buttons, and nothing to pulse */
+.stached[data-look="light"] .bar {
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--color) 62%, var(--ink));
+  animation: none;
 }
 
 .barTitle {
@@ -418,8 +469,8 @@
 @keyframes stache-glow {
   50% {
     box-shadow:
-      0 0 26px rgba(255, 210, 63, 0.7),
-      0 0 48px rgba(255, 140, 26, 0.4);
+      0 0 26px color-mix(in srgb, var(--glow-gold) 70%, transparent),
+      0 0 48px color-mix(in srgb, var(--c2) 40%, transparent);
   }
 }
 
@@ -428,10 +479,33 @@
   width: 26px;
   height: 9px;
   fill: var(--face);
-  filter: drop-shadow(0 0 3px rgba(255, 210, 63, 0.5));
+  filter: drop-shadow(
+    0 0 3px color-mix(in srgb, var(--glow-gold) 50%, transparent)
+  );
   transition:
     opacity 0.3s,
     fill 0.3s;
+}
+
+/* The bonus life wears Gerald's red and blue fringes and flickers on like the
+   logo. */
+.life[data-bonus] {
+  filter: drop-shadow(-1px 0 var(--red)) drop-shadow(1px 0 var(--blue))
+    drop-shadow(0 0 3px color-mix(in srgb, var(--glow-gold) 50%, transparent));
+  animation: gain 0.8s steps(1);
+}
+
+@keyframes gain {
+  0% {
+    opacity: 0;
+  }
+  15%,
+  45% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.2;
+  }
 }
 
 .life[data-lost] {
@@ -505,8 +579,8 @@
   padding: 0 4%;
   background: radial-gradient(
     ellipse at center,
-    rgba(0, 0, 0, 0.98) 45%,
-    rgba(0, 0, 0, 0.85)
+    color-mix(in srgb, var(--bg) 98%, transparent) 45%,
+    color-mix(in srgb, var(--bg) 85%, transparent)
   );
   pointer-events: none;
   animation: flash-in 2.6s ease-out both;
@@ -532,13 +606,13 @@
   max-height: 86dvh;
   margin: auto;
   padding: 0;
-  border: 2px solid var(--gold);
+  border: 2px solid var(--accent);
   border-radius: 12px;
-  background: #0a0908;
+  background: var(--panel);
   color: var(--ink);
   font-family: var(--text);
   font-weight: 500;
-  box-shadow: 0 0 32px rgba(255, 210, 63, 0.3);
+  box-shadow: 0 0 32px color-mix(in srgb, var(--glow-gold) 30%, transparent);
   overscroll-behavior: contain;
 }
 
@@ -547,7 +621,7 @@
 }
 
 .dialog::backdrop {
-  background: rgba(0, 0, 0, 0.72);
+  background: var(--scrim);
 }
 
 @keyframes dialog-in {
@@ -557,11 +631,144 @@
   }
 }
 
+/* "Get Stached on your home screen": an install card that slides up over
+   the browser's toolbar, pointing down at Safari's Share on an iPhone */
+.tip {
+  inset: auto 12px calc(12px + env(safe-area-inset-bottom));
+  width: auto;
+  max-width: 440px;
+  margin: 0 auto;
+  overflow: visible;
+  padding: 16px 16px 18px;
+  border: 2px solid var(--accent);
+  border-radius: 18px;
+  background: var(--panel);
+  color: var(--ink);
+  text-align: left;
+  box-shadow: 0 0 32px color-mix(in srgb, var(--glow-gold) 28%, transparent);
+  animation: tip-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15);
+}
+
+/* A dark fade up from the bottom, so the card stands clear of the page */
+.tip::backdrop {
+  background: linear-gradient(to top, var(--scrim-tip), transparent 45%);
+  pointer-events: none;
+}
+
+.tip[data-arrow]::after {
+  content: "";
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  translate: -50% 0;
+  rotate: 45deg;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  background: var(--panel);
+}
+
+.tipIcon {
+  width: 52px;
+  height: 52px;
+  flex: none;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--line);
+}
+
+.tipSteps {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font-size: 17px;
+}
+
+.tipSteps li {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.tipSteps strong {
+  font-weight: 600;
+}
+
+.tipStep {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  flex: none;
+  place-items: center;
+  margin-right: 3px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--on-gold);
+  font-family: var(--display);
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 800;
+}
+
+@keyframes tip-in {
+  from {
+    translate: 0 calc(100% + 40px);
+  }
+}
+
 .swatch {
   width: 22px;
   height: 22px;
   border-radius: 4px;
   background: var(--color);
+}
+
+/* Admin: rows that open to show their games, one to a line */
+.disclosure {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--tile);
+}
+
+.disclosure[open] {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure > summary::after {
+  content: "+";
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.disclosure[open] > summary::after {
+  content: "–";
+}
+
+.game {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
 }
 
 /* Leaderboard */
@@ -576,8 +783,8 @@
 }
 
 .standing[data-me] {
-  border-color: var(--gold);
-  box-shadow: 0 0 14px rgba(255, 210, 63, 0.25);
+  border-color: var(--accent);
+  box-shadow: 0 0 14px color-mix(in srgb, var(--glow-gold) 25%, transparent);
 }
 
 .standingStats {
@@ -594,6 +801,15 @@
   font-stretch: 110%;
   font-size: 16px;
   font-variant-numeric: tabular-nums;
+}
+
+/* The admin's totals, bigger than a player's stats */
+.totals {
+  padding: 16px;
+}
+
+.totals dd {
+  font-size: 26px;
 }
 
 .recent {
@@ -621,8 +837,8 @@
 .recentFill {
   width: 14px;
   border-radius: 4px 4px 0 0;
-  background: var(--c1);
-  box-shadow: 0 0 8px rgba(255, 210, 63, 0.4);
+  background: var(--accent);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--glow-gold) 40%, transparent);
 }
 
 .recentNone {
@@ -668,19 +884,19 @@
 }
 
 .dayTile[data-state="unplayed"] {
-  border-color: rgba(255, 210, 63, 0.55);
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
 .dayTile[data-state="stached"] .dayTileStache {
   fill: var(--face);
   stroke: none;
   filter: drop-shadow(-1.5px 0 var(--red)) drop-shadow(1.5px 0 var(--blue))
-    drop-shadow(0 0 6px rgba(255, 210, 63, 0.6));
+    drop-shadow(0 0 6px color-mix(in srgb, var(--glow-gold) 60%, transparent));
 }
 
 .dayTile[data-state="unplayed"] .dayTileValue,
 .dayTile[data-state="stached"] .dayTileValue {
-  color: var(--gold);
+  color: var(--accent);
 }
 
 .dayTile[data-state="unstached"] .dayTileStache {
@@ -691,9 +907,11 @@
 @media (prefers-reduced-motion: reduce) {
   .rise,
   .bar[data-color="stache"],
+  .life[data-bonus],
   .life[data-lost],
   .dialog[open],
   .toast,
+  .tip,
   .shake {
     animation: none;
   }

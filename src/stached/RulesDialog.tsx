@@ -14,6 +14,7 @@ const RulesDialog = ({ open, onClose }: RulesDialogProps) => (
         <p>
           One group embodies the 'stache. Get it as fast as you can to get the
           quickest <span className={styles.stacheText}>stache time</span>.
+          Solving it also earns a bonus life.
         </p>
       </div>
     </div>

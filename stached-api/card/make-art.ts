@@ -1,11 +1,13 @@
 // Redraws the preview card's art from art.html, in a Chrome that's listening
-// for DevTools (chrome --remote-debugging-port=9222):
+// for DevTools (chrome --remote-debugging-port=9222; headless, also pass
+// --hide-scrollbars, or they land in the icons):
 //
 //   cd stached-api && bun card/make-art.ts http://127.0.0.1:9222
 //
 // It opens a tab, screenshots art.html?base into base.png and art.html?glyphs
-// into glyphs.png, saves the letters' metrics to glyphs.json, and closes the
-// tab. Run it after changing art.html; card.ts reads all three.
+// into glyphs.png, saves the letters' metrics to glyphs.json, draws the
+// home-screen icons into public/images, and closes the tab. Run it after
+// changing art.html; card.ts reads the first three.
 import { decodePng, encodePng } from "../png";
 
 const devtools = process.argv[2];
@@ -79,6 +81,14 @@ Bun.spawnSync(["bunx", "biome", "format", "--write", metrics.pathname], {
   cwd: new URL("../../", dir).pathname,
 });
 
+// The home-screen icons, drawn at each size the Stached pages and their
+// manifest (public/stached/manifest.json) ask for. iOS keeps an icon it saved
+// by its address, so a changed icon gets the next version in its name.
+for (const size of [180, 192, 512]) {
+  const icon = await draw("icon", size, size);
+  await save(`../../public/images/stached-icon-v2-${size}.png`, icon.png);
+}
+
 await fetch(`${devtools}/json/close/${tab.id}`);
 socket.close();
-console.log("Drew base.png, glyphs.png and glyphs.json");
+console.log("Drew base.png, glyphs.png, glyphs.json and the icons");

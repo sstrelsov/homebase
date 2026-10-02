@@ -37,6 +37,16 @@
   transform: translateX(2.5px);
 }
 
+/* On paper: no glow, and the fringes print like misregistered ink */
+[data-look="light"] .bloom {
+  filter: none;
+}
+
+[data-look="light"] .fringeRed,
+[data-look="light"] .fringeBlue {
+  mix-blend-mode: multiply;
+}
+
 @keyframes broadcast {
   0%,
   100% {
