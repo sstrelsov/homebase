@@ -78,10 +78,13 @@ const finished = (game: Game | null): game is Game =>
   game !== null && game.completed !== null;
 
 /**
- * A win: the day's fastest stache among the players who solved it. A miss
- * with a faster stache doesn't count.
+ * A day's mark. The day's win is its fastest stache, solved or not: "won" if
+ * that player solved the board too, "won-missed" if they didn't.
  */
-export type Mark = "won" | "solved" | "missed" | "open" | "none";
+export type Mark = "won" | "won-missed" | "solved" | "missed" | "open" | "none";
+
+/** The day's fastest stache, solved or not. */
+export const isWin = (mark: Mark) => mark === "won" || mark === "won-missed";
 
 export interface Player {
   name: string;
@@ -158,12 +161,12 @@ function weekOf(
   dates: string[],
   games: { name: string; games: (Game | null)[] }[],
 ): Week {
-  // The winning time on each day, or Infinity if nobody has solved it.
+  // Each day's fastest stache on a finished game, or Infinity if none.
   const winning = dates.map((_, day) =>
     Math.min(
       ...games.flatMap(({ games }) => {
         const game = games[day];
-        return game?.completed && game.stachedMs !== null
+        return finished(game) && game.stachedMs !== null
           ? [game.stachedMs]
           : [];
       }),
@@ -171,17 +174,16 @@ function weekOf(
   );
 
   const players = games.map(({ name, games }): Player => {
-    const won = (game: Game | null, day: number) =>
-      Boolean(game?.completed) && game?.stachedMs === winning[day];
     const marks = games.map((game, day): Mark => {
       if (!finished(game)) return day === dates.length - 1 ? "open" : "none";
-      if (won(game, day)) return "won";
+      if (game.stachedMs === winning[day])
+        return game.completed ? "won" : "won-missed";
       return game.completed ? "solved" : "missed";
     });
     const points = games.map((game, day) => {
       if (!finished(game)) return null;
-      if (!game.completed) return game.stachedMs === null ? 0 : 1;
-      return 3 + (won(game, day) ? 1 : 0);
+      const stache = game.completed ? 3 : game.stachedMs === null ? 0 : 1;
+      return stache + (isWin(marks[day]) ? 1 : 0);
     });
     const times = games.flatMap((game) =>
       game?.completed && game.stachedMs !== null ? [game.stachedMs] : [],
@@ -193,7 +195,7 @@ function weekOf(
       points,
       solved: times.length,
       played: games.filter(finished).length,
-      wins: marks.filter((mark) => mark === "won").length,
+      wins: marks.filter(isWin).length,
       fastestMs: times.length ? Math.min(...times) : null,
       streak: streak(games),
       total: points.reduce<number>((sum, p) => sum + (p ?? 0), 0),
@@ -262,7 +264,8 @@ export function today({ players }: Week) {
     const game = games.at(-1) ?? null;
     if (!finished(game)) return [];
     const { completed, stachedMs } = game;
-    return [{ name, completed, stachedMs, won: marks.at(-1) === "won" }];
+    const mark = marks[marks.length - 1];
+    return [{ name, completed, stachedMs, mark }];
   });
   const byStache = (a: { stachedMs: number | null }, b: typeof a) =>
     byTime(a.stachedMs, b.stachedMs);

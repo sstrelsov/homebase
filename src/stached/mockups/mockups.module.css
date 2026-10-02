@@ -50,13 +50,15 @@
 }
 
 /* A win: Gerald on gold, like the Play button */
-.day[data-mark="won"] {
+.day[data-mark="won"],
+.day[data-mark="won-missed"] {
   background: var(--gold);
   color: var(--on-gold);
   box-shadow: 0 0 10px color-mix(in srgb, var(--glow-gold) 45%, transparent);
 }
 
-.day[data-mark="won"] svg {
+.day[data-mark="won"] svg,
+.day[data-mark="won-missed"] svg {
   width: 18px;
   height: 6px;
   fill: currentColor;
@@ -78,6 +80,7 @@
 
 /* As specific as .day's own marks, and after them, so these win */
 .fill[data-mark="won"],
+.fill[data-mark="won-missed"],
 .fill[data-mark="solved"],
 .fill[data-mark="missed"] {
   --fill: var(--green);
@@ -86,18 +89,21 @@
   box-shadow: 0 0 10px color-mix(in srgb, var(--fill) 45%, transparent);
 }
 
+.fill[data-mark="won-missed"],
 .fill[data-mark="missed"] {
   --fill: var(--red);
 }
 
 /* On paper, a printed edge like the bars, and no glow */
 [data-look="light"] .fill[data-mark="won"],
+[data-look="light"] .fill[data-mark="won-missed"],
 [data-look="light"] .fill[data-mark="solved"],
 [data-look="light"] .fill[data-mark="missed"] {
   box-shadow: 0 2px 0 color-mix(in srgb, var(--fill) 62%, var(--ink));
 }
 
-.fill[data-mark="won"] svg {
+.fill[data-mark="won"] svg,
+.fill[data-mark="won-missed"] svg {
   width: 18px;
   height: 6px;
   fill: var(--on-gold);

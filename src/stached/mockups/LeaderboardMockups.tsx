@@ -24,7 +24,7 @@ const NOTES: Record<MockupSearch["design"], string> = {
   a: "A, recommended: today's games, then the week by puzzles solved.",
   b: "B: points for the week.",
   c: "C, simpler: today's fastest, then the week by puzzles solved.",
-  d: "D, simplest: C with green for solved, red for missed, Gerald on green for the day's win.",
+  d: "D, simplest: C with green for solved, red for missed, Gerald on the day's fastest stache.",
 };
 
 type Options<K extends keyof MockupSearch> = [MockupSearch[K], string][];

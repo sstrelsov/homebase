@@ -8,6 +8,7 @@ import x from "./mockups.module.css";
 import {
   byPoints,
   byWeek,
+  isWin,
   type Mark,
   type Player,
   today,
@@ -18,6 +19,7 @@ const noop = () => {};
 
 const MARK_LABELS: Record<Mark, string> = {
   won: "Won",
+  "won-missed": "Won, missed",
   solved: "Solved",
   missed: "Missed",
   open: "To play",
@@ -30,6 +32,7 @@ const Day = ({ mark, children }: { mark: Mark; children?: ReactNode }) => (
     {children ??
       {
         won: <Mustache />,
+        "won-missed": <Mustache />,
         solved: "✓",
         missed: "✗",
         open: null,
@@ -146,8 +149,8 @@ const SolvedTable = ({ week }: { week: Week }) => (
     <Legend marks={["won", "solved", "missed", "none", "open"]} />
     <p className={x.note}>
       Most puzzles solved, then most wins, then fastest stache on a solved
-      puzzle, then most played. A win is the day's fastest stache among those
-      who solved it.
+      puzzle, then most played. A win is the day's fastest stache, solved or
+      not.
     </p>
   </>
 );
@@ -178,8 +181,8 @@ const TodayBoard = ({ week }: { week: Week }) => {
               }`}
             >
               <span className="w-6 shrink-0">
-                {score.won ? (
-                  <Day mark="won" />
+                {isWin(score.mark) ? (
+                  <Day mark={score.mark} />
                 ) : (
                   score.completed && (
                     <span className="opacity-50">{score.rank}</span>
@@ -255,8 +258,7 @@ export const Points = ({ week }: { week: Week }) => (
       />
       <p className={x.note}>
         Solve 2 and the stache 1, so a solve is 3. A miss that found the stache
-        is 1. The day's win, its fastest stache among the solvers, is +1, in
-        gold.
+        is 1. The day's fastest stache, solved or not, is +1, in gold.
       </p>
     </div>
   </Screen>
@@ -265,11 +267,11 @@ export const Points = ({ week }: { week: Week }) => (
 /** D's day: green for a solve, red for a miss, Gerald on green for the win. */
 const Fill = ({ mark }: { mark: Mark }) => (
   <span className={x.fill} data-mark={mark} title={MARK_LABELS[mark]}>
-    {mark === "won" ? <Mustache /> : mark === "none" && "·"}
+    {isWin(mark) ? <Mustache /> : mark === "none" && "·"}
   </span>
 );
 
-/** Today's fastest stache among the solvers, in a gold box, won like `Cell`. */
+/** Today's fastest stache, solved or not, in a gold box, marked like `Cell`. */
 const FastestToday = ({
   week,
   Cell,
@@ -278,7 +280,7 @@ const FastestToday = ({
   Cell: (props: { mark: Mark }) => ReactNode;
 }) => {
   const { scores, toPlay } = today(week);
-  const winner = scores.find((score) => score.won);
+  const winner = scores.find((score) => isWin(score.mark));
   return (
     <div className={`${styles.stacheBox} flex flex-col gap-1 p-3`}>
       <p className={styles.label}>
@@ -286,14 +288,14 @@ const FastestToday = ({
       </p>
       {winner ? (
         <p className="flex items-center gap-3 text-[22px] leading-tight">
-          <Cell mark="won" />
+          <Cell mark={winner.mark} />
           <span className="flex-1 truncate">{winner.name}</span>
           <span className={styles.stacheText}>
             {formatTime(winner.stachedMs)}
           </span>
         </p>
       ) : (
-        <p className="text-[19px]">No one has solved it yet.</p>
+        <p className="text-[19px]">No one has found the stache yet.</p>
       )}
       <p className={x.note}>
         {scores.length} finished · {toPlay.length} still to play
