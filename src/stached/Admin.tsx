@@ -23,20 +23,31 @@ const byResult = (a: AdminGame, b: AdminGame) =>
   a.mistakes - b.mistakes;
 
 /** One finished game: whose (or which puzzle), how it went, and its grid. */
-const GameCard = ({ title, game }: { title: string; game: AdminGame }) => (
-  <li className={`${styles.standing} gap-2`}>
-    <span className={`${styles.display} text-[14px]`}>{title}</span>
-    <span className={styles.label}>
-      {game.completed ? "Solved" : "Missed"} ·{" "}
-      {plural(game.mistakes, "mistake")}
-      {game.late && " · late"}
-    </span>
-    <span className={styles.label}>
-      {game.stachedMs === null
-        ? "No stache"
-        : `Stache ${formatTime(game.stachedMs)}`}
-    </span>
-    <GuessGrid grid={game.grid} className="mt-1" />
+const GameLine = ({ title, game }: { title: string; game: AdminGame }) => (
+  <li className={styles.game}>
+    <div className="flex min-w-0 flex-col gap-2">
+      <span className={`${styles.display} break-words text-[15px]`}>
+        {title}
+      </span>
+      <span className={styles.label}>
+        {game.completed ? "✓ Solved" : "✗ Missed"} ·{" "}
+        {game.mistakes === 0 ? "No mistakes" : plural(game.mistakes, "mistake")}
+      </span>
+      {game.stachedMs === null ? (
+        <span className={styles.label}>No stache</span>
+      ) : (
+        <span className="flex items-baseline gap-2">
+          <span className={styles.label}>Stache</span>
+          <span
+            className={`${styles.display} ${styles.stacheText} text-[15px]`}
+          >
+            {formatTime(game.stachedMs)}
+          </span>
+        </span>
+      )}
+      {game.late && <span className={styles.label}>Played late</span>}
+    </div>
+    <GuessGrid grid={game.grid} className="shrink-0" />
   </li>
 );
 
@@ -48,7 +59,7 @@ interface RowProps {
 }
 
 /**
- * A row that opens to show its games, two to a line. They mount only while it's
+ * A row that opens to show its games, one to a line. They mount only while it's
  * open, since every game appears twice, under its puzzle and its player.
  */
 const Row = ({ title, detail, children }: RowProps) => {
@@ -59,16 +70,20 @@ const Row = ({ title, detail, children }: RowProps) => {
       onToggle={(e) => setOpen(e.currentTarget.open)}
     >
       <summary>
-        <span className="flex flex-col gap-1">
-          <span className={`${styles.display} text-[14px]`}>{title}</span>
+        <span className="flex min-w-0 flex-col gap-2">
+          <span className={`${styles.display} break-words text-[16px]`}>
+            {title}
+          </span>
           <span className={styles.label}>{detail}</span>
         </span>
       </summary>
       {open &&
         (children.length > 0 ? (
-          <ul className="mt-3 grid grid-cols-2 gap-3">{children}</ul>
+          <ul className="px-4">{children}</ul>
         ) : (
-          <p className={`${styles.label} mt-3`}>No finished games yet</p>
+          <p className={`${styles.label} ${styles.game} mx-4`}>
+            No finished games yet
+          </p>
         ))}
     </details>
   );
@@ -93,8 +108,10 @@ const Admin = () => {
   return (
     <Screen title="Admin" error={error} onRetry={load}>
       {stats && (
-        <div className="flex flex-col gap-6">
-          <dl className={`${styles.standing} ${styles.standingStats}`}>
+        <div className="flex flex-col gap-8">
+          <dl
+            className={`${styles.standing} ${styles.standingStats} ${styles.totals}`}
+          >
             <div>
               <dt className={styles.label}>Players</dt>
               <dd>{stats.players}</dd>
@@ -109,7 +126,7 @@ const Admin = () => {
             </div>
           </dl>
 
-          <section className="flex flex-col gap-4">
+          <section className="flex flex-col gap-3">
             <h2 className={styles.label}>Puzzles</h2>
             {stats.puzzles.map((puzzle) => (
               <Row
@@ -118,13 +135,13 @@ const Admin = () => {
                 detail={`${puzzle.played} played · ${puzzle.solved} solved${puzzle.late > 0 ? ` · ${puzzle.late} late` : ""}`}
               >
                 {[...puzzle.games].sort(byResult).map((game) => (
-                  <GameCard key={game.name} title={game.name} game={game} />
+                  <GameLine key={game.name} title={game.name} game={game} />
                 ))}
               </Row>
             ))}
           </section>
 
-          <section className="flex flex-col gap-4">
+          <section className="flex flex-col gap-3">
             <h2 className={styles.label}>Players</h2>
             {names.map((name) => {
               const games = players.get(name) ?? [];
@@ -135,7 +152,7 @@ const Admin = () => {
                   detail={`${plural(games.length, "game")} · ${games.filter(({ game }) => game.completed).length} solved`}
                 >
                   {games.map(({ puzzle, game }) => (
-                    <GameCard
+                    <GameLine
                       key={puzzle.date}
                       title={puzzleTitle(puzzle)}
                       game={game}
