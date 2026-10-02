@@ -166,6 +166,33 @@
   height: 5px;
 }
 
+/* E's key: a small green square +1, Gerald +1 */
+.key {
+  composes: display from "../stached.module.css";
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.key > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.key .day {
+  width: 18px;
+  height: 18px;
+}
+
+.keyStache {
+  width: 26px;
+  height: 8px;
+  fill: currentColor;
+}
+
 /* The mockup's own controls, kept apart from the screen */
 .controls {
   display: flex;

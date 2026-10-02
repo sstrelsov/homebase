@@ -50,7 +50,7 @@ const Section = ({
   children,
 }: {
   title: string;
-  note?: string;
+  note?: ReactNode;
   children: ReactNode;
 }) => (
   <section className="flex flex-col gap-3">
@@ -336,7 +336,7 @@ const GreenAndRed = ({
   totals,
 }: {
   week: Week;
-  note: string;
+  note: ReactNode;
   rows: Ranked[];
   totals: DayTableProps["totals"];
 }) => (
@@ -369,11 +369,25 @@ export const Simple = ({ week }: { week: Week }) => (
   />
 );
 
+/** E's rule without words: a green square is a point, and so is Gerald. */
+const PointKey = () => (
+  <span className={x.key}>
+    <span>
+      <Fill mark="solved" />
+      +1
+    </span>
+    <span>
+      <Mustache className={x.keyStache} />
+      +1
+    </span>
+  </span>
+);
+
 /** E: a point for each solve and each fastest stache. */
 export const PointEach = ({ week }: { week: Week }) => (
   <GreenAndRed
     week={week}
-    note="1 point per solve and stache"
+    note={<PointKey />}
     rows={byPointEach(week.players)}
     totals={[{ label: "Pts", value: (row) => row.solved + row.wins }]}
   />
