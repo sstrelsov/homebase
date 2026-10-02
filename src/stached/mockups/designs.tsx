@@ -84,7 +84,7 @@ const DayTable = ({ week, rows, days, totalLabel, total }: DayTableProps) => {
               className={x.dayHead}
               data-today={i === week.dates.length - 1 || undefined}
             >
-              {formatDate(date, { weekday: "narrow" })}
+              {formatDate(date, { weekday: "short" }).slice(0, 2)}
             </span>
           ))}
         </span>
