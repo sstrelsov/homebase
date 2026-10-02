@@ -20,5 +20,27 @@
         "stache": true
       }
     ]
+  },
+  {
+    "date": "2026-10-02",
+    "groups": [
+      {
+        "title": "Kitchen tools",
+        "words": ["Whisk", "Ladle", "Grater", "Spatula"]
+      },
+      {
+        "title": "Card games",
+        "words": ["Poker", "Bridge", "Rummy", "Snap"]
+      },
+      {
+        "title": "Planets",
+        "words": ["Mars", "Venus", "Saturn", "Jupiter"]
+      },
+      {
+        "title": "Famous mustaches",
+        "words": ["Selleck", "Dali", "Zappa", "Mercury"],
+        "stache": true
+      }
+    ]
   }
 ]

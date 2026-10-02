@@ -33,13 +33,13 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 | Studio services | `stached-api/ops/install-daemons.sh` |
 | Backups to this Mac | `stached-api/ops/pull-backup.sh` |
 | Real puzzles, password and push keys | on the Studio only, in `~/.config/stached/` (never in this public repo) |
-| Sample puzzle for local testing | `stached-api/puzzles.example.json` |
+| Sample puzzles for local testing | `stached-api/puzzles.example.json` (made up: one from before the bonus life, one from its first day) |
 
 ## How the game works
 
 - **Sign in** with a name and the shared password. A name is a player: signing in as "Cat" again is the same player with the same history, and a typo makes a new one. Sign-ins last until the browser clears its storage (Safari does that after about a week of not opening the site).
 - **One try per puzzle.** The server holds the answers, checks every guess, and saves the game, so reloading or switching phones picks up where you left off.
-- **Four mistakes** end the game. Three right words out of four gets a "one away" hint.
+- **Four mistakes** end the game. Solving the stache group earns a **bonus life**, a fifth mustache in the lives row. Puzzles before 2026-10-02 have none, even played late (`BONUS_LIFE_FROM` in `stached-api/rules.ts`). Three right words out of four gets a "one away" hint.
 - **Stache time** counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; if a phone sleeps before it can say so, the gap counts for at most 15 seconds. The server keeps the real clock.
 - **The leaderboard** ranks everyone by streak, then best stache time. A streak is puzzles solved in a row; today's puzzle doesn't break it until you finish (or miss) it. Each player also shows their best and average stache time, games solved, and a bar per day for the last seven puzzles.
 - **The daily puzzle** is the newest one dated on or before today in New York; a day without a puzzle of its own keeps the last one. Puzzles are numbered by date (#1 is the first).
@@ -150,7 +150,7 @@ make phone-preview  # the same, with a production build, to test the link-previe
 make phone-live-data  # the same, starting from a copy of the live database and puzzles
 ```
 
-All three run a throwaway Postgres (recreated every run), the API, and the site on this Mac, with the password `test` (override with `STACHE_PASSWORD`). The first two use the sample puzzle (override with `PUZZLES_FILE`). `phone-live-data` copies the live database and puzzles from the Studio into the owner-only `.phone` folder, so the leaderboard and past games look real. It's still a copy, so nothing you do there reaches the live game. Each run writes its settings, with throwaway push keys, to `.phone/api.env` for the puzzle CLI, and pushes as soon as a puzzle is live (`ANNOUNCE_AT=00:00`). See the Testing on your phone section of `AGENTS.md` for details. For desktop-only work, run the API on port 3999 and `bun run dev`; Vite proxies `/stached-api` to it. On the Studio the live API already has 3999, so pick another port there with `STACHED_API_PORT` (`STACHED_API_PORT=3998 make phone-preview`), which Vite's proxy follows; `make phone` refuses to start on a port that's taken.
+All three run a throwaway Postgres (recreated every run), the API, and the site on this Mac, with the password `test` (override with `STACHE_PASSWORD`). The first two use the sample puzzles (override with `PUZZLES_FILE`). `phone-live-data` copies the live database and puzzles from the Studio into the owner-only `.phone` folder, so the leaderboard and past games look real. It's still a copy, so nothing you do there reaches the live game. Each run writes its settings, with throwaway push keys, to `.phone/api.env` for the puzzle CLI, and pushes as soon as a puzzle is live (`ANNOUNCE_AT=00:00`). See the Testing on your phone section of `AGENTS.md` for details. For desktop-only work, run the API on port 3999 and `bun run dev`; Vite proxies `/stached-api` to it. On the Studio the live API already has 3999, so pick another port there with `STACHED_API_PORT` (`STACHED_API_PORT=3998 make phone-preview`), which Vite's proxy follows; `make phone` refuses to start on a port that's taken.
 
 The API reads its settings from the environment (on the Studio, `~/.config/stached/api.env`) and won't start without the first five:
 

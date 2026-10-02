@@ -18,6 +18,8 @@ export interface Play {
   elapsedMs: number;
   guesses: string[][];
   mistakes: number;
+  /** Earned by solving the stache group: one more mistake before it's over. */
+  bonusLife: boolean;
   solved: Group[];
   stachedMs: number | null;
   finished: boolean;
@@ -52,6 +54,7 @@ export interface Day {
     today: boolean;
     words: string[];
     groupCount: number;
+    /** Before any bonus life (Play.bonusLife). */
     maxMistakes: number;
   };
   play: Play | null;

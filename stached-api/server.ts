@@ -18,14 +18,14 @@ import {
   vapidKeys,
 } from "./push";
 import { COLORS, type Group, readPuzzles, syncPuzzles } from "./puzzles";
+import { hasBonusLife, MAX_MISTAKES, outcome } from "./rules";
 
 const PASSWORD = env("STACHE_PASSWORD");
 const SECRET = env("SESSION_SECRET");
 const ORIGINS = env("ALLOWED_ORIGINS").split(",");
-const MAX_MISTAKES = 4;
 const CLOCK_GRACE_MS = 15_000;
 // The real puzzles live outside this public repo (on the Studio, next to the
-// password); puzzles.example.json is a made-up one for local testing.
+// password); puzzles.example.json holds made-up ones for local testing.
 const puzzles = await readPuzzles(env("PUZZLES_FILE"));
 // Push notifications are on once the VAPID keys are set (push.ts).
 const VAPID = vapidKeys();
@@ -255,6 +255,7 @@ function playView(puzzle: Puzzle, play: Play) {
     elapsedMs: activeMs(play, new Date()),
     guesses: play.guesses,
     mistakes: play.mistakes,
+    bonusLife: hasBonusLife(puzzle, play.solved),
     solved: play.solved.map((i) => groupView(puzzle, i)),
     stachedMs: play.stached_ms,
     finished,
@@ -430,12 +431,7 @@ async function guess(
     const stachedMs =
       play.stached_ms ??
       (correct && puzzle.groups[best.index].stache ? elapsed : null);
-    const completed =
-      solved.length === puzzle.groups.length
-        ? true
-        : mistakes >= MAX_MISTAKES
-          ? false
-          : null;
+    const completed = outcome(puzzle, solved, mistakes);
 
     await tx`
       update plays set

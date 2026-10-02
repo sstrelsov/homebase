@@ -487,6 +487,27 @@
     fill 0.3s;
 }
 
+/* The bonus life wears Gerald's red and blue fringes and flickers on like the
+   logo. */
+.life[data-bonus] {
+  filter: drop-shadow(-1px 0 var(--red)) drop-shadow(1px 0 var(--blue))
+    drop-shadow(0 0 3px color-mix(in srgb, var(--glow-gold) 50%, transparent));
+  animation: gain 0.8s steps(1);
+}
+
+@keyframes gain {
+  0% {
+    opacity: 0;
+  }
+  15%,
+  45% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.2;
+  }
+}
+
 .life[data-lost] {
   fill: none;
   stroke: var(--muted);
@@ -831,6 +852,7 @@
 @media (prefers-reduced-motion: reduce) {
   .rise,
   .bar[data-color="stache"],
+  .life[data-bonus],
   .life[data-lost],
   .dialog[open],
   .toast,
