@@ -28,6 +28,3 @@ references/
 
 # make phone
 .phone
-
-# Leaderboard mockups: real players, copied from the live database
-/src/stached/mockups/prod.local.json*

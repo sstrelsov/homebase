@@ -10,6 +10,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
 import { type CardPuzzle, nextColor, renderCard } from "./card";
+import { type Day, type Game, leaderboardOf, WEEK } from "./leaderboard";
 import { migrate } from "./migrate";
 import {
   announce,
@@ -167,84 +168,21 @@ async function pastGames(userId: number) {
   );
 }
 
-const RECENT_PUZZLES = 7;
-
-interface GameRow {
-  name: string;
-  puzzle_id: number;
-  completed: boolean | null;
-  stached_ms: number | null;
-  finished: boolean;
-}
-
-interface Standing {
-  name: string;
-  games: number;
-  solved: number;
-  streak: number;
-  bestStacheMs: number | null;
-  avgStacheMs: number | null;
-  /** Stache time on each of the recent puzzles, oldest first; null if none. */
-  recent: (number | null)[];
-}
-
 /**
- * Everyone who has played, with streaks and times. A streak is the run of
- * puzzles solved, newest first; today's puzzle, if it isn't finished yet,
- * doesn't break it (you still have today to keep it going). Late games don't
- * count at all, so a missed day never fills a gap.
+ * The last week's puzzles, a square per player per day, and today's fastest
+ * stache (leaderboard.ts). It reads only each puzzle's number and date: never
+ * the words, and never a puzzle still to come.
  */
 async function leaderboard() {
-  const [days, plays]: [
-    { id: number; date: string; today: boolean }[],
-    GameRow[],
-  ] = await Promise.all([
-    sql`select id, date, today from ${released()} order by date desc`,
+  const [days, games]: [Day[], Game[]] = await Promise.all([
+    sql`select id, number, date from ${released()} order by date`,
     sql`
-      select u.name, p.puzzle_id, p.completed, p.stached_ms,
-             p.finished_at is not null as finished
+      select u.name, p.puzzle_id as "puzzleId", p.completed,
+             p.stached_ms as "stachedMs", p.late
       from plays p join users u on u.id = p.user_id
-      where not p.late and lower(u.name) <> ${ADMIN_NAME}`,
+      where lower(u.name) <> ${ADMIN_NAME}`,
   ]);
-  const byPlayer = new Map<string, Map<number, GameRow>>();
-  for (const play of plays) {
-    if (!byPlayer.has(play.name)) byPlayer.set(play.name, new Map());
-    byPlayer.get(play.name)?.set(play.puzzle_id, play);
-  }
-  const recent = days.slice(0, RECENT_PUZZLES).reverse();
-
-  const standings: Standing[] = [...byPlayer].map(([name, games]) => {
-    const all = [...games.values()];
-    const finished = all.filter((g) => g.finished);
-    const times = all
-      .map((g) => g.stached_ms)
-      .filter((ms): ms is number => ms !== null);
-    let streak = 0;
-    for (const day of days) {
-      const game = games.get(day.id);
-      if (day.today && !game?.finished) continue;
-      if (!game?.completed) break;
-      streak++;
-    }
-    return {
-      name,
-      games: finished.length,
-      solved: finished.filter((g) => g.completed).length,
-      streak,
-      bestStacheMs: times.length ? Math.min(...times) : null,
-      avgStacheMs: times.length
-        ? Math.round(times.reduce((a, b) => a + b, 0) / times.length)
-        : null,
-      recent: recent.map((day) => games.get(day.id)?.stached_ms ?? null),
-    };
-  });
-
-  const best = (s: Standing) => s.bestStacheMs ?? Number.POSITIVE_INFINITY;
-  standings.sort(
-    (a, b) =>
-      b.streak - a.streak || best(a) - best(b) || a.name.localeCompare(b.name),
-  );
-  return { recentDates: recent.map((day) => day.date), players: standings };
+  return leaderboardOf(days, games);
 }
 
 /** Clock time up to now, if the game has kept checking in. */
@@ -301,7 +239,7 @@ async function snapshot(userId: number, puzzle: Puzzle) {
       from plays p join users u on u.id = p.user_id
       where p.puzzle_id = ${puzzle.id} and p.finished_at is not null
         and lower(u.name) <> ${ADMIN_NAME}
-      order by p.stached_ms nulls last, p.completed desc, p.mistakes, p.finished_at`,
+      order by p.completed desc, p.stached_ms nulls last, p.mistakes, p.finished_at`,
   ]);
   return {
     puzzle: {
@@ -513,7 +451,7 @@ async function adminStats() {
           join users u on u.id = s.user_id
           where lower(u.name) <> ${ADMIN_NAME})::int as notifications`,
   ]);
-  const week = new Set(puzzles.slice(0, RECENT_PUZZLES).map((p) => p.id));
+  const week = new Set(puzzles.slice(0, WEEK).map((p) => p.id));
   const thisWeek = plays.filter((g) => !g.late && week.has(g.puzzle_id));
   const byPuzzle = Map.groupBy(plays, (g) => g.puzzle_id);
   return {

@@ -1,6 +1,8 @@
 // Client for the Stached API (stached-api/ at the repo root, on the Studio). In
 // dev it goes through Vite's proxy to a local API, unless VITE_STACHED_API
 // points somewhere else.
+import type { Leaderboard, Mark } from "../../stached-api/leaderboard";
+
 const API =
   import.meta.env.VITE_STACHED_API ??
   (import.meta.env.DEV ? "/stached-api" : "https://api.spencerstrelsov.com");
@@ -61,22 +63,8 @@ export interface Day {
   board: Score[];
 }
 
-export interface Standing {
-  name: string;
-  games: number;
-  solved: number;
-  streak: number;
-  bestStacheMs: number | null;
-  avgStacheMs: number | null;
-  /** Stache time on each of the recent puzzles, oldest first. */
-  recent: (number | null)[];
-}
-
-export interface Leaderboard {
-  /** The recent puzzles' dates, oldest first, matching each `recent`. */
-  recentDates: string[];
-  players: Standing[];
-}
+// The leaderboard's shape comes with its rules, so the two can't drift apart.
+export type { Leaderboard, Mark };
 
 export type GuessResult = "correct" | "one_away" | "wrong" | "repeat";
 
