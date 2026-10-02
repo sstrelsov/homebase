@@ -4,7 +4,7 @@
 /* A row per player: rank, name, a mark per day, and a total */
 .row {
   display: grid;
-  grid-template-columns: 18px minmax(0, 1fr) auto 30px;
+  grid-template-columns: 18px minmax(0, 1fr) auto repeat(var(--totals), 26px);
   align-items: center;
   column-gap: 6px;
   min-height: 38px;
@@ -109,7 +109,14 @@
   fill: var(--on-gold);
 }
 
-/* Column heads: the day, today in gold */
+/* Column heads: the day, today in gold, and Gerald over the staches */
+.headStache {
+  display: inline-block;
+  width: 18px;
+  height: 6px;
+  fill: currentColor;
+}
+
 .dayHead {
   composes: label from "../stached.module.css";
   letter-spacing: 0;

@@ -2,7 +2,14 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { LeaderboardView } from "../Leaderboard";
 import { StachedContext } from "../session";
 import styles from "../stached.module.css";
-import { OneTable, Points, Simple, TodayAndWeek } from "./designs";
+import {
+  OneTable,
+  PointEach,
+  Points,
+  Simple,
+  TodayAndWeek,
+  TwoColumns,
+} from "./designs";
 import x from "./mockups.module.css";
 import { currentBoard, ME, type ProdRows, prod, sample } from "./sample";
 import type { MockupSearch } from "./search";
@@ -25,6 +32,8 @@ const NOTES: Record<MockupSearch["design"], string> = {
   b: "B: points for the week.",
   c: "C, simpler: today's fastest, then the week by puzzles solved.",
   d: "D, simplest: C with green for solved, red for missed, Gerald on the day's fastest stache.",
+  e: "E: a point per solve and per fastest stache, one total.",
+  f: "F: solves and fastest staches in two columns, ranked by solves.",
 };
 
 type Options<K extends keyof MockupSearch> = [MockupSearch[K], string][];
@@ -40,6 +49,8 @@ const CHOICES: {
       ["b", "B"],
       ["c", "C"],
       ["d", "D"],
+      ["e", "E"],
+      ["f", "F"],
     ],
   },
   data: {
@@ -145,6 +156,8 @@ const LeaderboardMockups = () => {
           {search.design === "b" && <Points week={week} />}
           {search.design === "c" && <OneTable week={week} />}
           {search.design === "d" && <Simple week={week} />}
+          {search.design === "e" && <PointEach week={week} />}
+          {search.design === "f" && <TwoColumns week={week} />}
         </StachedContext>
       </div>
     </div>

@@ -251,6 +251,17 @@ export const byWeek = (players: Player[]) =>
       b.played - a.played,
   );
 
+/** Everyone who has finished a game, so not playing never ties a loss. */
+const finishers = (players: Player[]) => players.filter((p) => p.played > 0);
+
+/** Design E: a point for each solve and each fastest stache. */
+export const byPointEach = (players: Player[]) =>
+  ranked(finishers(players), (a, b) => b.solved + b.wins - (a.solved + a.wins));
+
+/** Design F: most solved, then most fastest staches. */
+export const bySolves = (players: Player[]) =>
+  ranked(finishers(players), (a, b) => b.solved - a.solved || b.wins - a.wins);
+
 /** Design B: most points. */
 export const byPoints = (players: Player[]) =>
   ranked(players, (a, b) => b.total - a.total);

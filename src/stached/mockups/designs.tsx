@@ -6,7 +6,9 @@ import { useStached } from "../session";
 import styles from "../stached.module.css";
 import x from "./mockups.module.css";
 import {
+  byPointEach,
   byPoints,
+  bySolves,
   byWeek,
   isWin,
   type Mark,
@@ -62,19 +64,24 @@ const Section = ({
 
 type Ranked = Player & { rank: number };
 
+const SOLVED = { label: "✓", value: (row: Ranked) => row.solved };
+
 interface DayTableProps {
   week: Week;
   rows: Ranked[];
   /** Each day's cell for a row, oldest first. */
   days: (row: Ranked) => ReactNode[];
-  totalLabel: string;
-  total: (row: Ranked) => ReactNode;
+  /** The columns after the days. */
+  totals: { label: ReactNode; value: (row: Ranked) => ReactNode }[];
 }
 
-/** A row per player: rank, name, a cell per day and a total. */
-const DayTable = ({ week, rows, days, totalLabel, total }: DayTableProps) => {
+/** A row per player: rank, name, a cell per day and the totals. */
+const DayTable = ({ week, rows, days, totals }: DayTableProps) => {
   const { session } = useStached();
-  const style = { "--days": week.dates.length } as CSSProperties;
+  const style = {
+    "--days": week.dates.length,
+    "--totals": totals.length,
+  } as CSSProperties;
   return (
     <div style={style}>
       <div className={`${x.row} ${x.head} ${styles.rule}`}>
@@ -91,7 +98,12 @@ const DayTable = ({ week, rows, days, totalLabel, total }: DayTableProps) => {
             </span>
           ))}
         </span>
-        <span className={`${styles.label} text-right`}>{totalLabel}</span>
+        {totals.map(({ label }, i) => (
+          // biome-ignore lint/suspicious/noArrayIndexKey: columns never reorder
+          <span key={i} className={`${styles.label} text-right`}>
+            {label}
+          </span>
+        ))}
       </div>
       <ol>
         {rows.map((row) => (
@@ -107,15 +119,20 @@ const DayTable = ({ week, rows, days, totalLabel, total }: DayTableProps) => {
                 {row.name}
               </span>
               {row.streak >= 2 && (
-                <span className={`${styles.label} ${styles.stacheText}`}>
+                <span
+                  className={`${styles.label} ${styles.stacheText} whitespace-nowrap`}
+                >
                   {row.streak} in a row
                 </span>
               )}
             </span>
             <span className={x.days}>{days(row)}</span>
-            <span className={`${x.total} ${styles.stacheText}`}>
-              {total(row)}
-            </span>
+            {totals.map(({ value }, i) => (
+              // biome-ignore lint/suspicious/noArrayIndexKey: columns never reorder
+              <span key={i} className={`${x.total} ${styles.stacheText}`}>
+                {value(row)}
+              </span>
+            ))}
           </li>
         ))}
       </ol>
@@ -143,8 +160,7 @@ const SolvedTable = ({ week }: { week: Week }) => (
       days={(row) =>
         row.marks.map((mark, i) => <Day key={week.dates[i]} mark={mark} />)
       }
-      totalLabel="✓"
-      total={(row) => row.solved}
+      totals={[SOLVED]}
     />
     <Legend marks={["won", "solved", "missed", "none", "open"]} />
     <p className={x.note}>
@@ -253,8 +269,7 @@ export const Points = ({ week }: { week: Week }) => (
             </Day>
           ))
         }
-        totalLabel="Pts"
-        total={(row) => row.total}
+        totals={[{ label: "Pts", value: (row) => row.total }]}
       />
       <p className={x.note}>
         Solve 2 and the stache 1, so a solve is 3. A miss that found the stache
@@ -316,22 +331,69 @@ export const OneTable = ({ week }: { week: Week }) => (
   </Screen>
 );
 
-/** D: C in green and red, with nothing to explain. */
-export const Simple = ({ week }: { week: Week }) => (
+/** The week in green and red under today's fastest, ranked by `rows`. */
+const GreenAndRed = ({
+  week,
+  note,
+  rows,
+  totals,
+}: {
+  week: Week;
+  note: string;
+  rows: Ranked[];
+  totals: DayTableProps["totals"];
+}) => (
   <Screen title="Leaderboard" error={null} onRetry={noop}>
     <div className={`${x.simple} flex flex-col gap-6`}>
       <FastestToday week={week} Cell={Fill} />
-      <Section title="This week" note={`Last ${week.dates.length} puzzles`}>
+      <Section title="This week" note={note}>
         <DayTable
           week={week}
-          rows={byWeek(week.players)}
+          rows={rows}
           days={(row) =>
             row.marks.map((mark, i) => <Fill key={week.dates[i]} mark={mark} />)
           }
-          totalLabel="✓"
-          total={(row) => row.solved}
+          totals={totals}
         />
       </Section>
     </div>
   </Screen>
+);
+
+const lastPuzzles = (week: Week) => `Last ${week.dates.length} puzzles`;
+
+/** D: C in green and red, with nothing to explain. */
+export const Simple = ({ week }: { week: Week }) => (
+  <GreenAndRed
+    week={week}
+    note={lastPuzzles(week)}
+    rows={byWeek(week.players)}
+    totals={[SOLVED]}
+  />
+);
+
+/** E: a point for each solve and each fastest stache. */
+export const PointEach = ({ week }: { week: Week }) => (
+  <GreenAndRed
+    week={week}
+    note="1 per solve · 1 per stache"
+    rows={byPointEach(week.players)}
+    totals={[{ label: "Pts", value: (row) => row.solved + row.wins }]}
+  />
+);
+
+/** F: solves and fastest staches side by side, ranked by solves. */
+export const TwoColumns = ({ week }: { week: Week }) => (
+  <GreenAndRed
+    week={week}
+    note={lastPuzzles(week)}
+    rows={bySolves(week.players)}
+    totals={[
+      SOLVED,
+      {
+        label: <Mustache className={x.headStache} />,
+        value: (row) => row.wins,
+      },
+    ]}
+  />
 );
