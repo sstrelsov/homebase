@@ -2,7 +2,7 @@ import { getRouteApi, Link } from "@tanstack/react-router";
 import { LeaderboardView } from "../Leaderboard";
 import { StachedContext } from "../session";
 import styles from "../stached.module.css";
-import { OneTable, Points, TodayAndWeek } from "./designs";
+import { OneTable, Points, Simple, TodayAndWeek } from "./designs";
 import x from "./mockups.module.css";
 import { currentBoard, ME, sample } from "./sample";
 import type { MockupSearch } from "./search";
@@ -16,6 +16,7 @@ const NOTES: Record<MockupSearch["design"], string> = {
   a: "A, recommended: today's games, then the week by puzzles solved.",
   b: "B: points for the week.",
   c: "C, simpler: today's fastest, then the week by puzzles solved.",
+  d: "D, simplest: C with green for solved, red for missed, Gerald on green for the day's win.",
 };
 
 type Options<K extends keyof MockupSearch> = [MockupSearch[K], string][];
@@ -30,6 +31,7 @@ const CHOICES: {
       ["a", "A"],
       ["b", "B"],
       ["c", "C"],
+      ["d", "D"],
     ],
   },
   today: {
@@ -109,6 +111,7 @@ const LeaderboardMockups = () => {
           {search.design === "a" && <TodayAndWeek week={week} />}
           {search.design === "b" && <Points week={week} />}
           {search.design === "c" && <OneTable week={week} />}
+          {search.design === "d" && <Simple week={week} />}
         </StachedContext>
       </div>
     </div>
