@@ -16,6 +16,25 @@ const STACHED_CARD = new URL(
   SITE,
 ).href;
 const STACHED_DESCRIPTION = "Got ’stache?";
+// The first puzzle's day. Every day since has its own page (/stached/<date>).
+const STACHED_FIRST_DAY = "2026-09-29";
+
+/**
+ * "2026-09-29" through a year from the build, so no day waits on a build for
+ * its page. Every push moves the year along.
+ */
+function stachedDays() {
+  const last = new Date();
+  last.setUTCFullYear(last.getUTCFullYear() + 1);
+  const days: string[] = [];
+  for (
+    const day = new Date(`${STACHED_FIRST_DAY}T00:00Z`);
+    day <= last;
+    day.setUTCDate(day.getUTCDate() + 1)
+  )
+    days.push(day.toISOString().slice(0, 10));
+  return days;
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -83,14 +102,17 @@ export default defineConfig({
             /<meta\s+name="description"\s+content="[^"]*"\s*\/>/,
             `<meta name="description" content="${STACHED_DESCRIPTION}" />`,
           );
-        // The game's fixed pages, so direct loads get a 200 and the card.
-        // Day pages (/stached/2026-09-29) fall back to 404.html, which still
-        // runs the app; their dates live in the private puzzles file.
+        // Every Stached page, days included, so a direct load gets a 200 and
+        // the card. The 404.html fallback has neither: a link to it previews
+        // as nothing, and the app, loaded from it, keeps the plain tags even
+        // after going home. A page per calendar day, puzzle or not, gives
+        // nothing away.
         for (const route of [
           "stached",
           "stached/leaderboard",
           "stached/past",
           "stached/admin",
+          ...stachedDays().map((day) => `stached/${day}`),
         ]) {
           mkdirSync(resolve(outDir, route), { recursive: true });
           writeFileSync(resolve(outDir, route, "index.html"), page);
