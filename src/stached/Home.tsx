@@ -22,6 +22,9 @@ function status({ play }: Day) {
 // The logo powers on once per visit, not every time you come back home.
 let introShown = false;
 
+/** The small links below the big buttons. */
+const link = `${styles.display} ${styles.stacheText} text-[13px]`;
+
 /** A bell, ringing: drawn in the text's color, like the home-screen tip's. */
 const BellIcon = () => (
   <svg
@@ -40,7 +43,7 @@ const BellIcon = () => (
   </svg>
 );
 
-/** The logo, Rules and Play, and ways to the leaderboard and past games. */
+/** The logo, Leaderboard and Play, and ways to the rules and past games. */
 const Home = () => {
   const navigate = useNavigate();
   const { session, signOut, openRules } = useStached();
@@ -91,13 +94,9 @@ const Home = () => {
             <BellIcon />
           </button>
         )}
-        <button
-          type="button"
-          onClick={openRules}
-          className={`${styles.button} flex-1`}
-        >
-          Rules
-        </button>
+        <Link to="/stached/leaderboard" className={`${styles.button} flex-1`}>
+          Leaderboard
+        </Link>
         <button
           type="button"
           onClick={play}
@@ -117,24 +116,15 @@ const Home = () => {
           note && <p className={styles.label}>{note}</p>
         )}
         <div className="flex gap-6">
-          <Link
-            to="/stached/leaderboard"
-            className={`${styles.display} ${styles.stacheText} text-[13px]`}
-          >
-            Leaderboard
-          </Link>
-          <Link
-            to="/stached/past"
-            className={`${styles.display} ${styles.stacheText} text-[13px]`}
-          >
+          <button type="button" onClick={openRules} className={link}>
+            Rules
+          </button>
+          <Link to="/stached/past" className={link}>
             Past games
           </Link>
         </div>
         {session.admin && (
-          <Link
-            to="/stached/admin"
-            className={`${styles.display} ${styles.stacheText} text-[13px]`}
-          >
+          <Link to="/stached/admin" className={link}>
             Admin
           </Link>
         )}

@@ -4,7 +4,7 @@ A daily Connections-style puzzle with a twist: one of the four groups is stache 
 
 | Page | Route |
 |---|---|
-| Home (logo, Rules, Play) | `/stached` |
+| Home (logo, Leaderboard, Play) | `/stached` |
 | A day's game | `/stached/2026-09-30` (Play opens today's) |
 | Past games | `/stached/past` |
 | Leaderboard | `/stached/leaderboard` |
