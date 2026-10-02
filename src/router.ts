@@ -123,6 +123,14 @@ const stachedLeaderboardRoute = createRoute({
   head: () => ({ meta: [{ title: "Leaderboard | Stached" }] }),
 });
 
+// Players and turnout, for the admin only. Unlinked except on the admin's home.
+const stachedAdminRoute = createRoute({
+  getParentRoute: () => stachedRoute,
+  path: "admin",
+  component: lazyRouteComponent(stachedPage, "StachedAdmin"),
+  head: () => ({ meta: [{ title: "Admin | Stached" }] }),
+});
+
 const stachedPastRoute = createRoute({
   getParentRoute: () => stachedRoute,
   path: "past",
@@ -146,6 +154,7 @@ const routeTree = rootRoute.addChildren([
   stachedRoute.addChildren([
     stachedHomeRoute,
     stachedLeaderboardRoute,
+    stachedAdminRoute,
     stachedPastRoute,
     stachedDayRoute,
   ]),

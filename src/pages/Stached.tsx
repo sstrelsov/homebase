@@ -17,6 +17,7 @@ import styles from "../stached/stached.module.css";
 const THEME: "light" | "dark" = "light";
 
 // The router loads every Stached screen from here, so they share one chunk.
+export { default as StachedAdmin } from "../stached/Admin";
 export { default as StachedDay } from "../stached/DayGame";
 export { default as StachedHome } from "../stached/Home";
 export { default as StachedLeaderboard } from "../stached/Leaderboard";

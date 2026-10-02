@@ -1,7 +1,7 @@
 // The Stached API: sign-in, the day's puzzles, guesses, scoreboards, past
-// games, the leaderboard, the link-preview card, and push notifications. The
-// server holds the answers and the clock, so scores can't be fudged from the
-// browser. Bun.sql connects with DATABASE_URL.
+// games, the leaderboard, the link-preview card, push notifications, and the
+// admin page. The server holds the answers and the clock, so scores can't be
+// fudged from the browser. Bun.sql connects with DATABASE_URL.
 //
 // The stache clock only runs while the board is on screen: the game checks in
 // every few seconds while it's visible and says when it's hidden. A stretch
@@ -29,6 +29,14 @@ const CLOCK_GRACE_MS = 15_000;
 const puzzles = await readPuzzles(env("PUZZLES_FILE"));
 // Push notifications are on once the VAPID keys are set (push.ts).
 const VAPID = vapidKeys();
+// The admin (ADMIN_NAME) signs in with ADMIN_PASSWORD instead of the shared
+// one, stays off the scoreboards, and gets the admin page. Unset, there's no
+// admin: names can't be empty, so "" matches no one.
+const ADMIN_NAME = process.env.ADMIN_NAME?.trim().toLowerCase() ?? "";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "";
+if (!ADMIN_NAME !== !ADMIN_PASSWORD)
+  throw new Error("Set ADMIN_NAME and ADMIN_PASSWORD together");
+const isAdmin = (name: string) => name.toLowerCase() === ADMIN_NAME;
 
 interface Puzzle {
   id: number;
@@ -65,20 +73,29 @@ function env(name: string): string {
 
 // Tokens are "userId.hmac(userId:name)": nothing to store, nothing to expire,
 // and a reset database can't hand an old token to whoever gets its id next.
+// The admin's also sign ADMIN_PASSWORD, so a token from when anyone could take
+// the name stops working, as does every admin token when it changes.
 const sign = ({ id, name }: { id: number; name: string }) =>
   new Bun.CryptoHasher("sha256", SECRET)
-    .update(`${id}:${name}`)
+    .update(`${id}:${name}${isAdmin(name) ? `:${ADMIN_PASSWORD}` : ""}`)
     .digest("base64url");
 
-/** The answer to signing in: the player's token, and their name as first typed. */
+/**
+ * The answer to signing in: the player's token, their name as first typed, and
+ * whether they're the admin.
+ */
 const session = (user: { id: number; name: string }) =>
-  Response.json({ token: `${user.id}.${sign(user)}`, name: user.name });
+  Response.json({
+    token: `${user.id}.${sign(user)}`,
+    name: user.name,
+    admin: isAdmin(user.name),
+  });
 
 // Beacons can't set headers, so the token may also come in the body.
 async function authenticate(
   req: Request,
   data: Record<string, unknown>,
-): Promise<number | null> {
+): Promise<{ id: number; name: string } | null> {
   const token =
     req.headers.get("authorization")?.replace(/^Bearer /, "") ??
     (typeof data.token === "string" ? data.token : undefined);
@@ -90,7 +107,7 @@ async function authenticate(
   const expected = Buffer.from(sign(user));
   const given = Buffer.from(signature);
   return expected.length === given.length && timingSafeEqual(expected, given)
-    ? userId
+    ? user
     : null;
 }
 
@@ -187,7 +204,7 @@ async function leaderboard() {
       select u.name, p.puzzle_id, p.completed, p.stached_ms,
              p.finished_at is not null as finished
       from plays p join users u on u.id = p.user_id
-      where not p.late`,
+      where not p.late and lower(u.name) <> ${ADMIN_NAME}`,
   ]);
   const byPlayer = new Map<string, Map<number, GameRow>>();
   for (const play of plays) {
@@ -242,6 +259,15 @@ function colorOf(puzzle: Puzzle, index: number) {
   return COLORS[puzzle.groups.slice(0, index).filter((g) => !g.stache).length];
 }
 
+/** A game's guesses as the colors of their words' groups, as shared. */
+function gridOf(puzzle: Puzzle, guesses: string[][]) {
+  const groupOf = (word: string) =>
+    puzzle.groups.findIndex((g) => g.words.includes(word));
+  return guesses.map((guess) =>
+    guess.map((word) => colorOf(puzzle, groupOf(word))),
+  );
+}
+
 function groupView(puzzle: Puzzle, index: number) {
   const { title, words } = puzzle.groups[index];
   return { title, words, color: colorOf(puzzle, index) };
@@ -249,8 +275,6 @@ function groupView(puzzle: Puzzle, index: number) {
 
 function playView(puzzle: Puzzle, play: Play) {
   const finished = play.finished_at !== null;
-  const groupOf = (word: string) =>
-    puzzle.groups.findIndex((g) => g.words.includes(word));
   return {
     elapsedMs: activeMs(play, new Date()),
     guesses: play.guesses,
@@ -263,9 +287,7 @@ function playView(puzzle: Puzzle, play: Play) {
     // The answers and the colored guess grid only once the game is over.
     ...(finished && {
       answers: puzzle.groups.map((_, i) => groupView(puzzle, i)),
-      grid: play.guesses.map((guess) =>
-        guess.map((word) => colorOf(puzzle, groupOf(word))),
-      ),
+      grid: gridOf(puzzle, play.guesses),
     }),
   };
 }
@@ -278,6 +300,7 @@ async function snapshot(userId: number, puzzle: Puzzle) {
       select u.name, p.completed, p.stached_ms as "stachedMs", p.late
       from plays p join users u on u.id = p.user_id
       where p.puzzle_id = ${puzzle.id} and p.finished_at is not null
+        and lower(u.name) <> ${ADMIN_NAME}
       order by p.stached_ms nulls last, p.completed desc, p.mistakes, p.finished_at`,
   ]);
   return {
@@ -300,7 +323,9 @@ async function login({ name, password }: Record<string, unknown>) {
   const clean =
     typeof name === "string" ? name.trim().replace(/\s+/g, " ") : "";
   if (!clean || clean.length > 24) return fail(400, "Enter your name");
-  if (password !== PASSWORD) return fail(401, "Wrong password");
+  // The admin's name takes the admin's password, so no one else can be them.
+  if (password !== (isAdmin(clean) ? ADMIN_PASSWORD : PASSWORD))
+    return fail(401, "Wrong password");
   const [user] = await sql`
     insert into users (name) values (${clean})
     on conflict (lower(name)) do update set name = users.name
@@ -318,11 +343,10 @@ const handoffs = new Map<
   { id: number; name: string; expires: number }
 >();
 
-async function handoff(userId: number) {
+function handoff(user: { id: number; name: string }) {
   const now = Date.now();
   for (const [code, { expires }] of handoffs)
     if (expires < now) handoffs.delete(code);
-  const [user] = await sql`select id, name from users where id = ${userId}`;
   const code = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString(
     "base64url",
   );
@@ -455,6 +479,71 @@ async function guess(
 }
 
 /**
+ * The admin page: how many play, and each puzzle's turnout and finished games,
+ * with their grids, to show how hard it was. Late games don't count as played
+ * on the day, as on the leaderboard, and the admin's own games don't count.
+ */
+async function adminStats() {
+  const [puzzles, plays, [counts]]: [
+    Puzzle[],
+    {
+      puzzle_id: number;
+      name: string;
+      guesses: string[][];
+      completed: boolean | null;
+      mistakes: number;
+      stached_ms: number | null;
+      late: boolean;
+      finished: boolean;
+    }[],
+    { players: number; notifications: number }[],
+  ] = await Promise.all([
+    sql`select * from ${released()} order by date desc`,
+    sql`
+      select p.puzzle_id, u.name, p.guesses, p.completed, p.mistakes,
+             p.stached_ms, p.late, p.finished_at is not null as finished
+      from plays p join users u on u.id = p.user_id
+      where lower(u.name) <> ${ADMIN_NAME}
+      order by p.finished_at`,
+    sql`
+      select
+        (select count(*) from users where lower(name) <> ${ADMIN_NAME})::int
+          as players,
+        (select count(distinct s.user_id) from push_subscriptions s
+          join users u on u.id = s.user_id
+          where lower(u.name) <> ${ADMIN_NAME})::int as notifications`,
+  ]);
+  const week = new Set(puzzles.slice(0, RECENT_PUZZLES).map((p) => p.id));
+  const thisWeek = plays.filter((g) => !g.late && week.has(g.puzzle_id));
+  const byPuzzle = Map.groupBy(plays, (g) => g.puzzle_id);
+  return {
+    ...counts,
+    playedThisWeek: new Set(thisWeek.map((g) => g.name)).size,
+    puzzles: puzzles.map((puzzle) => {
+      const games = byPuzzle.get(puzzle.id) ?? [];
+      const onTheDay = games.filter((g) => !g.late);
+      return {
+        number: puzzle.number,
+        date: puzzle.date,
+        played: onTheDay.length,
+        solved: onTheDay.filter((g) => g.completed).length,
+        late: games.length - onTheDay.length,
+        games: games
+          .filter((g) => g.finished)
+          .map((g) => ({
+            name: g.name,
+            completed: g.completed,
+            mistakes: g.mistakes,
+            stachedMs: g.stached_ms,
+            late: g.late,
+            grid: gridOf(puzzle, g.guesses),
+          })),
+      };
+    }),
+  };
+}
+
+/**
  * Today's link-preview card (card.ts), which the site's preview tags point at.
  * It's public, since chat apps fetch it signed out, and never cached, so each
  * fetch shows today's puzzle and takes the next border color. It reads only
@@ -483,8 +572,9 @@ async function route(req: Request): Promise<Response> {
   if (path === "POST /login") return login(data);
   if (path === "POST /handoff/redeem") return redeem(data);
 
-  const userId = await authenticate(req, data);
-  if (!userId) return fail(401, "Sign in first");
+  const user = await authenticate(req, data);
+  if (!user) return fail(401, "Sign in first");
+  const userId = user.id;
   switch (path) {
     case "GET /today": {
       const puzzle = await findPuzzle();
@@ -502,7 +592,10 @@ async function route(req: Request): Promise<Response> {
     case "GET /puzzles":
       return Response.json(await pastGames(userId));
     case "POST /handoff":
-      return handoff(userId);
+      return handoff(user);
+    case "GET /admin":
+      if (!isAdmin(user.name)) return fail(404, "Not found");
+      return Response.json(await adminStats());
     case "GET /push/key":
       if (!VAPID) return fail(404, "Notifications are off");
       return Response.json({ key: VAPID.publicKey });

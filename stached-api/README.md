@@ -96,6 +96,13 @@ The API signs pushes with a VAPID key pair from its environment. Without the key
 
 Then restart the API (`make deploy-stached`). The private key never leaves the Studio. New keys are fine later: each browser renews its subscription the next time it opens home. `make phone` makes throwaway keys for each run.
 
+## Admin page
+
+`/stached/admin` is for one player, the admin (`ADMIN_NAME`; Spencer on the live game). Only the admin's home links to it, and the API answers anyone else's `GET /admin` with a 404.
+
+- **Signing in:** the admin's name takes `ADMIN_PASSWORD`, not the shared password, so no friend can sign in as them. The admin stays off the leaderboard and the day's scoreboard, but plays and gets pushes like anyone. The admin's sessions also depend on `ADMIN_PASSWORD`, so setting up the admin or changing that password signs the admin out everywhere, along with anyone who took the name with the shared password before.
+- **What it shows:** how many players there are, how many played one of the last seven puzzles on its day, and how many have notifications on. Then each puzzle: how many played and solved it on its day, and how many played it late. Open a puzzle to see every finished game's share grid for it, to judge how hard it was, or open a player to see their grids across puzzles. It all comes from the games and push subscriptions the game already keeps; nothing new is recorded, like when anyone visits.
+
 ## Puzzles
 
 Puzzles live in `~/.config/stached/puzzles.json` on the Studio (mode 600), because this repo is public. Publish them with the puzzle CLI (below), not by hand. The format matches `puzzles.example.json`:
@@ -165,6 +172,7 @@ The API reads its settings from the environment (on the Studio, `~/.config/stach
 | `PORT` | default `3000` (`3999` on the Studio) |
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | the push key pair (Push keys, above). Without them, push is off |
 | `ANNOUNCE_AT` | when a puzzle's push goes out on its date, New York time: default `09:12` |
+| `ADMIN_NAME`, `ADMIN_PASSWORD` | the admin's name and their own password (Admin page, above). Set both or neither |
 
 The site calls `https://api.spencerstrelsov.com` in production and `/stached-api` in dev; `VITE_STACHED_API` overrides either.
 
@@ -241,8 +249,8 @@ Everything runs as `sstrelsov-personal` (`ssh personal-studio`), from a clone at
 
 ## Security
 
-- The password, the real puzzles and the VAPID private key exist only on the Studio. Changing the password (edit `STACHE_PASSWORD` in `api.env`, then `make deploy-stached`) doesn't sign anyone out.
-- Changing `SESSION_SECRET` signs everyone out. Deleting a player signs that player out.
+- The password, the admin password, the real puzzles and the VAPID private key exist only on the Studio. Changing the password (edit `STACHE_PASSWORD` in `api.env`, then `make deploy-stached`) doesn't sign anyone out.
+- Changing `SESSION_SECRET` signs everyone out, and changing `ADMIN_PASSWORD` signs the admin out. Deleting a player signs that player out.
 - The API allows browsers only from the site's origins. It limits each client to 10 sign-ins and 180 other requests a minute, and caps request bodies at 16 KB. Behind the tunnel it identifies clients by Cloudflare's `CF-Connecting-IP`, which only the tunnel can set, because the API listens on loopback.
 - These limits count per IP address, so a crowd on one Wi-Fi shares them.
 

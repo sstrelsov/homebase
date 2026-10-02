@@ -83,6 +83,40 @@ export type GuessResult = "correct" | "one_away" | "wrong" | "repeat";
 export interface Session {
   token: string;
   name: string;
+  /** The admin (ADMIN_NAME on the API), who gets the admin page. */
+  admin?: boolean;
+}
+
+/** A finished game on the admin page, with its share grid. */
+export interface AdminGame {
+  name: string;
+  completed: boolean;
+  mistakes: number;
+  stachedMs: number | null;
+  late: boolean;
+  grid: Color[][];
+}
+
+/** A puzzle's turnout: played and solved count games on its day. */
+export interface AdminPuzzle {
+  number: number;
+  date: string;
+  played: number;
+  solved: number;
+  late: number;
+  /** Every finished game, late ones too, first finished first. */
+  games: AdminGame[];
+}
+
+/** The admin page: how many play, and how each puzzle went. */
+export interface AdminStats {
+  /** Everyone signed up, but the admin. */
+  players: number;
+  /** Played one of the last 7 puzzles on its day. */
+  playedThisWeek: number;
+  notifications: number;
+  /** Newest first. */
+  puzzles: AdminPuzzle[];
 }
 
 export class ApiError extends Error {
@@ -149,6 +183,8 @@ export const api = {
   /** Keeps this browser's push subscription, for this player. */
   subscribe: (token: string, subscription: PushSubscriptionJSON) =>
     request<void>("/push/subscribe", { token, body: subscription }),
+  /** The admin page's numbers and games; anyone else gets a 404. */
+  admin: (token: string) => request<AdminStats>("/admin", { token }),
   guess: (token: string, puzzleId: number, words: string[]) =>
     request<Day & { result: GuessResult }>("/guess", {
       token,

@@ -725,6 +725,52 @@
   background: var(--color);
 }
 
+/* Admin: rows that open to show their games, one to a line */
+.disclosure {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--tile);
+}
+
+.disclosure[open] {
+  border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+.disclosure > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.disclosure > summary::after {
+  content: "+";
+  font-family: var(--display);
+  font-weight: 900;
+  font-size: 24px;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.disclosure[open] > summary::after {
+  content: "–";
+}
+
+.game {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+}
+
 /* Leaderboard */
 .standing {
   display: flex;
@@ -755,6 +801,15 @@
   font-stretch: 110%;
   font-size: 16px;
   font-variant-numeric: tabular-nums;
+}
+
+/* The admin's totals, bigger than a player's stats */
+.totals {
+  padding: 16px;
+}
+
+.totals dd {
+  font-size: 26px;
 }
 
 .recent {

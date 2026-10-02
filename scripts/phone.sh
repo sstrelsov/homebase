@@ -94,6 +94,8 @@ fi
 (umask 077 && cat >"$DATA/api.env") <<ENV
 DATABASE_URL=postgres://postgres@localhost:$PG_PORT/stached
 STACHE_PASSWORD=$PASSWORD
+ADMIN_NAME=admin
+ADMIN_PASSWORD=admin
 SESSION_SECRET=phone
 PUZZLES_FILE=$PWD/$DATA/puzzles.json
 ALLOWED_ORIGINS=http://localhost:$WEB_PORT
@@ -121,6 +123,6 @@ echo "$url" >"$DATA/url"
 echo
 bunx qrcode --small "$url"
 echo "  $url"
-echo "  Tailscale on, password $PASSWORD. Ctrl-C to stop."
+echo "  Tailscale on, password $PASSWORD (admin page: name admin, password admin). Ctrl-C to stop."
 echo "  Puzzle CLI on this run: STACHED_ENV=$DATA/api.env scripts/stached list"
 wait
