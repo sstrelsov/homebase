@@ -43,7 +43,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 - **Stache time** counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; if a phone sleeps before it can say so, the gap counts for at most 15 seconds. The server keeps the real clock.
 - **The leaderboard** ranks everyone by streak, then best stache time. A streak is puzzles solved in a row; today's puzzle doesn't break it until you finish (or miss) it. Each player also shows their best and average stache time, games solved, and a bar per day for the last seven puzzles.
 - **The daily puzzle** is the newest one dated on or before today in New York; a day without a puzzle of its own keeps the last one. Puzzles are numbered by date (#1 is the first).
-- **Notifications:** in the home-screen app, a bell left of Rules turns on a push for each new puzzle (Push notifications, below).
+- **Notifications:** in the home-screen app, a bell left of Leaderboard turns on a push for each new puzzle (Push notifications, below).
 - **Past games** shows a tile per day so far. A finished day opens your board, the answers, and that day's scoreboard. A missed day can be played any time after, and an unfinished one finished, but that game is marked **late** (started or guessed after its day): it shows in your history and on that day's scoreboard (tagged late), and it never counts toward streaks or leaderboard times.
 
 ## The look
@@ -79,7 +79,7 @@ Stached saves to a phone's home screen as its own app: in Safari, Share → Add 
 
 Each puzzle sends one push to the home-screen apps that asked for it: "Puzzle #12 is up" as the title, then a random line from the crawl on home. Tapping it opens home, not the game, so the stache clock waits for Play.
 
-- **Turning them on:** home shows a bell to the left of Rules until notifications are on in that browser. On an iPhone only the home-screen app can get pushes (iOS 16.4 and later), and iOS asks permission only right after a tap, so the bell is that tap. Desktop Chrome and Android show it too. Stached has no off switch; iOS Settings → Notifications has one. After a "Don't Allow" the bell stays hidden, since only Settings can undo it.
+- **Turning them on:** home shows a bell to the left of Leaderboard until notifications are on in that browser. On an iPhone only the home-screen app can get pushes (iOS 16.4 and later), and iOS asks permission only right after a tap, so the bell is that tap. Desktop Chrome and Android show it too. Stached has no off switch; iOS Settings → Notifications has one. After a "Don't Allow" the bell stays hidden, since only Settings can undo it.
 - **When:** at 9:12am New York time on the puzzle's date (`ANNOUNCE_AT`). A puzzle published on its date after that pushes within a minute, and one dated before today never does. The API checks every minute.
 - **Never twice:** the API records the date in `announcements` before sending, and only the first claim sends. A restart, a second API, or editing and republishing a puzzle can't repeat it.
 - **Subscriptions** (`push_subscriptions`): one per browser, tied to the player who tapped the bell there. Home sends it again on every visit, so it survives a database reset and renews itself if the keys change. When a push service answers 404 or 410 (the app was deleted, say), it's dropped. The API only takes subscriptions from Apple's, Google's, Mozilla's and Microsoft's push services, so nobody can point it at another address.
