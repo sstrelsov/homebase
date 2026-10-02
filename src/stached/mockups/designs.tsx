@@ -294,12 +294,11 @@ const FastestToday = ({
   week: Week;
   Cell: (props: { mark: Mark }) => ReactNode;
 }) => {
-  const { scores, toPlay } = today(week);
-  const winner = scores.find((score) => isWin(score.mark));
+  const winner = today(week).scores.find((score) => isWin(score.mark));
   return (
     <div className={`${styles.stacheBox} flex flex-col gap-1 p-3`}>
       <p className={styles.label}>
-        Fastest today · #{week.number} · {todayDate(week)}
+        Fastest stache today · #{week.number} · {todayDate(week)}
       </p>
       {winner ? (
         <p className="flex items-center gap-3 text-[22px] leading-tight">
@@ -312,9 +311,6 @@ const FastestToday = ({
       ) : (
         <p className="text-[19px]">No one has found the stache yet.</p>
       )}
-      <p className={x.note}>
-        {scores.length} finished · {toPlay.length} still to play
-      </p>
     </div>
   );
 };
