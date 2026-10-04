@@ -56,14 +56,16 @@ puzzle file along. With no command it prints its help.
     { "title": "Next", "words": ["E", "F", "G", "H"] },
     { "title": "Harder", "words": ["I", "J", "K", "L"] },
     { "title": "The stache group", "words": ["M", "N", "O", "P"], "stache": true }
-  ]
+  ],
+  "push": "Optional: the line under the title in its push"
 }
 ```
 
 The server's rules, which `stage` checks: a real date, one puzzle per date,
 every group titled with four words, no word twice (ignoring case), no title
 twice, exactly one `"stache": true` group, and at most five groups. Non-stache
-groups are colored in order, so list them easiest first.
+groups are colored in order, so list them easiest first. `push`, if given, is
+a line of text.
 
 ## Helping Spencer publish a puzzle
 
@@ -76,7 +78,7 @@ groups are colored in order, so list them easiest first.
    EOF
    ```
    Fix whatever it reports and stage again. It prints each puzzle's number,
-   titles, and when it goes live and pushes.
+   titles, push line, and when it goes live and pushes.
 3. Offer a preview: `scripts/stached preview`. Give Spencer the link it prints
    (Tailscale on, password `test`, any name). It runs in tmux on the Studio
    until `preview stop` or `confirm`. Nothing played there reaches the live game.
@@ -96,8 +98,11 @@ Each puzzle sends one push, on its date, at **9:12am New York time**:
 
 The API checks every minute and records each date in `announcements` before
 sending, so a puzzle never pushes twice, even across restarts or if it's edited
-or published again. The notification says "Puzzle #12 is up", then a random
-line from the crawl on home. iOS adds "from Stached" (the home-screen app's name),
+or published again. The notification says "Puzzle #12 is up", then the
+puzzle's `push` line if it has one, or else a random line from the crawl on
+home. When Spencer wants custom copy, put it in `push` and stage again: a
+change to the line alone keeps everyone's games. It only counts before the
+push goes out. iOS adds "from Stached" (the home-screen app's name),
 which can't be turned off. Tapping it opens home, not the game, so the stache
 clock waits for Play.
 

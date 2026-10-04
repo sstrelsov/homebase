@@ -68,6 +68,13 @@ test("at most a group per color, plus the stache", () => {
   ]);
 });
 
+test("a push line, if any, is text", () => {
+  expect(problems((p) => (p.push = "Read all about it"))).toEqual([]);
+  expect(problems((p) => (p.push = " "))).toEqual([
+    "2026-01-01: push needs to be a line of text",
+  ]);
+});
+
 test("it reports everything wrong at once", () => {
   expect(
     problems((p) => {

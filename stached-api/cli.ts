@@ -105,23 +105,28 @@ export function timing(date: string, kind: Change["kind"], now = new Date()) {
     : `It goes live right away, with its push at ${pushTime}.`;
 }
 
-/** A puzzle kept plain: its date, and each group's title, words and stache flag. */
-const plain = ({ date, groups }: DayPuzzle): DayPuzzle => ({
+/**
+ * A puzzle kept plain: its date, each group's title, words and stache flag,
+ * and its push line.
+ */
+const plain = ({ date, groups, push }: DayPuzzle): DayPuzzle => ({
   date,
   groups: groups.map(({ title, words, stache }) => ({
     title,
     words,
     ...(stache && { stache: true }),
   })),
+  ...(push && { push }),
 });
 
-/** The same puzzle, give or take how its JSON is spelled. */
+/** The same groups, give or take how their JSON is spelled. */
 const sameGroups = (a: DayPuzzle, b: DayPuzzle) =>
   JSON.stringify(plain(a).groups) === JSON.stringify(plain(b).groups);
 
 interface Change {
   date: string;
-  kind: "new" | "edit" | "same";
+  /** "push" changes only the push line, which keeps the puzzle's games. */
+  kind: "new" | "edit" | "push" | "same";
   /** Games that publishing deletes. */
   games: number;
 }
@@ -134,7 +139,13 @@ export function changes(
 ): Change[] {
   return staged.map((puzzle) => {
     const old = published.find((p) => p.date === puzzle.date);
-    const kind = !old ? "new" : sameGroups(old, puzzle) ? "same" : "edit";
+    const kind = !old
+      ? "new"
+      : !sameGroups(old, puzzle)
+        ? "edit"
+        : old.push !== puzzle.push
+          ? "push"
+          : "same";
     const lost = kind === "edit" ? (games.get(puzzle.date) ?? 0) : 0;
     return { date: puzzle.date, kind, games: lost };
   });
@@ -290,10 +301,11 @@ async function stage(source: string | undefined) {
     publish(published, staged, games, { deleteGames: true }),
   );
   for (const [i, change] of changes(published, staged, games).entries()) {
-    const { date, groups } = staged[i];
+    const { date, groups, push } = staged[i];
     const titles = groups.map((g) => g.title + (g.stache ? " (stache)" : ""));
     console.log(`#${number.get(date)} · ${day(date)} (${date})`);
     console.log(`  ${titles.join(" · ")}`);
+    console.log(`  Push line: ${push ?? "a random one from the crawl"}`);
     if (change.kind === "same") {
       console.log("  Already published, word for word.");
       continue;
@@ -304,6 +316,8 @@ async function stage(source: string | undefined) {
           ? `  Replaces the published puzzle, which has ${gameCount(change.games)}: confirm deletes them only with --delete-games.`
           : "  Replaces the published puzzle (no games on it yet).",
       );
+    if (change.kind === "push")
+      console.log("  Changes only its push line, so its games stay.");
     console.log(`  ${timing(date, change.kind)}`);
   }
   console.log(

@@ -47,6 +47,8 @@ interface Puzzle {
   /** Whether it's the daily puzzle: the newest one out. */
   today: boolean;
   groups: Group[];
+  /** Its push notification's line, or null for a random one. */
+  push: string | null;
 }
 
 interface Play {
@@ -129,7 +131,7 @@ const fail = (status: number, error: string) =>
  * keeps the last one.
  */
 const released = () => sql`(
-  select id, to_char(date, 'YYYY-MM-DD') as date, groups,
+  select id, to_char(date, 'YYYY-MM-DD') as date, groups, push,
          row_number() over (order by date)::int as number,
          date = max(date) over () as today
   from puzzles

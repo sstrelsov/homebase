@@ -44,6 +44,17 @@ describe("confirming staged puzzles", () => {
     expect(puzzles[1].groups[0].words[0]).toBe("Crumpet");
   });
 
+  test("changes only the push line of a puzzle people have played", () => {
+    const games = new Map([["2026-10-01", 3]]);
+    const pushed = { ...on("2026-10-01"), push: "Read all about it" };
+    expect(changes(PUBLISHED, [pushed], games)).toEqual([
+      { date: "2026-10-01", kind: "push", games: 0 },
+    ]);
+    expect(publish(PUBLISHED, [pushed], games)[0].push).toBe(
+      "Read all about it",
+    );
+  });
+
   test("refuses to change a puzzle people have played", () => {
     const games = new Map([["2026-10-01", 3]]);
     expect(() => publish(PUBLISHED, [edited("2026-10-01")], games)).toThrow(
