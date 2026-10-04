@@ -46,6 +46,12 @@ const GameLine = ({ title, game }: { title: string; game: AdminGame }) => (
         </span>
       )}
       {game.late && <span className={styles.label}>Played late</span>}
+      {game.homeScreen !== null && (
+        <span className={styles.label}>
+          {game.homeScreen ? "Home screen" : "Website"} ·{" "}
+          {game.dark ? "Dark mode" : "Light mode"}
+        </span>
+      )}
     </div>
     <GuessGrid grid={game.grid} className="shrink-0" />
   </li>
@@ -103,7 +109,7 @@ const Admin = () => {
         ...(players.get(game.name) ?? []),
         { puzzle, game },
       ]);
-  // Everyone with a game or the home-screen app.
+  // Everyone with a finished game, or a game in the home-screen app.
   const homeScreen = new Set(stats?.homeScreen);
   const names = [...new Set([...players.keys(), ...homeScreen])].sort((a, b) =>
     a.localeCompare(b),

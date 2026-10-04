@@ -304,16 +304,19 @@ function redeem({ code }: Record<string, unknown>) {
 /** Starts a game (by date, or by id for older pages), or picks it back up. */
 async function start(
   userId: number,
-  { puzzleId, date }: Record<string, unknown>,
+  { puzzleId, date, homeScreen, dark }: Record<string, unknown>,
 ) {
   const puzzle = await (date !== undefined
     ? puzzleByDate(date)
     : puzzleById(puzzleId));
   if (!puzzle) return fail(404, "No puzzle for that day");
   // A game started after its day is late: it's yours, but it doesn't count.
+  // Where it started, for the admin page, is kept from that first start.
+  const flag = (value: unknown) => (typeof value === "boolean" ? value : null);
   await sql`
-    insert into plays (user_id, puzzle_id, active_since, late)
-    values (${userId}, ${puzzle.id}, ${new Date()}, ${!puzzle.today})
+    insert into plays (user_id, puzzle_id, active_since, late, home_screen, dark)
+    values (${userId}, ${puzzle.id}, ${new Date()}, ${!puzzle.today},
+            ${flag(homeScreen)}, ${flag(dark)})
     on conflict (user_id, puzzle_id) do nothing`;
   return Response.json(await snapshot(userId, puzzle));
 }
@@ -419,13 +422,13 @@ async function guess(
 }
 
 /**
- * The admin page: how many play, who has the home-screen app, and each
- * puzzle's turnout and finished games, with their grids, to show how hard it
- * was. Late games don't count as played on the day, as on the leaderboard, and
- * the admin's own games don't count.
+ * The admin page: how many play, who has played in the home-screen app, and
+ * each puzzle's turnout and finished games, with their grids, to show how hard
+ * it was. Late games don't count as played on the day, as on the leaderboard,
+ * and the admin's own games don't count.
  */
 async function adminStats() {
-  const [puzzles, plays, [counts], homeScreen]: [
+  const [puzzles, plays, [counts]]: [
     Puzzle[],
     {
       puzzle_id: number;
@@ -436,14 +439,16 @@ async function adminStats() {
       stached_ms: number | null;
       late: boolean;
       finished: boolean;
+      home_screen: boolean | null;
+      dark: boolean | null;
     }[],
     { players: number; notifications: number }[],
-    { name: string }[],
   ] = await Promise.all([
     sql`select * from ${released()} order by date desc`,
     sql`
       select p.puzzle_id, u.name, p.guesses, p.completed, p.mistakes,
-             p.stached_ms, p.late, p.finished_at is not null as finished
+             p.stached_ms, p.late, p.finished_at is not null as finished,
+             p.home_screen, p.dark
       from plays p join users u on u.id = p.user_id
       where lower(u.name) <> ${ADMIN_NAME}
       order by p.finished_at`,
@@ -454,10 +459,6 @@ async function adminStats() {
         (select count(distinct s.user_id) from push_subscriptions s
           join users u on u.id = s.user_id
           where lower(u.name) <> ${ADMIN_NAME})::int as notifications`,
-    sql`
-      select name from users
-      where home_screen_at is not null and lower(name) <> ${ADMIN_NAME}
-      order by home_screen_at`,
   ]);
   const week = new Set(puzzles.slice(0, WEEK).map((p) => p.id));
   const thisWeek = plays.filter((g) => !g.late && week.has(g.puzzle_id));
@@ -465,7 +466,9 @@ async function adminStats() {
   return {
     ...counts,
     playedThisWeek: new Set(thisWeek.map((g) => g.name)).size,
-    homeScreen: homeScreen.map((u) => u.name),
+    homeScreen: [
+      ...new Set(plays.filter((g) => g.home_screen).map((g) => g.name)),
+    ],
     puzzles: puzzles.map((puzzle) => {
       const games = byPuzzle.get(puzzle.id) ?? [];
       const onTheDay = games.filter((g) => !g.late);
@@ -483,6 +486,8 @@ async function adminStats() {
             mistakes: g.mistakes,
             stachedMs: g.stached_ms,
             late: g.late,
+            homeScreen: g.home_screen,
+            dark: g.dark,
             grid: gridOf(puzzle, g.guesses),
           })),
       };
@@ -552,12 +557,6 @@ async function route(req: Request): Promise<Response> {
       await saveSubscription(userId, subscription);
       return new Response(null, { status: 204 });
     }
-    // The home-screen app says so as it opens. Only the first time is kept.
-    case "POST /home-screen":
-      await sql`
-        update users set home_screen_at = now()
-        where id = ${userId} and home_screen_at is null`;
-      return new Response(null, { status: 204 });
     default:
       return fail(404, "Not found");
   }

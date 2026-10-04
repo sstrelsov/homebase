@@ -2,6 +2,7 @@ import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { api } from "./api";
 import Game from "./Game";
+import { isHomeScreenApp } from "./HomeScreen";
 import { useLoad, useStached } from "./session";
 import styles from "./stached.module.css";
 
@@ -14,7 +15,14 @@ const DayGame = () => {
   const navigate = useNavigate();
   const { date } = useParams({ from: "/stached/$date" });
   const { session, openRules } = useStached();
-  const start = useCallback((token: string) => api.start(token, date), [date]);
+  const start = useCallback(
+    (token: string) =>
+      api.start(token, date, {
+        homeScreen: isHomeScreenApp(),
+        dark: matchMedia("(prefers-color-scheme: dark)").matches,
+      }),
+    [date],
+  );
   const { data: day, setData: setDay, error } = useLoad(start);
 
   if (error)

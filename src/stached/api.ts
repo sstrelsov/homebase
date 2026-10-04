@@ -82,6 +82,10 @@ export interface AdminGame {
   mistakes: number;
   stachedMs: number | null;
   late: boolean;
+  /** Started in the home-screen app, or on the website; null before we knew. */
+  homeScreen: boolean | null;
+  /** Started on a device set to dark mode; null before we knew. */
+  dark: boolean | null;
   grid: Color[][];
 }
 
@@ -103,10 +107,20 @@ export interface AdminStats {
   /** Played one of the last 7 puzzles on its day. */
   playedThisWeek: number;
   notifications: number;
-  /** Who has opened the home-screen app, the admin aside, first first. */
+  /** Who has started a game in the home-screen app, the admin aside. */
   homeScreen: string[];
   /** Newest first. */
   puzzles: AdminPuzzle[];
+}
+
+/**
+ * Where a game starts, for the admin page: the home-screen app or the
+ * website, and whether the device is set to dark mode (Stached itself is
+ * light for everyone).
+ */
+export interface Device {
+  homeScreen: boolean;
+  dark: boolean;
 }
 
 export class ApiError extends Error {
@@ -147,8 +161,8 @@ export const api = {
   leaderboard: (token: string) =>
     request<Leaderboard>("/leaderboard", { token }),
   /** Starts that day's game, or picks it back up. */
-  start: (token: string, date: string) =>
-    request<Day>("/start", { token, body: { date } }),
+  start: (token: string, date: string, device: Device) =>
+    request<Day>("/start", { token, body: { date, ...device } }),
   pastGames: (token: string) => request<PastGame[]>("/puzzles", { token }),
   /** Tells the server the board is on screen, so the clock keeps running. */
   clock: (token: string, puzzleId: number) =>
@@ -173,9 +187,6 @@ export const api = {
   /** Keeps this browser's push subscription, for this player. */
   subscribe: (token: string, subscription: PushSubscriptionJSON) =>
     request<void>("/push/subscribe", { token, body: subscription }),
-  /** Says this is the home-screen app, for the admin page's list. */
-  homeScreen: (token: string) =>
-    request<void>("/home-screen", { token, body: {} }),
   /** The admin page's numbers and games; anyone else gets a 404. */
   admin: (token: string) => request<AdminStats>("/admin", { token }),
   guess: (token: string, puzzleId: number, words: string[]) =>

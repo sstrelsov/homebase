@@ -90,13 +90,6 @@ const StachedPage = () => {
     return () => container.removeEventListener("message", open);
   }, [router]);
 
-  // The home-screen app tells the API once a launch, so the admin page knows
-  // who has it. The API keeps only the first time.
-  const token = session?.token;
-  useEffect(() => {
-    if (token && isHomeScreenApp()) api.homeScreen(token).catch(() => {});
-  }, [token]);
-
   const signOut = useCallback(() => {
     saveSession(null);
     setSession(null);
