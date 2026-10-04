@@ -13,6 +13,8 @@ export interface Group {
 export interface DayPuzzle {
   date: string;
   groups: Group[];
+  /** Its push notification's line, in place of a random one from the crawl. */
+  push?: string | null;
 }
 
 // Color slots for the non-stache groups, easiest first, like Connections.
@@ -34,12 +36,14 @@ export function puzzleProblems(puzzles: unknown): string[] {
   const problems: string[] = [];
   const dates = new Set<string>();
   puzzles.forEach((puzzle, i) => {
-    const { date, groups } = puzzle ?? {};
+    const { date, groups, push } = puzzle ?? {};
     const problem = (text: string) =>
       problems.push(`${isDate(date) ? date : `Puzzle ${i + 1}`}: ${text}`);
     if (!isDate(date)) problem("needs a date like 2026-10-02");
     else if (dates.has(date)) problem("two puzzles share this date");
     else dates.add(date);
+    if (push != null && !isText(push))
+      problem("push needs to be a line of text");
     if (!Array.isArray(groups) || groups.length === 0) {
       problem("needs groups");
       return;
@@ -86,20 +90,24 @@ export async function readPuzzles(file: string): Promise<DayPuzzle[]> {
 /**
  * Makes Postgres match the puzzles file. Editing or dropping a puzzle that
  * people have played wipes their games: scores from the old words wouldn't
- * mean anything against the new ones. The API runs this as it starts, and the
- * CLI as it publishes, so the API serves the change without a restart.
+ * mean anything against the new ones. Its push line can change freely. The
+ * API runs this as it starts, and the CLI as it publishes, so the API serves
+ * the change without a restart.
  */
 export async function syncPuzzles(puzzles: DayPuzzle[]) {
   const dropped = await sql`
     delete from puzzles where date not in ${sql(puzzles.map((p) => p.date))}`;
   if (dropped.count) console.log(`Dropped ${dropped.count} puzzles`);
-  for (const { date, groups } of puzzles) {
+  for (const { date, groups, push = null } of puzzles) {
     const [changed] = await sql`
-      insert into puzzles (date, groups)
-      values (${date}, ${groups}::jsonb)
+      insert into puzzles (date, groups, push)
+      values (${date}, ${groups}::jsonb, ${push})
       on conflict (date) do update set groups = excluded.groups
       where puzzles.groups is distinct from excluded.groups
       returning id`;
+    await sql`
+      update puzzles set push = ${push}
+      where date = ${date} and push is distinct from ${push}`;
     if (changed) {
       const cleared =
         await sql`delete from plays where puzzle_id = ${changed.id}`;

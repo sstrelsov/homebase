@@ -44,6 +44,17 @@ describe("confirming staged puzzles", () => {
     expect(puzzles[1].groups[0].words[0]).toBe("Crumpet");
   });
 
+  test("changes only the push line of a puzzle people have played", () => {
+    const games = new Map([["2026-10-01", 3]]);
+    const pushed = { ...on("2026-10-01"), push: "Read all about it" };
+    expect(changes(PUBLISHED, [pushed], games)).toEqual([
+      { date: "2026-10-01", kind: "push", games: 0 },
+    ]);
+    expect(publish(PUBLISHED, [pushed], games)[0].push).toBe(
+      "Read all about it",
+    );
+  });
+
   test("refuses to change a puzzle people have played", () => {
     const games = new Map([["2026-10-01", 3]]);
     expect(() => publish(PUBLISHED, [edited("2026-10-01")], games)).toThrow(
@@ -113,6 +124,15 @@ describe("timing", () => {
       "It's out already, so the change is live right away. A puzzle never pushes twice.",
     );
     expect(timing("2026-10-02", "edit", night)).toContain("push at 9:12am");
+  });
+
+  test("a new push line for today goes out if its push hasn't", () => {
+    expect(timing("2026-10-01", "push", new Date("2026-10-01T12:00:00Z"))).toBe(
+      "The new line goes out with its push at 9:12am.",
+    );
+    expect(timing("2026-10-01", "push", night)).toContain(
+      "A puzzle never pushes twice.",
+    );
   });
 
   test("a puzzle dated before today gets no push", () => {

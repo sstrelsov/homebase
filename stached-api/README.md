@@ -78,7 +78,7 @@ Stached saves to a phone's home screen as its own app: in Safari, Share → Add 
 
 ## Push notifications
 
-Each puzzle sends one push to the home-screen apps that asked for it: "Puzzle #12 is up" as the title, then a random line from the crawl on home. Tapping it opens home, not the game, so the stache clock waits for Play.
+Each puzzle sends one push to the home-screen apps that asked for it: "Puzzle #12 is up" as the title, then the puzzle's own `push` line (Puzzles, below) or, without one, a random line from the crawl on home. Tapping it opens home, not the game, so the stache clock waits for Play.
 
 - **Turning them on:** home shows a bell to the left of Leaderboard until notifications are on in that browser. On an iPhone only the home-screen app can get pushes (iOS 16.4 and later), and iOS asks permission only right after a tap, so the bell is that tap. Desktop Chrome and Android show it too. Stached has no off switch; iOS Settings → Notifications has one. After a "Don't Allow" the bell stays hidden, since only Settings can undo it.
 - **When:** at 9:12am New York time on the puzzle's date (`ANNOUNCE_AT`). A puzzle published on its date after that pushes within a minute, and one dated before today never does. The API checks every minute.
@@ -117,13 +117,15 @@ Puzzles live in `~/.config/stached/puzzles.json` on the Studio (mode 600), becau
       { "title": "…", "words": ["…", "…", "…", "…"] },
       { "title": "…", "words": ["…", "…", "…", "…"] },
       { "title": "Stached", "words": ["…", "…", "…", "…"], "stache": true }
-    ]
+    ],
+    "push": "Optional: the line under the title in its push"
   }
 ]
 ```
 
 - One puzzle per date, a title and four words per group, no word twice (ignoring case), no title twice, exactly one `"stache": true` group, at most five groups. The server refuses to start otherwise, and the CLI won't stage it.
 - Non-stache groups are colored in file order (yellow, orange, red, blue), so list them easiest first.
+- `push` is optional: the line under "Puzzle #12 is up" in its notification. Without it, the line is a random one from the crawl. It only matters until the push goes out, and changing it never touches anyone's games.
 - Add upcoming days ahead of time; each goes live on its date.
 - **Editing or removing a puzzle that people have played deletes their games for it.** Scores against old words wouldn't mean anything. The CLI refuses to unless you add `--delete-games`.
 
@@ -140,7 +142,7 @@ scripts/stached list               # every puzzle: status, games, push
 
 | Command | What it does |
 |---|---|
-| `stage <file>` | Checks one puzzle, or a list, with the server's rules, and stages it in `staged.json` next to `puzzles.json`, replacing what was staged. Says each puzzle's number and when it goes live and pushes |
+| `stage <file>` | Checks one puzzle, or a list, with the server's rules, and stages it in `staged.json` next to `puzzles.json`, replacing what was staged. Says each puzzle's number, its push line, and when it goes live and pushes |
 | `preview [date]` | Runs `make phone` on the Studio (ports 3998 and 8443) with just that staged puzzle, as today's, in a tmux session (`stached-preview`) that outlives your terminal. Prints the link and a QR code: Tailscale on, password `test`. Nothing played there reaches the live game. The first one installs the site's packages in the Studio's clone |
 | `preview stop` | Stops it, as Ctrl-C would |
 | `confirm` | Publishes what's staged: writes `puzzles.json` (keeping the old one as `puzzles.json.bak-…`), syncs Postgres as the API does when it starts, and stops the preview. The API serves it without a restart |
@@ -190,13 +192,14 @@ Publishing a puzzle is not a deploy: the CLI writes the file and Postgres, and t
 
 ## Database and migrations
 
-Five tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the puzzles file), `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result, and whether it was played late), `push_subscriptions` (one per browser that tapped the bell), and `announcements` (each date whose push has gone out).
+Five tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the puzzles file, push lines too), `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result, and whether it was played late), `push_subscriptions` (one per browser that tapped the bell), and `announcements` (each date whose push has gone out).
 
 | Migration | What it did |
 |---|---|
 | `0001_initial.sql` | The schema as of 2026-09-30 |
 | `0002_plays_late.sql` | `plays.late`, for games played after their day |
 | `0003_push.sql` | `push_subscriptions` and `announcements`, for push notifications |
+| `0004_puzzle_push.sql` | `puzzles.push`, a puzzle's own line for its push |
 
 `schema_migrations` records which migrations ran. To change the schema, add the next numbered file:
 

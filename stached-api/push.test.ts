@@ -7,6 +7,8 @@ import { sql } from "bun";
 import QUOTES from "../src/stached/quotes.json";
 import { migrate } from "./migrate";
 import { announce, announceDue, notification, parseSubscription } from "./push";
+import { type DayPuzzle, syncPuzzles } from "./puzzles";
+import examples from "./puzzles.example.json";
 import { base64url, generateVapidKeys } from "./webpush";
 
 // 9:12am in New York on Friday, October 2 (daylight time), and on Monday,
@@ -33,6 +35,14 @@ describe("a puzzle's push", () => {
   test("names the puzzle, then quotes the crawl", () => {
     expect(notification(12).title).toBe("Puzzle #12 is up");
     expect(QUOTES).toContain(notification(12).body);
+    expect(QUOTES).toContain(notification(12, null).body);
+  });
+
+  test("says the puzzle's own line, if it has one", () => {
+    expect(notification(12, "Read all about it")).toEqual({
+      title: "Puzzle #12 is up",
+      body: "Read all about it",
+    });
   });
 });
 
@@ -163,5 +173,25 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
         .map((r: { endpoint: string }) => new URL(r.endpoint).pathname)
         .sort(),
     ).toEqual(["/down", "/ok"]);
+  });
+
+  test("changing a puzzle's push line keeps its games", async () => {
+    const sample = examples[0] as DayPuzzle;
+    const pushOf = async () =>
+      (await sql`select push from puzzles where date = ${sample.date}`)[0].push;
+    const games = async () => (await sql`select * from plays`).length;
+    await syncPuzzles([{ ...sample, push: "Read all about it" }]);
+    expect(await pushOf()).toBe("Read all about it");
+    await sql`insert into plays (user_id, puzzle_id) select 1, id from puzzles`;
+    await syncPuzzles([{ ...sample, push: "Extra, extra" }]);
+    expect(await pushOf()).toBe("Extra, extra");
+    await syncPuzzles([sample]);
+    expect(await pushOf()).toBeNull();
+    expect(await games()).toBe(1);
+    // The words changing still clears them.
+    const edited = structuredClone(sample);
+    edited.groups[0].words[0] = "Crumpet";
+    await syncPuzzles([edited]);
+    expect(await games()).toBe(0);
   });
 });
