@@ -126,6 +126,15 @@ describe("timing", () => {
     expect(timing("2026-10-02", "edit", night)).toContain("push at 9:12am");
   });
 
+  test("a new push line for today goes out if its push hasn't", () => {
+    expect(timing("2026-10-01", "push", new Date("2026-10-01T12:00:00Z"))).toBe(
+      "The new line goes out with its push at 9:12am.",
+    );
+    expect(timing("2026-10-01", "push", night)).toContain(
+      "A puzzle never pushes twice.",
+    );
+  });
+
   test("a puzzle dated before today gets no push", () => {
     expect(timing("2026-09-30", "new", night)).toBe(
       "It's dated before today, so it gets no push.",

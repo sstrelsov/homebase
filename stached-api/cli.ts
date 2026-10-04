@@ -95,6 +95,8 @@ const today = (now = new Date()) => newYorkTime(now).slice(0, 10);
 /** When a puzzle published now goes live, and when its push goes out. */
 export function timing(date: string, kind: Change["kind"], now = new Date()) {
   const current = today(now);
+  if (kind === "push" && date === current && !announceDue(date, now))
+    return `The new line goes out with its push at ${pushTime}.`;
   if (kind !== "new" && date <= current)
     return "It's out already, so the change is live right away. A puzzle never pushes twice.";
   if (date < current) return "It's dated before today, so it gets no push.";
