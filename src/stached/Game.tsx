@@ -33,7 +33,7 @@ const MISS_LINGER_MS = 700;
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function shuffle<T>(items: T[]): T[] {
+export function shuffle<T>(items: T[]): T[] {
   const out = [...items];
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -54,7 +54,7 @@ function barsFor(play: Play): Group[] {
  * Text in the ident's caps, except a word with a capital after a lowercase
  * letter (BigX, iPhone), which keeps its own case: in caps it reads as BIGX.
  */
-const Cased = ({ text }: { text: string }) =>
+export const Cased = ({ text }: { text: string }) =>
   text.split(/(\s+)/).map((part, i) =>
     /\p{Ll}\p{Lu}/u.test(part) ? (
       // biome-ignore lint/suspicious/noArrayIndexKey: the parts of a word never move
@@ -71,7 +71,7 @@ const Cased = ({ text }: { text: string }) =>
  * word too wide for the tile first tries the font's narrowest width, so a long
  * word stays as big as it can.
  */
-const FitWord = ({ word }: { word: string }) => {
+export const FitWord = ({ word }: { word: string }) => {
   const ref = useRef<HTMLSpanElement>(null);
 
   useLayoutEffect(() => {

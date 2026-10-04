@@ -1,0 +1,712 @@
+/* Admin mockups (dev only): what staging a puzzle adds to the game's look.
+   Colors are the game's tokens (stached.module.css), so both looks work. The
+   lock screen and the pretend keyboard are Apple's, so they keep their own. */
+
+/* The mockup's own switcher, kept apart from the screen */
+.controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 10px 12px;
+  border: 1px dashed var(--muted);
+  border-radius: 8px;
+}
+
+.controlsNote {
+  color: var(--muted);
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.choice {
+  composes: display from "../stached.module.css";
+  padding: 2px 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.choice[data-on] {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.stepper {
+  composes: display from "../stached.module.css";
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 36px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  font-size: 20px;
+}
+
+/* The admin's tabs: the one you're on is a selected tile, ink with red and
+   blue fringes */
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.tab {
+  composes: display from "../stached.module.css";
+  min-height: 44px;
+  border: 2px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.tab[data-on] {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow:
+    -3px 0 0 var(--red),
+    3px 0 0 var(--blue),
+    0 0 16px color-mix(in srgb, var(--glow-cream) 50%, transparent);
+}
+
+/* Small gold links, like home's Rules and Past games */
+.link {
+  composes: display stacheText from "../stached.module.css";
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.link:disabled {
+  opacity: 0.5;
+}
+
+/* "Change": the phone's own date picker, laid over the link */
+.datePick {
+  position: relative;
+  padding: 6px 0 6px 12px;
+}
+
+.datePick input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  opacity: 0;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+/* Statuses: live, published, draft, or a gap to fill */
+.pill {
+  composes: label from "../stached.module.css";
+  padding: 4px 8px;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.pill[data-kind="live"] {
+  color: var(--green);
+}
+
+.pill[data-kind="ready"],
+.pill[data-kind="open"] {
+  color: var(--accent);
+}
+
+.pill[data-kind="draft"] {
+  border-style: dashed;
+}
+
+.pill[data-kind="open"] {
+  border-color: transparent;
+}
+
+/* The paste box: room for a few lines, at a size iOS won't zoom on */
+.paste {
+  height: auto;
+  min-height: 164px;
+  padding: 12px 14px;
+  font-size: 18px;
+  line-height: 1.35;
+  resize: vertical;
+}
+
+/* A day ahead: its date, its puzzle's titles, and how it stands */
+.day {
+  display: grid;
+  grid-template-columns: 82px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--tile);
+  color: var(--ink);
+  text-align: left;
+  transition: transform 0.08s;
+}
+
+.day:active {
+  transform: translateY(1px);
+}
+
+.day[data-state="open"] {
+  border: 1.5px dashed color-mix(in srgb, var(--ink) 24%, transparent);
+  background: transparent;
+}
+
+.dayDate {
+  composes: display from "../stached.module.css";
+  font-size: 16px;
+  white-space: nowrap;
+}
+
+.dayTitles {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* Haiku at work: the paste, dimmed, over rows tuning in */
+.pasted {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.35;
+  white-space: pre-wrap;
+}
+
+.tuning {
+  font-size: 14px;
+  text-align: center;
+  animation: tune 1.4s steps(1) infinite;
+}
+
+.ghost {
+  height: 96px;
+  animation: tune 1.4s steps(1) infinite;
+}
+
+@keyframes tune {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  20% {
+    opacity: 0.15;
+  }
+  40% {
+    opacity: 0.4;
+  }
+  60% {
+    opacity: 0.2;
+  }
+}
+
+/* Notes in boxes: what Haiku did, and what a change would cost */
+.note,
+.danger {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 8px;
+}
+
+.note {
+  border: 1px solid var(--line);
+  background: var(--tile);
+}
+
+.danger {
+  border: 2px solid var(--red);
+  background: color-mix(in srgb, var(--red) 8%, transparent);
+}
+
+.check {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--red);
+}
+
+/* A button that deletes games: red, like a miss */
+.destroy {
+  border-color: var(--red);
+  background: var(--red);
+  color: var(--cream);
+  box-shadow: 0 4px 0 color-mix(in srgb, var(--red) 55%, var(--ink));
+}
+
+/* Rows or shuffled */
+.segment {
+  display: flex;
+  flex: none;
+  border: 1.5px solid color-mix(in srgb, var(--ink) 25%, transparent);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.segment button {
+  padding: 7px 10px;
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 125%;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.segment button[data-on] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* A group being edited: the game's bar, in its color, holding its title,
+   its arrows, Gerald, and its four tiles */
+.row[data-color] {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 4px 6px 6px;
+  border-radius: 10px;
+  text-align: left;
+}
+
+/* Past four colors, a row has none: a dashed outline */
+.row[data-color="none"] {
+  --color: transparent;
+  --on-color: var(--ink);
+  outline: 1.5px dashed var(--muted);
+}
+
+.rowHead {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 40px;
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: 54px;
+  gap: 5px;
+  /* The stache bar's outlined type stays on the bar */
+  text-shadow: none;
+}
+
+.iconButton {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 7px;
+  color: inherit;
+  font-family: var(--display);
+  font-weight: 900;
+}
+
+.iconButton:disabled {
+  opacity: 0.3;
+}
+
+.iconButton svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Gerald: outlined on a row, filled on the stache group's */
+.gerald svg {
+  width: 30px;
+  height: 10px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 9;
+}
+
+.gerald[aria-pressed="true"] svg {
+  fill: currentColor;
+  stroke: none;
+}
+
+/* No stache group yet: every Gerald asks to be picked */
+.gerald[data-pick] {
+  animation: pick 1.1s ease-in-out infinite;
+}
+
+@keyframes pick {
+  50% {
+    transform: scale(1.25);
+  }
+}
+
+/* Titles and tiles are text fields under their look: the look shows the
+   words, and a tap shows the field, with the keyboard */
+.titleField,
+.tileField {
+  position: relative;
+}
+
+.titleField {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 6px;
+  border-radius: 6px;
+}
+
+.titleField > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.titleField input,
+.tileField input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  /* As typed: case shows on the board for words like BigX (Cased) */
+  text-transform: none;
+  outline: none;
+  opacity: 0;
+}
+
+/* 16px or more: iOS zooms in on anything smaller */
+.titleField input {
+  padding: 0 6px;
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 125%;
+  font-size: 16px;
+  caret-color: currentColor;
+}
+
+.tileField input {
+  padding: 0 4px;
+  font-family: var(--text);
+  font-weight: 600;
+  font-stretch: 85%;
+  font-size: 17px;
+  text-align: center;
+  caret-color: var(--gold);
+}
+
+.titleField input:focus,
+.tileField input:focus {
+  opacity: 1;
+}
+
+/* A tile being edited is a selected tile, grown to fit its word, so a long
+   one stays in view. It grows from its middle, or inward from the row's ends. */
+.tileField input:focus {
+  z-index: 2;
+  left: 50%;
+  width: max(100%, calc(var(--letters) * 0.62em + 20px));
+  max-width: calc(400% + 15px);
+  translate: -50% 0;
+  border-radius: 7px;
+  background: var(--ink);
+  color: var(--bg);
+  box-shadow:
+    -3px 0 0 var(--red),
+    3px 0 0 var(--blue);
+}
+
+.tileField[data-edge="start"] input:focus {
+  left: 0;
+  translate: none;
+}
+
+.tileField[data-edge="end"] input:focus {
+  left: auto;
+  right: 0;
+  translate: none;
+}
+
+.titleField:focus-within {
+  background: color-mix(in srgb, var(--on-color) 14%, transparent);
+  box-shadow: inset 0 -2px 0 currentColor;
+}
+
+.titleField:focus-within > span,
+.tileField:focus-within > span {
+  visibility: hidden;
+}
+
+/* An empty tile is a hole in the bar */
+.tileField[data-empty]:not([data-selected]) {
+  border: 1.5px dashed color-mix(in srgb, var(--on-color) 55%, transparent);
+  background: transparent;
+}
+
+.placeholder {
+  opacity: 0.55;
+}
+
+/* "Word", small, in the bar's own type color */
+.hole {
+  composes: label from "../stached.module.css";
+  color: var(--on-color);
+}
+
+/* What the server would refuse: a red ring, clear of any bar's color */
+.titleField[data-problem],
+.tileField[data-problem] {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 4.5px var(--red);
+}
+
+.addRow {
+  composes: display from "../stached.module.css";
+  min-height: 48px;
+  border: 1.5px dashed color-mix(in srgb, var(--ink) 30%, transparent);
+  border-radius: 10px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.problems {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 2px solid var(--red);
+  border-radius: 10px;
+}
+
+/* Save and Publish, kept at the bottom of the screen; hidden while the
+   keyboard is up */
+.actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 -16px -24px;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.actionToast {
+  top: auto;
+  bottom: calc(100% + 12px);
+}
+
+/* The notification's line */
+.pushInput {
+  height: auto;
+  padding: 10px 14px;
+  font-size: 18px;
+  line-height: 1.3;
+  resize: none;
+}
+
+/* An iPhone's lock screen at push time, on a wallpaper of the logo's bands */
+.lock {
+  --glass: rgba(246, 246, 246, 0.8);
+  --glass-ink: #000;
+  --glass-muted: rgba(60, 60, 67, 0.65);
+
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 14px 10px 12px;
+  border-radius: 22px;
+  background: linear-gradient(
+    160deg,
+    var(--c4) 0 22%,
+    var(--c3) 0 44%,
+    var(--c2) 0 66%,
+    var(--c1) 0
+  );
+  color: #fff;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  text-align: center;
+}
+
+[data-look="dark"] .lock {
+  --glass: rgba(30, 30, 30, 0.78);
+  --glass-ink: #fff;
+  --glass-muted: rgba(235, 235, 245, 0.6);
+}
+
+.lockDay {
+  font-size: 15px;
+  font-weight: 600;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+}
+
+.lockTime {
+  margin: -2px 0 10px;
+  font-size: 58px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
+}
+
+.notice {
+  display: flex;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 18px;
+  background: var(--glass);
+  color: var(--glass-ink);
+  text-align: left;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.noticeIcon {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 9px;
+}
+
+.notice strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.noticeWhen,
+.noticeFrom {
+  color: var(--glass-muted);
+  font-size: 13px;
+}
+
+.noticeWhen {
+  flex: none;
+}
+
+.noticeBody {
+  margin-top: 2px;
+  overflow: hidden;
+  font-size: 15px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+/* A crawl line, standing in: one of many */
+.noticeBody[data-crawl] {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+/* The pretend keyboard: an iPhone's, light or dark with the page */
+.keyboard {
+  --keys: #d1d3d9;
+  --key: #fff;
+  --key-ink: #000;
+  --key-dim: #acb0b9;
+  --bar: #f0f0f2;
+
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  z-index: 60;
+  width: min(100%, 448px);
+  height: 300px;
+  translate: -50% 0;
+  padding: 0 3px 30px;
+  background: var(--keys);
+  color: var(--key-ink);
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  user-select: none;
+  box-shadow: 0 -1px 0 rgba(0, 0, 0, 0.15);
+}
+
+[data-look="dark"] .keyboard {
+  --keys: #2c2c2e;
+  --key: #6b6b6e;
+  --key-ink: #fff;
+  --key-dim: #48484a;
+  --bar: #1c1c1e;
+}
+
+.keyboardBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 44px;
+  margin: 0 -3px 6px;
+  padding: 0 16px;
+  background: var(--bar);
+  color: #007aff;
+  font-size: 17px;
+}
+
+.keyboardTag {
+  color: var(--key-dim);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.keyRow {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 11px;
+  padding: 0 3px;
+}
+
+.key {
+  display: grid;
+  flex: 0 1 34px;
+  place-items: center;
+  height: 42px;
+  border-radius: 5px;
+  background: var(--key);
+  font-size: 22px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3);
+}
+
+.keyWide {
+  flex-basis: 44px;
+  background: var(--key-dim);
+  font-size: 16px;
+}
+
+.keySpace {
+  flex: 1;
+  font-size: 16px;
+}
+
+.keyReturn {
+  flex-basis: 88px;
+  background: var(--key-dim);
+  font-size: 16px;
+  text-transform: capitalize;
+}
+
+.keyReturn[data-hint="done"] {
+  background: #007aff;
+  color: #fff;
+}

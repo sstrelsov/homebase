@@ -2,6 +2,7 @@ import { type ReactNode, useState } from "react";
 import {
   type AdminGame,
   type AdminPuzzle,
+  type AdminStats,
   api,
   formatDate,
   formatTime,
@@ -103,93 +104,97 @@ const Row = ({ title, detail, children }: RowProps) => {
 };
 
 /**
- * For the admin: how many play, and how each puzzle went. Open a puzzle to see
- * everyone's grid for it, or a player to see theirs across puzzles.
+ * How many play, and how each puzzle went. Open a puzzle to see everyone's grid
+ * for it, or a player to see theirs across puzzles.
  */
-const Admin = () => {
-  const { data: stats, error, load } = useLoad(api.admin);
-
+export const PastRuns = ({ stats }: { stats: AdminStats }) => {
   const players = new Map<string, { puzzle: AdminPuzzle; game: AdminGame }[]>();
-  for (const puzzle of stats?.puzzles ?? [])
+  for (const puzzle of stats.puzzles)
     for (const game of puzzle.games)
       players.set(game.name, [
         ...(players.get(game.name) ?? []),
         { puzzle, game },
       ]);
   const names = [...players.keys()].sort((a, b) => a.localeCompare(b));
-  const homeScreen = new Set(stats?.homeScreen);
+  const homeScreen = new Set(stats.homeScreen);
 
   return (
-    <Screen title="Admin" error={error} onRetry={load}>
-      {stats && (
-        <div className="flex flex-col gap-8">
-          <dl className={styles.totals}>
-            <div>
-              <dt className={styles.label}>Players</dt>
-              <dd>{stats.players}</dd>
-            </div>
-            <div>
-              <dt className={styles.label}>This week</dt>
-              <dd>{stats.playedThisWeek}</dd>
-            </div>
-            <div>
-              <dt className={styles.label}>Notified</dt>
-              <dd>{stats.notifications}</dd>
-            </div>
-            <div>
-              <dt className={styles.label}>Home screen</dt>
-              <dd>{homeScreen.size}</dd>
-            </div>
-          </dl>
-
-          <section className="flex flex-col gap-3">
-            <h2 className={styles.label}>Puzzles</h2>
-            {stats.puzzles.map((puzzle) => (
-              <Row
-                key={puzzle.date}
-                title={puzzleTitle(puzzle)}
-                detail={dotted(
-                  `${puzzle.played} played`,
-                  `${puzzle.solved} solved`,
-                  puzzle.late > 0 && `${puzzle.late} late`,
-                  puzzle.afterPush > 0 &&
-                    `${puzzle.afterPush} within 15 min of the push`,
-                )}
-              >
-                {[...puzzle.games].sort(byResult).map((game) => (
-                  <GameLine key={game.name} title={game.name} game={game} />
-                ))}
-              </Row>
-            ))}
-          </section>
-
-          <section className="flex flex-col gap-3">
-            <h2 className={styles.label}>Players</h2>
-            {names.map((name) => {
-              const games = players.get(name) ?? [];
-              return (
-                <Row
-                  key={name}
-                  title={name}
-                  detail={dotted(
-                    plural(games.length, "game"),
-                    `${games.filter(({ game }) => game.completed).length} solved`,
-                    homeScreen.has(name) && "Home screen",
-                  )}
-                >
-                  {games.map(({ puzzle, game }) => (
-                    <GameLine
-                      key={puzzle.date}
-                      title={puzzleTitle(puzzle)}
-                      game={game}
-                    />
-                  ))}
-                </Row>
-              );
-            })}
-          </section>
+    <div className="flex flex-col gap-8">
+      <dl className={styles.totals}>
+        <div>
+          <dt className={styles.label}>Players</dt>
+          <dd>{stats.players}</dd>
         </div>
-      )}
+        <div>
+          <dt className={styles.label}>This week</dt>
+          <dd>{stats.playedThisWeek}</dd>
+        </div>
+        <div>
+          <dt className={styles.label}>Notified</dt>
+          <dd>{stats.notifications}</dd>
+        </div>
+        <div>
+          <dt className={styles.label}>Home screen</dt>
+          <dd>{homeScreen.size}</dd>
+        </div>
+      </dl>
+
+      <section className="flex flex-col gap-3">
+        <h2 className={styles.label}>Puzzles</h2>
+        {stats.puzzles.map((puzzle) => (
+          <Row
+            key={puzzle.date}
+            title={puzzleTitle(puzzle)}
+            detail={dotted(
+              `${puzzle.played} played`,
+              `${puzzle.solved} solved`,
+              puzzle.late > 0 && `${puzzle.late} late`,
+              puzzle.afterPush > 0 &&
+                `${puzzle.afterPush} within 15 min of the push`,
+            )}
+          >
+            {[...puzzle.games].sort(byResult).map((game) => (
+              <GameLine key={game.name} title={game.name} game={game} />
+            ))}
+          </Row>
+        ))}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className={styles.label}>Players</h2>
+        {names.map((name) => {
+          const games = players.get(name) ?? [];
+          return (
+            <Row
+              key={name}
+              title={name}
+              detail={dotted(
+                plural(games.length, "game"),
+                `${games.filter(({ game }) => game.completed).length} solved`,
+                homeScreen.has(name) && "Home screen",
+              )}
+            >
+              {games.map(({ puzzle, game }) => (
+                <GameLine
+                  key={puzzle.date}
+                  title={puzzleTitle(puzzle)}
+                  game={game}
+                />
+              ))}
+            </Row>
+          );
+        })}
+      </section>
+    </div>
+  );
+};
+
+/** For the admin only: past runs, once they load. */
+const Admin = () => {
+  const { data: stats, error, load } = useLoad(api.admin);
+  return (
+    <Screen title="Admin" error={error} onRetry={load}>
+      {stats && <PastRuns stats={stats} />}
     </Screen>
   );
 };
