@@ -102,7 +102,7 @@ Then restart the API (`make deploy-stached`). The private key never leaves the S
 `/stached/admin` is for one player, the admin (`ADMIN_NAME`; Spencer on the live game). Only the admin's home links to it, and the API answers anyone else's `GET /admin` with a 404.
 
 - **Signing in:** the admin's name takes `ADMIN_PASSWORD`, not the shared password, so no friend can sign in as them. The admin stays off the leaderboard and the day's scoreboard, but plays and gets pushes like anyone. The admin's sessions also depend on `ADMIN_PASSWORD`, so setting up the admin or changing that password signs the admin out everywhere, along with anyone who took the name with the shared password before.
-- **What it shows:** how many players there are, how many played one of the last seven puzzles on its day, and how many have notifications on. Then each puzzle: how many played and solved it on its day, and how many played it late. Open a puzzle to see every finished game's share grid for it, to judge how hard it was, or open a player to see their grids across puzzles. It all comes from the games and push subscriptions the game already keeps; nothing new is recorded, like when anyone visits.
+- **What it shows:** how many players there are, how many played one of the last seven puzzles on its day, how many have notifications on, and how many have the home-screen app. Then each puzzle: how many played and solved it on its day, and how many played it late. Open a puzzle to see every finished game's share grid for it, to judge how hard it was, or open a player to see their grids across puzzles; a player with the app says "Home screen". It comes from the games and push subscriptions the game already keeps, plus one thing kept for it: the first time each player opens the home-screen app, which tells the API so as it opens (`POST /home-screen`, kept in `users.home_screen_at`). Players who already had the app show up the next time they open it. Nothing records visits.
 
 ## Puzzles
 
@@ -204,7 +204,7 @@ Publishing a puzzle is not a deploy: the CLI writes the file and Postgres, and t
 
 ## Database and migrations
 
-Five tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the puzzles file, push lines too), `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result, and whether it was played late), `push_subscriptions` (one per browser that tapped the bell), and `announcements` (each date whose push has gone out).
+Five tables: `users` (one per name, case-insensitive, with when they first opened the home-screen app), `puzzles` (mirrors the puzzles file, push lines too), `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result, and whether it was played late), `push_subscriptions` (one per browser that tapped the bell), and `announcements` (each date whose push has gone out).
 
 | Migration | What it did |
 |---|---|
@@ -212,6 +212,7 @@ Five tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the pu
 | `0002_plays_late.sql` | `plays.late`, for games played after their day |
 | `0003_push.sql` | `push_subscriptions` and `announcements`, for push notifications |
 | `0004_puzzle_push.sql` | `puzzles.push`, a puzzle's own line for its push |
+| `0005_home_screen.sql` | `users.home_screen_at`, for who has the home-screen app |
 
 `schema_migrations` records which migrations ran. To change the schema, add the next numbered file:
 

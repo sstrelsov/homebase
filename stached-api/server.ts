@@ -419,12 +419,13 @@ async function guess(
 }
 
 /**
- * The admin page: how many play, and each puzzle's turnout and finished games,
- * with their grids, to show how hard it was. Late games don't count as played
- * on the day, as on the leaderboard, and the admin's own games don't count.
+ * The admin page: how many play, who has the home-screen app, and each
+ * puzzle's turnout and finished games, with their grids, to show how hard it
+ * was. Late games don't count as played on the day, as on the leaderboard, and
+ * the admin's own games don't count.
  */
 async function adminStats() {
-  const [puzzles, plays, [counts]]: [
+  const [puzzles, plays, [counts], homeScreen]: [
     Puzzle[],
     {
       puzzle_id: number;
@@ -437,6 +438,7 @@ async function adminStats() {
       finished: boolean;
     }[],
     { players: number; notifications: number }[],
+    { name: string }[],
   ] = await Promise.all([
     sql`select * from ${released()} order by date desc`,
     sql`
@@ -452,6 +454,10 @@ async function adminStats() {
         (select count(distinct s.user_id) from push_subscriptions s
           join users u on u.id = s.user_id
           where lower(u.name) <> ${ADMIN_NAME})::int as notifications`,
+    sql`
+      select name from users
+      where home_screen_at is not null and lower(name) <> ${ADMIN_NAME}
+      order by home_screen_at`,
   ]);
   const week = new Set(puzzles.slice(0, WEEK).map((p) => p.id));
   const thisWeek = plays.filter((g) => !g.late && week.has(g.puzzle_id));
@@ -459,6 +465,7 @@ async function adminStats() {
   return {
     ...counts,
     playedThisWeek: new Set(thisWeek.map((g) => g.name)).size,
+    homeScreen: homeScreen.map((u) => u.name),
     puzzles: puzzles.map((puzzle) => {
       const games = byPuzzle.get(puzzle.id) ?? [];
       const onTheDay = games.filter((g) => !g.late);
@@ -545,6 +552,12 @@ async function route(req: Request): Promise<Response> {
       await saveSubscription(userId, subscription);
       return new Response(null, { status: 204 });
     }
+    // The home-screen app says so as it opens. Only the first time is kept.
+    case "POST /home-screen":
+      await sql`
+        update users set home_screen_at = now()
+        where id = ${userId} and home_screen_at is null`;
+      return new Response(null, { status: 204 });
     default:
       return fail(404, "Not found");
   }

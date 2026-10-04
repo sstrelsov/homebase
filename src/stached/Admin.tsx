@@ -103,7 +103,11 @@ const Admin = () => {
         ...(players.get(game.name) ?? []),
         { puzzle, game },
       ]);
-  const names = [...players.keys()].sort((a, b) => a.localeCompare(b));
+  // Everyone with a game or the home-screen app.
+  const homeScreen = new Set(stats?.homeScreen);
+  const names = [...new Set([...players.keys(), ...homeScreen])].sort((a, b) =>
+    a.localeCompare(b),
+  );
 
   return (
     <Screen title="Admin" error={error} onRetry={load}>
@@ -121,6 +125,10 @@ const Admin = () => {
             <div>
               <dt className={styles.label}>Notified</dt>
               <dd>{stats.notifications}</dd>
+            </div>
+            <div>
+              <dt className={styles.label}>Home screen</dt>
+              <dd>{homeScreen.size}</dd>
             </div>
           </dl>
 
@@ -147,7 +155,7 @@ const Admin = () => {
                 <Row
                   key={name}
                   title={name}
-                  detail={`${plural(games.length, "game")} · ${games.filter(({ game }) => game.completed).length} solved`}
+                  detail={`${plural(games.length, "game")} · ${games.filter(({ game }) => game.completed).length} solved${homeScreen.has(name) ? " · Home screen" : ""}`}
                 >
                   {games.map(({ puzzle, game }) => (
                     <GameLine

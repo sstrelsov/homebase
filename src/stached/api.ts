@@ -103,6 +103,8 @@ export interface AdminStats {
   /** Played one of the last 7 puzzles on its day. */
   playedThisWeek: number;
   notifications: number;
+  /** Who has opened the home-screen app, the admin aside, first first. */
+  homeScreen: string[];
   /** Newest first. */
   puzzles: AdminPuzzle[];
 }
@@ -171,6 +173,9 @@ export const api = {
   /** Keeps this browser's push subscription, for this player. */
   subscribe: (token: string, subscription: PushSubscriptionJSON) =>
     request<void>("/push/subscribe", { token, body: subscription }),
+  /** Says this is the home-screen app, for the admin page's list. */
+  homeScreen: (token: string) =>
+    request<void>("/home-screen", { token, body: {} }),
   /** The admin page's numbers and games; anyone else gets a 404. */
   admin: (token: string) => request<AdminStats>("/admin", { token }),
   guess: (token: string, puzzleId: number, words: string[]) =>
