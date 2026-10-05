@@ -70,13 +70,22 @@ ENV
     STACHED_SITE="$site" VITE_STACHED_API=/stached-api bun run build) \
     >"$data/build.log" 2>&1 || { tail -20 "$data/build.log" >&2; exit 1; }
 
-  # The API applies any new migrations as it starts. Sourced, not
-  # --env-file, so the file's settings win over the shell's.
-  tmux kill-session -t stached-tester-api 2>/dev/null || true
-  tmux kill-session -t stached-tester-web 2>/dev/null || true
-  tmux new-session -d -s stached-tester-api -c "$tree/stached-api" \
+  # Each runs in its own tmux session, restarted in place (respawn-pane) once
+  # the old one lets go of its port: killing a tmux server's last sessions and
+  # starting new ones right away can catch the server shutting down ("server
+  # exited unexpectedly"). The API applies any new migrations as it starts;
+  # its settings are sourced, not --env-file, so they win over the shell's.
+  run() { # run <session> <dir> <port> <command>
+    local command="while nc -z 127.0.0.1 $3; do sleep 0.2; done; $4"
+    if tmux has-session -t "=$1" 2>/dev/null; then
+      tmux respawn-pane -k -t "=$1:" -c "$2" "$command"
+    else
+      tmux new-session -d -s "$1" -c "$2" "$command"
+    fi
+  }
+  run stached-tester-api "$tree/stached-api" "$api_port" \
     "set -a && . '$data/api.env' && exec bun server.ts >>'$data/api.log' 2>&1"
-  tmux new-session -d -s stached-tester-web -c "$tree" \
+  run stached-tester-web "$tree" "$web_port" \
     "STACHED_API_PORT=$api_port exec node_modules/.bin/vite preview --host 127.0.0.1 --port $web_port --strictPort >>'$data/web.log' 2>&1"
   tailscale serve --bg --https="$https_port" "http://127.0.0.1:$web_port" >/dev/null
 
