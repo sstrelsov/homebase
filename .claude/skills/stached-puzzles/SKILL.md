@@ -47,7 +47,7 @@ puzzle file along. With no command it prints its help.
 | `vapid-keys` | Prints a new pair of push keys for `api.env` |
 | `push-again` | The tester only: sends today's push again within a minute |
 
-Put `--tester` first (`scripts/stached --tester list`) to drive the tester, the always-on test copy on the Studio (`make tester`), instead of the live game: its own made-up puzzles, database and push, to try a change on a phone. Nothing done there reaches real players.
+Put `--tester` first (`scripts/stached --tester list`) to drive the tester, the always-on test copy on the Studio (`make tester`), instead of the live game: its own made-up puzzles, database and push, to try a change on a phone. It has no `preview`: confirm a puzzle and play it there. Nothing done there reaches real players.
 
 ## The puzzle format
 

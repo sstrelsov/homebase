@@ -63,7 +63,7 @@ Unlisted Connections-style game with a stache group and a leaderboard. **[`stach
 
 ### The tester (`make tester`)
 
-For trying a branch on a phone again and again, `make tester` deploys it to an always-on copy of Stached on the Studio, at `https://studio.<tailnet>.ts.net:8444/stached/`. It keeps its database, push keys and puzzles between deploys, so its home-screen app is set up once. `scripts/stached --tester` drives its puzzles, and `scripts/stached --tester push-again` resends today's push to try a tap. It has its own clone, settings, Postgres, ports and Serve entry (`:8444`) and never touches the live game; leave the live API and `scripts/stached preview` ports (3998, 8443) alone. See The tester in [`stached-api/README.md`](stached-api/README.md).
+For trying a branch on a phone again and again, `make tester` deploys it to an always-on copy of Stached on the Studio, at `https://studio.<tailnet>.ts.net:8444/stached/`. It keeps its database, push keys and puzzles between deploys, so its home-screen app is set up once. `scripts/stached --tester` drives its puzzles, and `scripts/stached --tester push-again` resends today's push to try a tap. It has its own clone, settings, Postgres, ports and Serve entry (`:8444`) and never touches the live game; leave the live game's ports (3999, 5432) and `scripts/stached preview`'s (3998, 5499, 5190, 8443) alone. See The tester in [`stached-api/README.md`](stached-api/README.md).
 
 ### Link previews
 

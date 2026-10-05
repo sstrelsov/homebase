@@ -45,6 +45,12 @@ confirm and remove refuse to unless you add --delete-games.`;
 class Stop extends Error {}
 
 const ROOT = join(import.meta.dir, "..");
+/**
+ * The tester (scripts/tester.sh): its puzzles are made up and played by
+ * publishing them, so it has no preview and never stops the live game's, and
+ * it can send today's push again.
+ */
+const TESTER = Boolean(process.env.STACHED_TESTER);
 const PREVIEW = {
   session: "stached-preview",
   // Its own API port, since the live API has 3999 on the Studio.
@@ -348,6 +354,10 @@ async function stopPreview() {
  * terminal. Nothing played there reaches the live game.
  */
 async function preview(arg: string | undefined) {
+  if (TESTER)
+    throw new Stop(
+      "The tester has no preview, so the live game's keeps running: confirm the puzzle and play it there.",
+    );
   if (arg === "stop") {
     console.log(
       (await stopPreview()) ? "Preview stopped." : "No preview running.",
@@ -434,7 +444,7 @@ async function confirm(deleteGames: boolean) {
   const puzzles = publish(published, staged, games, { deleteGames });
   await savePuzzles(puzzles);
   rmSync(stagedFile());
-  if (await stopPreview()) console.log("Stopped the preview.");
+  if (!TESTER && (await stopPreview())) console.log("Stopped the preview.");
   const number = numbers(puzzles);
   for (const { date, kind } of planned)
     console.log(
@@ -455,12 +465,12 @@ async function remove(date: string | undefined, deleteGames: boolean) {
 }
 
 /**
- * The tester only (STACHED_TESTER, scripts/tester.sh): forgets that today's
- * push went out, so the tester's API sends it again within a minute, to try a
- * tap as often as you like. Never on the live game.
+ * The tester only: forgets that today's push went out, so the tester's API
+ * sends it again within a minute, to try a tap as often as you like. Never on
+ * the live game.
  */
 async function pushAgain() {
-  if (!process.env.STACHED_TESTER)
+  if (!TESTER)
     throw new Stop(
       "push-again is for the tester only: scripts/stached --tester push-again",
     );

@@ -13,13 +13,16 @@
 # ~/dev/homebase-tester. After the Studio restarts, run `make tester` again.
 set -euo pipefail
 
+# All of it runs from main, on the last line: `make tester` sends this on
+# stdin, so bash has read every line before any runs, and nothing it runs can
+# read the rest as input.
 main() {
   local branch="${1:?which branch?}"
   local repo=https://github.com/sstrelsov/homebase.git
   local tree="$HOME/dev/homebase-tester"
   local data="$HOME/.config/stached-tester"
-  # Clear of the live API (3999) and Postgres (5432), and of a puzzle
-  # preview (`make phone`: 3998, 5499, 5190 and 8443).
+  # Clear of the live API (3999) and Postgres (5432), and of
+  # `scripts/stached preview` (3998, 5499, 5190 and 8443).
   local pg_port=5497 api_port=3997 web_port=5197 https_port=8444
   export PATH="/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$PATH"
 
@@ -77,12 +80,9 @@ ENV
     "STACHED_API_PORT=$api_port exec node_modules/.bin/vite preview --host 127.0.0.1 --port $web_port --strictPort >>'$data/web.log' 2>&1"
   tailscale serve --bg --https="$https_port" "http://127.0.0.1:$web_port" >/dev/null
 
-  local i
-  for i in $(seq 1 30); do
-    curl -sf "http://127.0.0.1:$web_port/stached-api/health" >/dev/null && break
-    [ "$i" = 30 ] && { echo "tester: didn't come up; see $data/api.log and web.log" >&2; exit 1; }
-    sleep 1
-  done
+  curl -sf --retry 30 --retry-delay 1 --retry-all-errors \
+    "http://127.0.0.1:$web_port/stached-api/health" >/dev/null ||
+    { echo "tester: didn't come up; see $data/api.log and web.log" >&2; exit 1; }
   echo "tester: up at $site/stached/"
   echo "  Tailscale on, password test (admin page: name admin, password admin)."
   echo "  Puzzles: scripts/stached --tester list"
