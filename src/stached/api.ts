@@ -36,7 +36,7 @@ export interface Score {
   name: string;
   completed: boolean;
   stachedMs: number | null;
-  /** Played after the puzzle's day, so it doesn't count. */
+  /** Played once the puzzle stopped counting, so it doesn't count. */
   late: boolean;
 }
 

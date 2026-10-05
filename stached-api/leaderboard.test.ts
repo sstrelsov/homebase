@@ -1,8 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import { type Day, type Game, leaderboardOf } from "./leaderboard";
 
-// Eight made-up puzzles out so far, #1 to #8; #8 is today's. The week is the
-// last seven, #2 to #8. Every name here is made up.
+// Eight made-up puzzles out so far, #1 to #8; #8 is today's, the only one that
+// still counts. The week is the last seven, #2 to #8. Every name here is made
+// up.
 const DATES = [
   "2026-09-25",
   "2026-09-26",
@@ -13,12 +14,13 @@ const DATES = [
   "2026-10-01",
   "2026-10-02",
 ];
+const TODAY = 8;
 const DAYS: Day[] = DATES.map((date, i) => ({
   id: i + 1,
   number: i + 1,
   date,
+  counts: i + 1 === TODAY,
 }));
-const TODAY = 8;
 
 const game = (
   name: string,
@@ -160,6 +162,27 @@ describe("a game in progress", () => {
     expect(streaks(...before, playing("Rae", TODAY, 9))).toEqual([["Rae", 2]]);
     expect(streaks(...before, solved("Rae", TODAY, 9))).toEqual([["Rae", 3]]);
     expect(streaks(...before, missed("Rae", TODAY, 9))).toEqual([["Rae", 0]]);
+  });
+});
+
+describe("yesterday's puzzle, while it still counts", () => {
+  // Pushed late last night, so #7 counts for a day after it, beside today's.
+  const days = DAYS.map((day) => ({ ...day, counts: day.id >= 7 }));
+  const sal = (...games: Game[]) =>
+    leaderboardOf(days, games).players.find((p) => p.name === "Sal");
+  const before = [solved("Sal", 6, 40), solved("Sal", TODAY, 30)];
+
+  test("is open until it's finished, and doesn't break a streak", () => {
+    expect(sal(...before)?.marks.slice(-3)).toEqual(["won", "open", "won"]);
+    expect(sal(...before)?.streak).toBe(2);
+    expect(sal(...before, solved("Sal", 7, 50))?.streak).toBe(3);
+    expect(sal(...before, missed("Sal", 7))?.streak).toBe(1);
+  });
+
+  test("goes to a dot once it stops counting", () => {
+    const sal = player(before, "Sal");
+    expect(sal?.marks.slice(-3)).toEqual(["won", "none", "won"]);
+    expect(sal?.streak).toBe(1);
   });
 });
 

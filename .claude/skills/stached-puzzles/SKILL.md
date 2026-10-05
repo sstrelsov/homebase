@@ -99,6 +99,10 @@ Each puzzle sends one push, on its date, at **9:12am New York time**:
   during the day): it goes live right away, with its push within a minute.
 - Dated before today: no push.
 
+A puzzle counts on the leaderboard for 24 hours after its push, even once the
+next day's is out. So a puzzle pushed at 11pm still gives everyone a full day,
+and publishing the next one on time doesn't cut it short.
+
 The API checks every minute and records each date in `announcements` before
 sending, so a puzzle never pushes twice, even across restarts or if it's edited
 or published again. The notification says "Puzzle #12 is up", then the
