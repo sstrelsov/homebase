@@ -3,7 +3,6 @@ import { useCallback } from "react";
 import { api } from "./api";
 import Game from "./Game";
 import { isHomeScreenApp } from "./HomeScreen";
-import { fromPushTap } from "./push";
 import { useLoad, useStached } from "./session";
 import styles from "./stached.module.css";
 
@@ -17,11 +16,10 @@ const DayGame = () => {
   const { date } = useParams({ from: "/stached/$date" });
   const { session, openRules } = useStached();
   const start = useCallback(
-    async (token: string) =>
+    (token: string) =>
       api.start(token, date, {
         homeScreen: isHomeScreenApp(),
         dark: matchMedia("(prefers-color-scheme: dark)").matches,
-        fromPush: await fromPushTap(date),
       }),
     [date],
   );

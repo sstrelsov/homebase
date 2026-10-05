@@ -56,8 +56,8 @@ const GameLine = ({ title, game }: { title: string; game: AdminGame }) => (
           {game.dark ? "Dark mode" : "Light mode"}
         </span>
       )}
-      {game.fromPush && (
-        <span className={styles.label}>From the notification</span>
+      {game.afterPush && (
+        <span className={styles.label}>Within 15 min of the push</span>
       )}
     </div>
     <GuessGrid grid={game.grid} className="shrink-0" />
@@ -152,8 +152,8 @@ const Admin = () => {
                   `${puzzle.played} played`,
                   `${puzzle.solved} solved`,
                   puzzle.late > 0 && `${puzzle.late} late`,
-                  puzzle.fromPush > 0 &&
-                    `${puzzle.fromPush} from the notification`,
+                  puzzle.afterPush > 0 &&
+                    `${puzzle.afterPush} within 15 min of the push`,
                 )}
               >
                 {[...puzzle.games].sort(byResult).map((game) => (

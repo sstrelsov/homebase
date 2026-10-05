@@ -108,21 +108,12 @@ const TTL = 12 * 3600;
  * The puzzle as the title (iOS adds "from Stached" under it, and fills in an
  * empty title with "Stached"), then the puzzle's own line, or a random one
  * from the crawl on home. Tapping it opens home, not the game, so the clock
- * waits for Play (public/stached/sw.js). Its date goes along, so a game
- * started from the tap can say so.
+ * waits for Play (public/stached/sw.js).
  */
-export const notification = ({ number, date, push }: AnnouncedPuzzle) => ({
+export const notification = (number: number, push?: string | null) => ({
   title: `Puzzle #${number} is up`,
   body: push ?? QUOTES[Math.floor(Math.random() * QUOTES.length)],
-  date,
 });
-
-interface AnnouncedPuzzle {
-  number: number;
-  date: string;
-  /** Its own line for the push, or null for a random one. */
-  push?: string | null;
-}
 
 /**
  * Announces a puzzle to every subscription, if its push is due and nobody has
@@ -130,7 +121,7 @@ interface AnnouncedPuzzle {
  * gone. Returns whether this call announced it.
  */
 export async function announce(
-  puzzle: AnnouncedPuzzle,
+  puzzle: { number: number; date: string; push?: string | null },
   keys: VapidKeys,
   now = new Date(),
 ) {
@@ -143,7 +134,7 @@ export async function announce(
 
   const subscriptions: Subscription[] =
     await sql`select endpoint, p256dh, auth from push_subscriptions`;
-  const message = JSON.stringify(notification(puzzle));
+  const message = JSON.stringify(notification(puzzle.number, puzzle.push));
   const results = await Promise.all(
     subscriptions.map(async (subscription) => {
       const status = await sendPush(subscription, message, {

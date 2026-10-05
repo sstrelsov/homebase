@@ -86,8 +86,8 @@ export interface AdminGame {
   homeScreen: boolean | null;
   /** Started on a device set to dark mode; null before we knew. */
   dark: boolean | null;
-  /** Started from tapping the puzzle's push; null before we knew. */
-  fromPush: boolean | null;
+  /** Started within 15 minutes of the puzzle's push, with notifications on. */
+  afterPush: boolean;
   grid: Color[][];
 }
 
@@ -98,8 +98,8 @@ export interface AdminPuzzle {
   played: number;
   solved: number;
   late: number;
-  /** Games started from tapping its push. */
-  fromPush: number;
+  /** Games started within 15 minutes of its push, with notifications on. */
+  afterPush: number;
   /** Every finished game, late ones too, first finished first. */
   games: AdminGame[];
 }
@@ -119,13 +119,12 @@ export interface AdminStats {
 
 /**
  * How a game starts, for the admin page: in the home-screen app or the
- * website, whether the device is set to dark mode (its own setting, not
- * Stached's look), and whether it's from tapping the puzzle's push.
+ * website, and whether the device is set to dark mode (its own setting, not
+ * Stached's look).
  */
 export interface HowStarted {
   homeScreen: boolean;
   dark: boolean;
-  fromPush: boolean;
 }
 
 export class ApiError extends Error {

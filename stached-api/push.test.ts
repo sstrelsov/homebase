@@ -32,19 +32,16 @@ describe("a puzzle's push", () => {
     expect(announceDue("2026-10-01", FRI_912)).toBe(false);
   });
 
-  const twelve = { number: 12, date: "2026-10-12" };
-
   test("names the puzzle, then quotes the crawl", () => {
-    expect(notification(twelve).title).toBe("Puzzle #12 is up");
-    expect(QUOTES).toContain(notification(twelve).body);
-    expect(QUOTES).toContain(notification({ ...twelve, push: null }).body);
+    expect(notification(12).title).toBe("Puzzle #12 is up");
+    expect(QUOTES).toContain(notification(12).body);
+    expect(QUOTES).toContain(notification(12, null).body);
   });
 
-  test("says the puzzle's own line, if it has one, and its date", () => {
-    expect(notification({ ...twelve, push: "Read all about it" })).toEqual({
+  test("says the puzzle's own line, if it has one", () => {
+    expect(notification(12, "Read all about it")).toEqual({
       title: "Puzzle #12 is up",
       body: "Read all about it",
-      date: "2026-10-12",
     });
   });
 });

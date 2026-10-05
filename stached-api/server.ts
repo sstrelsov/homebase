@@ -304,7 +304,7 @@ function redeem({ code }: Record<string, unknown>) {
 /** Starts a game (by date, or by id for older pages), or picks it back up. */
 async function start(
   userId: number,
-  { puzzleId, date, homeScreen, dark, fromPush }: Record<string, unknown>,
+  { puzzleId, date, homeScreen, dark }: Record<string, unknown>,
 ) {
   const puzzle = await (date !== undefined
     ? puzzleByDate(date)
@@ -314,10 +314,9 @@ async function start(
   // How it started, for the admin page, is kept from that first start.
   const flag = (value: unknown) => (typeof value === "boolean" ? value : null);
   await sql`
-    insert into plays (user_id, puzzle_id, active_since, late,
-                       home_screen, dark, from_push)
+    insert into plays (user_id, puzzle_id, active_since, late, home_screen, dark)
     values (${userId}, ${puzzle.id}, ${new Date()}, ${!puzzle.today},
-            ${flag(homeScreen)}, ${flag(dark)}, ${flag(fromPush)})
+            ${flag(homeScreen)}, ${flag(dark)})
     on conflict (user_id, puzzle_id) do nothing`;
   return Response.json(await snapshot(userId, puzzle));
 }
@@ -425,8 +424,9 @@ async function guess(
 /**
  * The admin page: how many play, who has played in the home-screen app, and
  * each puzzle's turnout and finished games, with their grids, to show how hard
- * it was. Late games don't count as played on the day, as on the leaderboard,
- * and the admin's own games don't count.
+ * it was, and which started soon after its push. Late games don't count as
+ * played on the day, as on the leaderboard, and the admin's own games don't
+ * count.
  */
 async function adminStats() {
   const [puzzles, plays, [counts]]: [
@@ -442,7 +442,7 @@ async function adminStats() {
       finished: boolean;
       home_screen: boolean | null;
       dark: boolean | null;
-      from_push: boolean | null;
+      after_push: boolean;
     }[],
     { players: number; notifications: number }[],
   ] = await Promise.all([
@@ -450,8 +450,18 @@ async function adminStats() {
     sql`
       select p.puzzle_id, u.name, p.guesses, p.completed, p.mistakes,
              p.stached_ms, p.late, p.finished_at is not null as finished,
-             p.home_screen, p.dark, p.from_push
+             p.home_screen, p.dark,
+             -- After the push: started within 15 minutes of it, by a player
+             -- with notifications on. iOS doesn't tell a home-screen app that
+             -- its notification was tapped, so this is the measure.
+             coalesce(p.started_at between a.sent_at
+                        and a.sent_at + interval '15 minutes'
+                      and exists (select 1 from push_subscriptions s
+                                  where s.user_id = p.user_id), false)
+               as after_push
       from plays p join users u on u.id = p.user_id
+        join puzzles z on z.id = p.puzzle_id
+        left join announcements a on a.date = z.date
       where lower(u.name) <> ${ADMIN_NAME}
       order by p.finished_at`,
     sql`
@@ -480,7 +490,7 @@ async function adminStats() {
         played: onTheDay.length,
         solved: onTheDay.filter((g) => g.completed).length,
         late: games.length - onTheDay.length,
-        fromPush: games.filter((g) => g.from_push).length,
+        afterPush: games.filter((g) => g.after_push).length,
         games: games
           .filter((g) => g.finished)
           .map((g) => ({
@@ -491,7 +501,7 @@ async function adminStats() {
             late: g.late,
             homeScreen: g.home_screen,
             dark: g.dark,
-            fromPush: g.from_push,
+            afterPush: g.after_push,
             grid: gridOf(puzzle, g.guesses),
           })),
       };

@@ -108,7 +108,8 @@ change to the line alone keeps everyone's games. It only counts before the
 push goes out. iOS adds "from Stached" (the home-screen app's name),
 which can't be turned off. Tapping it opens home, not the game, so the stache
 clock waits for Play. To see who came from it, the admin page counts the games
-started from each puzzle's push and marks each one "From the notification".
+started within 15 minutes of each puzzle's push by players with notifications
+on. iOS doesn't tell the app a notification was tapped, so that's the measure.
 
 ## Never delete games without asking
 

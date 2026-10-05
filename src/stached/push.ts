@@ -105,21 +105,3 @@ export function useNotifications() {
 
   return { bell, busy, turnOn };
 }
-
-// A tap on the push is remembered by the service worker (public/stached/sw.js)
-// in Cache Storage, which this page shares, so a game started from it can say
-// so on the admin page however iOS brought the app forward.
-const TAPS = "stached-push-tap";
-// How long after the tap starting the puzzle still counts as from it.
-const TAP_LASTS_MS = 30 * 60_000;
-
-/** Whether starting this puzzle now comes from tapping its push. */
-export async function fromPushTap(date: string) {
-  try {
-    const tap = await caches.match("/stached/push-tap", { cacheName: TAPS });
-    const { date: tapped, at } = tap ? await tap.json() : {};
-    return tapped === date && Date.now() - at < TAP_LASTS_MS;
-  } catch {
-    return false;
-  }
-}
