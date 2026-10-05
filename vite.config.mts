@@ -64,8 +64,8 @@ export default defineConfig({
         const page = readFileSync(index, "utf8")
           .replace("<head>", `<head>${stached}`)
           .replace(/<title>.*<\/title>/, "<title>Stached</title>")
-          // Its own home-screen app: Gerald's icon, and no manifest yet. Home
-          // links Stached's, scoped to /stached, once it knows whether it
+          // Its own home-screen app: Gerald's icon, and no manifest yet. The
+          // page links Stached's, scoped to /stached, once it knows whether it
           // carries a sign-in code: iOS reads only the first a page links
           // (src/stached/HomeScreen.tsx).
           .replace(

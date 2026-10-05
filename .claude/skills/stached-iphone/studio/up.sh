@@ -35,3 +35,4 @@ for _ in $(seq 300); do
   sleep 1
 done
 echo "WebDriverAgent didn't start:"; grep -E 'error|FAILED' wda.log | tail -10
+exit 1

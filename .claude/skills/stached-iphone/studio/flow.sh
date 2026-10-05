@@ -5,7 +5,9 @@
 #   flow.sh [url]   default: the tester
 set -u
 cd /tmp/stached-sim
-URL=${1:-https://studio.tail45bcf2.ts.net:8444/stached/}
+# The tester, at this Mac's name on the tailnet.
+URL=${1:-https://$(/opt/homebrew/bin/tailscale status --self --json |
+  python3 -c 'import json, sys; print(json.load(sys.stdin)["Self"]["DNSName"].rstrip("."))'):8444/stached/}
 U=$(cat udid)
 w() { python3 w.py "$@"; }
 shot() { w shot "$1" >/dev/null; echo "ok $1"; }

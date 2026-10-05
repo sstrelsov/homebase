@@ -28,11 +28,11 @@ pull() {
 
 case "${1:-}" in
   up) sync; on_studio ./up.sh ;;
-  flow) sync; on_studio ./up.sh; on_studio "./flow.sh ${2:-}"; pull ;;
+  flow) sync; on_studio "./up.sh && ./flow.sh ${2:-}"; pull ;;
   w) shift; on_studio "python3 w.py $(printf '%q ' "$@")" ;;
   pull) pull "${2:-}" ;;
   erase) sync; on_studio "./down.sh && ./up.sh erase" ;;
   down) on_studio ./down.sh ;;
   delete) on_studio "./down.sh delete"; ssh "$STUDIO" "rm -rf $DIR" ;;
-  *) sed -n '2,15p' "$0"; exit 1 ;;
+  *) sed -n '2,13p' "$0"; exit 1 ;;
 esac

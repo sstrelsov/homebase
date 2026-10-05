@@ -11,9 +11,9 @@ interface NotificationsDialogProps extends ReturnType<typeof useNotifications> {
 
 /**
  * "Notifications: please turn on notifications for new games!", in the
- * home-screen app, over a picture of the push. Its button is the tap iOS needs before it asks.
- * Once they're on, or after "Don't Allow", it never shows again; closed, it
- * asks again the next day.
+ * home-screen app, over a picture of the push. Its button is the tap iOS
+ * needs before it asks. Once they're on, or after "Don't Allow", it never
+ * shows again; closed, it asks again the next day.
  */
 const NotificationsDialog = ({
   offer,
@@ -21,14 +21,10 @@ const NotificationsDialog = ({
   turnOn,
   number,
 }: NotificationsDialogProps) => {
-  const [open, setOpen] = useAsk("stached.notificationsAsked", 1, offer);
+  const [open, close] = useAsk("stached.notificationsAsked", 1, offer);
 
   return (
-    <Dialog
-      open={open && offer}
-      onClose={() => setOpen(false)}
-      title="Notifications"
-    >
+    <Dialog open={open} onClose={close} title="Notifications">
       <p className="text-[19px] leading-snug">
         Please turn on notifications for new games!
       </p>
@@ -43,7 +39,7 @@ const NotificationsDialog = ({
       </button>
       <button
         type="button"
-        onClick={() => setOpen(false)}
+        onClick={close}
         className={`${styles.link} mx-auto block`}
       >
         Not now

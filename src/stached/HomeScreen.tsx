@@ -69,13 +69,23 @@ async function linkManifest(code: string | null) {
   document.head.append(link);
 }
 
+// Safari can't tell whether it's been added, so once closed, it asks again
+// in 3 days.
+const ASK = "stached.homeScreenAsked";
+const AGAIN = 3;
+
+/**
+ * Links the manifest as a Stached page opens, unless the dialog is about to
+ * ask on iOS: then it waits for the dialog's sign-in code.
+ */
+export function linkManifestUnlessAsking() {
+  const asking = !isHomeScreenApp() && isIOS() && due(ASK, AGAIN);
+  if (!asking) linkManifest(null);
+}
+
 interface InstallPrompt extends Event {
   prompt: () => Promise<unknown>;
 }
-
-// Safari can't tell whether it's been added, so closed, it asks again in 3 days.
-const ASK = "stached.homeScreenAsked";
-const AGAIN = 3;
 
 /**
  * "Get Stached on your home screen", in a browser tab: on an iPhone, only the
@@ -91,12 +101,7 @@ const HomeScreen = () => {
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(
     null,
   );
-  const [open, setOpen] = useAsk(ASK, AGAIN, isIOS() || installPrompt !== null);
-
-  // The manifest now, unless iOS is about to ask: then it waits for the code.
-  useEffect(() => {
-    if (!(isIOS() && due(ASK, AGAIN))) linkManifest(null);
-  }, []);
+  const [open, close] = useAsk(ASK, AGAIN, isIOS() || installPrompt !== null);
 
   useEffect(() => {
     const keep = (event: Event) => {
@@ -129,8 +134,6 @@ const HomeScreen = () => {
       setHandoffCode(null);
     };
   }, [open, session.token]);
-
-  const close = () => setOpen(false);
 
   return (
     <Dialog open={open} onClose={close} title="Get Stached on your home screen">

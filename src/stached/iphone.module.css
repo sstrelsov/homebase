@@ -48,6 +48,7 @@
 
 /* What to tap */
 .lit {
+  border-radius: 6px;
   box-shadow:
     0 0 0 2px var(--glass),
     0 0 0 4.5px var(--accent);
@@ -153,7 +154,6 @@
 
 .toolbarIcons .lit {
   display: grid;
-  border-radius: 6px;
 }
 
 /* A row of the share menu: its icon, then its name */
@@ -161,16 +161,15 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  height: 18px;
+  height: 22px;
   padding: 0 5px;
-  border-radius: 6px;
-  font-size: 8.5px;
+  font-size: 9px;
   white-space: nowrap;
 }
 
 .row .icon {
-  width: 11px;
-  height: 11px;
+  width: 13px;
+  height: 13px;
 }
 
 /* The share menu's list, after View More: a few rows, the middle one ringed */
@@ -183,16 +182,6 @@
   gap: 2px;
   padding: 3px;
   border-radius: 12px;
-}
-
-.sheet .row {
-  height: 22px;
-  font-size: 9px;
-}
-
-.sheet .row .icon {
-  width: 13px;
-  height: 13px;
 }
 
 /* A home screen: two rows of apps, Stached among them */

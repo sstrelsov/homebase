@@ -81,8 +81,8 @@ const Home = () => {
         </p>
       </div>
       <div className={`${rise} flex gap-3`} style={{ animationDelay: "1.3s" }}>
-        {/* In a browser tab, until notifications are on: iOS asks only right
-            after a tap. The home-screen app asks in a dialog instead. */}
+        {/* In a browser tab that can get pushes (desktop Chrome, Android),
+            until they're on. The home-screen app asks in a dialog instead. */}
         {notifications.offer && !app && (
           <button
             type="button"

@@ -1,4 +1,4 @@
-import x from "./iphone.module.css";
+import styles from "./iphone.module.css";
 import QUOTES from "./quotes.json";
 
 // Simplified drawings of an iPhone, for the dialogs that ask for the
@@ -12,7 +12,7 @@ const PUSH_TIME = "9:12";
 
 // Icons in the style of Apple's, drawn in the text's color.
 const stroke = {
-  className: x.icon,
+  className: styles.icon,
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
@@ -74,12 +74,16 @@ const Chevron = ({ back }: { back?: boolean }) => (
 );
 
 /** "Monday, October 5": tomorrow, when the next push goes out. */
-const tomorrow = () =>
-  new Date(Date.now() + 86_400_000).toLocaleDateString("en-US", {
+const tomorrow = () => {
+  const day = new Date();
+  // A calendar day, not 24 hours, which misses on the night clocks go back.
+  day.setDate(day.getDate() + 1);
+  return day.toLocaleDateString("en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
   });
+};
 
 /**
  * Tomorrow's push on a lock screen: "Puzzle #N is up", iOS's "from Stached",
@@ -89,19 +93,19 @@ export const LockScreen = ({ number }: { number: number }) => (
   <div
     role="img"
     aria-label={`A notification on an iPhone: Puzzle #${number} is up, from Stached`}
-    className={x.lock}
+    className={styles.lock}
   >
-    <p className={x.lockDay}>{tomorrow()}</p>
-    <p className={x.lockTime}>{PUSH_TIME}</p>
-    <div className={x.notice}>
-      <img src={ICON} alt="" className={x.noticeIcon} />
+    <p className={styles.lockDay}>{tomorrow()}</p>
+    <p className={styles.lockTime}>{PUSH_TIME}</p>
+    <div className={styles.notice}>
+      <img src={ICON} alt="" className={styles.noticeIcon} />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
           <strong className="truncate">Puzzle #{number} is up</strong>
-          <span className={x.noticeMuted}>{PUSH_TIME} AM</span>
+          <span className={styles.noticeMuted}>{PUSH_TIME} AM</span>
         </div>
-        <p className={x.noticeMuted}>from Stached</p>
-        <p className={x.noticeBody}>{QUOTES[0]}</p>
+        <p className={styles.noticeMuted}>from Stached</p>
+        <p className={styles.noticeBody}>{QUOTES[0]}</p>
       </div>
     </div>
   </div>
@@ -109,13 +113,13 @@ export const LockScreen = ({ number }: { number: number }) => (
 
 /** Safari's toolbar, with Share ringed. */
 export const SafariToolbar = () => (
-  <div role="img" aria-label="Safari's toolbar" className={x.step}>
-    <div className={x.toolbar}>
-      <p className={x.address}>spencerstrelsov.com</p>
-      <div className={x.toolbarIcons}>
+  <div role="img" aria-label="Safari's toolbar" className={styles.step}>
+    <div className={styles.toolbar}>
+      <p className={styles.address}>spencerstrelsov.com</p>
+      <div className={styles.toolbarIcons}>
         <Chevron back />
         <Chevron />
-        <span className={x.lit}>
+        <span className={styles.lit}>
           <ShareIcon />
         </span>
         <BookIcon />
@@ -127,15 +131,15 @@ export const SafariToolbar = () => (
 
 /** The share menu's list, after View More, with Add to Home Screen ringed. */
 export const ShareSheet = () => (
-  <div role="img" aria-label="The share menu" className={x.step}>
-    <div className={x.sheet}>
-      <p className={x.row}>
+  <div role="img" aria-label="The share menu" className={styles.step}>
+    <div className={styles.sheet}>
+      <p className={styles.row}>
         <FindIcon /> Find on Page
       </p>
-      <p className={`${x.row} ${x.lit}`}>
+      <p className={`${styles.row} ${styles.lit}`}>
         <AddIcon /> Add to Home Screen
       </p>
-      <p className={x.row}>
+      <p className={styles.row}>
         <MarkupIcon /> Markup
       </p>
     </div>
@@ -144,17 +148,17 @@ export const ShareSheet = () => (
 
 /** A home screen, with Stached's icon ringed among the apps. */
 export const HomeScreenApps = () => (
-  <div role="img" aria-label="Stached on a home screen" className={x.step}>
-    <div className={x.apps}>
+  <div role="img" aria-label="Stached on a home screen" className={styles.step}>
+    <div className={styles.apps}>
       {[0, 1, 2, 3, 4].map((app) => (
-        <span key={app} className={x.app} />
+        <span key={app} className={styles.app} />
       ))}
       <span>
-        <img src={ICON} alt="" className={`${x.app} ${x.lit}`} />
-        <span className={x.appName}>Stached</span>
+        <img src={ICON} alt="" className={`${styles.app} ${styles.lit}`} />
+        <span className={styles.appName}>Stached</span>
       </span>
       {[5, 6].map((app) => (
-        <span key={app} className={x.app} />
+        <span key={app} className={styles.app} />
       ))}
     </div>
   </div>
