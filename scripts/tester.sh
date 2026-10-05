@@ -63,8 +63,9 @@ ENV
   createdb -h localhost -p "$pg_port" -U postgres stached 2>/dev/null || true
 
   echo "tester: building the site"
-  (cd "$tree" && bun install --frozen-lockfile >/dev/null &&
-    STACHED_SITE="$site" VITE_STACHED_API=/stached-api bun run build >/dev/null)
+  (cd "$tree" && bun install --frozen-lockfile &&
+    STACHED_SITE="$site" VITE_STACHED_API=/stached-api bun run build) \
+    >"$data/build.log" 2>&1 || { tail -20 "$data/build.log" >&2; exit 1; }
 
   # The API applies any new migrations as it starts. Sourced, not
   # --env-file, so the file's settings win over the shell's.
