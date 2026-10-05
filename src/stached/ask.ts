@@ -13,7 +13,8 @@ const today = () => {
   );
 };
 
-const due = (key: string, days: number) => {
+/** Whether `days` have passed since `key` last asked. */
+export const due = (key: string, days: number) => {
   try {
     const last = localStorage.getItem(key);
     return last === null || today() - Number(last) >= days;

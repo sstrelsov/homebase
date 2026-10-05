@@ -22,12 +22,8 @@ const stroke = {
 } as const;
 
 /** Share: a box with an arrow out of the top. */
-const ShareIcon = ({ className }: { className?: string }) => (
-  <svg
-    {...stroke}
-    className={`${x.icon} ${className ?? ""}`}
-    aria-hidden="true"
-  >
+const ShareIcon = () => (
+  <svg {...stroke} aria-hidden="true">
     <path d="M12 3v12M8 7l4-4 4 4M8 10H5v11h14V10h-3" />
   </svg>
 );
@@ -40,24 +36,39 @@ const AddIcon = () => (
   </svg>
 );
 
-/** Copy, and Safari's tabs: two squares, one over the other. */
-const SquaresIcon = () => (
+/** Find on Page: a magnifying glass. */
+const FindIcon = () => (
   <svg {...stroke} aria-hidden="true">
-    <rect x="8" y="8" width="13" height="13" rx="2.5" />
-    <path d="M4 16V6a2 2 0 0 1 2-2h10" />
+    <circle cx="10.5" cy="10.5" r="6.5" />
+    <path d="M20 20l-4.8-4.8" />
   </svg>
 );
 
-/** Bookmarks: an open book. */
-const BookIcon = () => (
+/** Markup: a pen nib in a circle. */
+const MarkupIcon = () => (
   <svg {...stroke} aria-hidden="true">
-    <path d="M12 6.5C10 5 7 4.5 3.5 5v14c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v14" />
+    <circle cx="12" cy="12" r="9" />
+    <path d="M8.5 17L12 7l3.5 10M10 13h4" />
   </svg>
 );
 
-const Chevron = ({ back }: { back?: boolean }) => (
+/** Add to Bookmarks: a bookmark ribbon. */
+const BookmarkIcon = () => (
   <svg {...stroke} aria-hidden="true">
-    <path d={back ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} />
+    <path d="M6 3h12v18l-6-5-6 5z" />
+  </svg>
+);
+
+const BackIcon = () => (
+  <svg {...stroke} aria-hidden="true">
+    <path d="M15 5l-7 7 7 7" />
+  </svg>
+);
+
+/** More: three dots. */
+const MoreIcon = () => (
+  <svg {...stroke} aria-hidden="true">
+    <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth={3.5} />
   </svg>
 );
 
@@ -89,40 +100,50 @@ export const LockScreen = ({ number }: { number: number }) => (
           <span className={x.noticeMuted}>{PUSH_TIME} AM</span>
         </div>
         <p className={x.noticeMuted}>from Stached</p>
-        <p className={x.noticeBody}>{QUOTES[3]}</p>
+        <p className={x.noticeBody}>{QUOTES[0]}</p>
       </div>
     </div>
   </div>
 );
 
-/** Safari's toolbar, with Share ringed. */
-export const SafariToolbar = () => (
-  <div role="img" aria-label="Safari's toolbar" className={x.step}>
-    <div className={x.toolbar}>
-      <p className={x.address}>spencerstrelsov.com</p>
-      <div className={x.toolbarIcons}>
-        <Chevron back />
-        <Chevron />
-        <ShareIcon className={x.lit} />
-        <BookIcon />
-        <SquaresIcon />
-      </div>
+/**
+ * Safari's bar as iOS 26 draws it (back, the address, and ⋯), with ⋯'s menu
+ * open above it and Share ringed.
+ */
+export const SafariMenu = () => (
+  <div role="img" aria-label="Safari's ⋯ menu, with Share" className={x.step}>
+    <div className={x.menu}>
+      <p className={`${x.row} ${x.lit}`}>
+        <ShareIcon /> Share
+      </p>
+      <p className={x.row}>
+        <BookmarkIcon /> Add to Bookmarks
+      </p>
+    </div>
+    <div className={x.bar}>
+      <span className={x.barButton}>
+        <BackIcon />
+      </span>
+      <span className={x.barAddress}>spencerstrelsov.com</span>
+      <span className={x.barButton}>
+        <MoreIcon />
+      </span>
     </div>
   </div>
 );
 
-/** The share sheet's actions, with Add to Home Screen ringed. */
+/** The share menu's list, after View More, with Add to Home Screen ringed. */
 export const ShareSheet = () => (
   <div role="img" aria-label="The share menu" className={x.step}>
     <div className={x.sheet}>
-      <p className={x.action}>
-        Copy <SquaresIcon />
+      <p className={x.row}>
+        <FindIcon /> Find on Page
       </p>
-      <p className={`${x.action} ${x.lit}`}>
-        Add to Home Screen <AddIcon />
+      <p className={`${x.row} ${x.lit}`}>
+        <AddIcon /> Add to Home Screen
       </p>
-      <p className={x.action}>
-        Add Bookmark <BookIcon />
+      <p className={x.row}>
+        <MarkupIcon /> Markup
       </p>
     </div>
   </div>

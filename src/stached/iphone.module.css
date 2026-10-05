@@ -124,75 +124,89 @@
   flex: none;
 }
 
-/* Safari's toolbar: the address, then back, forward, Share, bookmarks, tabs */
-.toolbar {
-  composes: glass;
+/* Safari's bar as iOS 26 draws it: back, the address and ⋯, each a pill of
+   glass floating over the page */
+.bar {
   position: absolute;
-  inset: auto 0 0;
+  inset: auto 6px 6px;
   display: flex;
-  flex-direction: column;
-  gap: 7px;
-  padding: 7px 8px 9px;
-}
-
-.address {
-  padding: 3px 0;
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--glass-ink) 9%, transparent);
-  font-size: 9.5px;
-  text-align: center;
-}
-
-.toolbarIcons {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 2px;
-  color: var(--tint);
-}
-
-.toolbarIcons .lit {
-  border-radius: 6px;
-}
-
-/* The share sheet's actions, Add to Home Screen among them, running on
-   past the bottom */
-.sheet {
-  composes: glass;
-  position: absolute;
-  inset: 10px 6px auto;
-  border-radius: 12px;
-}
-
-.action {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   gap: 4px;
-  height: 26px;
-  padding: 0 7px;
-  border-top: 1px solid var(--glass-line);
-  font-size: 9px;
+  height: 24px;
+}
+
+.barButton,
+.barAddress {
+  composes: glass;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.barButton {
+  width: 24px;
+  flex: none;
+}
+
+.barButton .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.barAddress {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 6px;
+  font-size: 8px;
   white-space: nowrap;
 }
 
-.action:first-child {
-  border-top: 0;
+/* ⋯'s menu, open above it */
+.menu {
+  composes: glass;
+  position: absolute;
+  right: 6px;
+  bottom: 34px;
+  width: 104px;
+  padding: 3px;
+  border-radius: 10px;
 }
 
-.action.lit {
-  position: relative;
-  z-index: 1;
-  border-top-color: transparent;
+/* A row of a menu: its icon, then its name */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 18px;
+  padding: 0 5px;
   border-radius: 6px;
-  background: var(--glass);
+  font-size: 8.5px;
+  white-space: nowrap;
 }
 
-.action.lit + .action {
-  border-top-color: transparent;
+.row .icon {
+  width: 11px;
+  height: 11px;
 }
 
-.action .icon {
+/* The share menu's list, after View More: a few rows, the middle one ringed */
+.sheet {
+  composes: glass;
+  position: absolute;
+  inset: 12px 6px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+}
+
+.sheet .row {
+  height: 22px;
+  font-size: 9px;
+}
+
+.sheet .row .icon {
   width: 13px;
   height: 13px;
 }

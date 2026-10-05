@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
-import { useAsk } from "./ask";
+import { due, useAsk } from "./ask";
 import Dialog from "./Dialog";
-import { HomeScreenApps, SafariToolbar, ShareSheet } from "./IPhone";
+import { HomeScreenApps, SafariMenu, ShareSheet } from "./IPhone";
 import { useStached } from "./session";
 import styles from "./stached.module.css";
 
@@ -16,7 +16,7 @@ const isIOS = () =>
   /iPhone|iPad/.test(navigator.userAgent) ||
   (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
 
-// Safari on an iPhone, whose toolbar (and Share) is below the page.
+// Safari on an iPhone, where Share is under ⋯ (iOS 26) or in the toolbar.
 const isIPhoneSafari = () =>
   /iPhone/.test(navigator.userAgent) &&
   !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
@@ -35,29 +35,73 @@ export function setHandoffCode(code: string | null) {
   history.replaceState(history.state, "", url);
 }
 
+const MANIFEST = "/stached/manifest.json";
+
+/**
+ * Links Stached's manifest, once a page. iOS saves a home-screen app with the
+ * start address of the first manifest a page links, or else the address the
+ * page loaded with, never a later one. So for the dialog's sign-in code to
+ * reach the app, the manifest carries it, and Stached's pages link none of
+ * their own (vite.config.mts).
+ */
+async function linkManifest(code: string | null) {
+  const linked = () => document.querySelector('link[rel="manifest"]');
+  if (linked()) return;
+  let href = MANIFEST;
+  if (code) {
+    const manifest = await (await fetch(MANIFEST)).json();
+    // A data: manifest has no address of its own to resolve paths against.
+    const whole = (path: string) => new URL(path, location.origin).href;
+    const start = new URL("/stached/", location.origin);
+    start.searchParams.set(HANDOFF, code);
+    href = `data:application/manifest+json,${encodeURIComponent(
+      JSON.stringify({
+        ...manifest,
+        id: whole(manifest.id),
+        scope: whole(manifest.scope),
+        start_url: start.href,
+        icons: manifest.icons.map((icon: { src: string }) => ({
+          ...icon,
+          src: whole(icon.src),
+        })),
+      }),
+    )}`;
+    if (linked()) return;
+  }
+  const link = document.createElement("link");
+  link.rel = "manifest";
+  link.href = href;
+  document.head.append(link);
+}
+
 interface InstallPrompt extends Event {
   prompt: () => Promise<unknown>;
 }
+
+// Safari can't tell whether it's been added, so closed, it asks again in 3 days.
+const ASK = "stached.homeScreenAsked";
+const AGAIN = 3;
 
 /**
  * "Get Stached on your home screen", in a browser tab: on an iPhone, only the
  * home-screen app gets notifications. On Android its Add button is Chrome's
  * own install prompt, and the app shares Chrome's storage, so you stay signed
  * in. iOS lets no page add itself, so the dialog draws the steps instead.
- * While it's up, a one-time sign-in code sits in the address the app gets
- * saved with, since iOS keeps the app's storage apart from Safari's. Safari
- * can't tell whether it's been added, so closed, it asks again in 3 days.
+ * While it's up, a one-time sign-in code rides in the manifest and the
+ * address the app gets saved with, since iOS keeps the app's storage apart
+ * from Safari's.
  */
 const HomeScreen = () => {
   const { session } = useStached();
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(
     null,
   );
-  const [open, setOpen] = useAsk(
-    "stached.homeScreenAsked",
-    3,
-    isIOS() || installPrompt !== null,
-  );
+  const [open, setOpen] = useAsk(ASK, AGAIN, isIOS() || installPrompt !== null);
+
+  // The manifest now, unless iOS is about to ask: then it waits for the code.
+  useEffect(() => {
+    if (!(isIOS() && due(ASK, AGAIN))) linkManifest(null);
+  }, []);
 
   useEffect(() => {
     const keep = (event: Event) => {
@@ -68,18 +112,23 @@ const HomeScreen = () => {
     return () => removeEventListener("beforeinstallprompt", keep);
   }, []);
 
-  // On iOS, the sign-in code sits in the address only while the dialog is up.
-  // Closing it, or leaving home, takes the code back out.
+  // On iOS, a sign-in code for the app: in the manifest (iOS 26 saves the app
+  // with its start address) and, while the dialog is up, in the address
+  // (older iOS saves that). Closing it, or leaving home, takes it back out of
+  // the address; a spent or expired code just asks the app for a name.
   useEffect(() => {
     if (!open || !isIOS()) return;
     let live = true;
-    api.handoff(session.token).then(
-      ({ code }) => {
-        if (live) setHandoffCode(code);
-      },
+    api
+      .handoff(session.token)
+      .then(({ code }) => {
+        if (!live) return;
+        setHandoffCode(code);
+        return linkManifest(code);
+      })
       // Without one, the app asks for a name instead.
-      () => {},
-    );
+      .catch(() => {})
+      .finally(() => linkManifest(null));
     return () => {
       live = false;
       setHandoffCode(null);
@@ -118,27 +167,27 @@ const HomeScreen = () => {
             <li>
               <span className={styles.stepNumber}>1</span>
               <p className="flex-1">
-                Tap <strong>Share</strong>
+                Tap <strong>⋯</strong>, then <strong>Share</strong>
                 {isIPhoneSafari() && (
                   <span className="mt-0.5 block text-[15px] opacity-60">
-                    In Safari's toolbar, or under ⋯
+                    Or Share, if it's in Safari's toolbar
                   </span>
                 )}
               </p>
-              <SafariToolbar />
+              <SafariMenu />
             </li>
             <li>
               <span className={styles.stepNumber}>2</span>
               <p className="flex-1">
-                Tap <strong>Add to Home Screen</strong>, then{" "}
-                <strong>Add</strong>
+                Tap <strong>View More</strong>, then{" "}
+                <strong>Add to Home Screen</strong>
               </p>
               <ShareSheet />
             </li>
             <li>
               <span className={styles.stepNumber}>3</span>
               <p className="flex-1">
-                Open <strong>Stached</strong> from your home screen
+                Tap <strong>Add</strong>, then open <strong>Stached</strong>
               </p>
               <HomeScreenApps />
             </li>
