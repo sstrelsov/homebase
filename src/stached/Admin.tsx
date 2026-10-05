@@ -16,6 +16,10 @@ const puzzleTitle = ({ number, date }: AdminPuzzle) =>
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+/** The parts that apply, between dots. */
+const dotted = (...parts: (string | false)[]) =>
+  parts.filter(Boolean).join(" · ");
+
 /** Solved first, then by fewest mistakes; late games last. */
 const byResult = (a: AdminGame, b: AdminGame) =>
   Number(a.late) - Number(b.late) ||
@@ -46,6 +50,15 @@ const GameLine = ({ title, game }: { title: string; game: AdminGame }) => (
         </span>
       )}
       {game.late && <span className={styles.label}>Played late</span>}
+      {game.homeScreen !== null && (
+        <span className={styles.label}>
+          {game.homeScreen ? "Home screen" : "Website"} ·{" "}
+          {game.dark ? "Dark mode" : "Light mode"}
+        </span>
+      )}
+      {game.afterPush && (
+        <span className={styles.label}>Within 15 min of the push</span>
+      )}
     </div>
     <GuessGrid grid={game.grid} className="shrink-0" />
   </li>
@@ -104,6 +117,7 @@ const Admin = () => {
         { puzzle, game },
       ]);
   const names = [...players.keys()].sort((a, b) => a.localeCompare(b));
+  const homeScreen = new Set(stats?.homeScreen);
 
   return (
     <Screen title="Admin" error={error} onRetry={load}>
@@ -122,6 +136,10 @@ const Admin = () => {
               <dt className={styles.label}>Notified</dt>
               <dd>{stats.notifications}</dd>
             </div>
+            <div>
+              <dt className={styles.label}>Home screen</dt>
+              <dd>{homeScreen.size}</dd>
+            </div>
           </dl>
 
           <section className="flex flex-col gap-3">
@@ -130,7 +148,13 @@ const Admin = () => {
               <Row
                 key={puzzle.date}
                 title={puzzleTitle(puzzle)}
-                detail={`${puzzle.played} played · ${puzzle.solved} solved${puzzle.late > 0 ? ` · ${puzzle.late} late` : ""}`}
+                detail={dotted(
+                  `${puzzle.played} played`,
+                  `${puzzle.solved} solved`,
+                  puzzle.late > 0 && `${puzzle.late} late`,
+                  puzzle.afterPush > 0 &&
+                    `${puzzle.afterPush} within 15 min of the push`,
+                )}
               >
                 {[...puzzle.games].sort(byResult).map((game) => (
                   <GameLine key={game.name} title={game.name} game={game} />
@@ -147,7 +171,11 @@ const Admin = () => {
                 <Row
                   key={name}
                   title={name}
-                  detail={`${plural(games.length, "game")} · ${games.filter(({ game }) => game.completed).length} solved`}
+                  detail={dotted(
+                    plural(games.length, "game"),
+                    `${games.filter(({ game }) => game.completed).length} solved`,
+                    homeScreen.has(name) && "Home screen",
+                  )}
                 >
                   {games.map(({ puzzle, game }) => (
                     <GameLine

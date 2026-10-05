@@ -774,11 +774,11 @@
   border-top: 1px solid var(--line);
 }
 
-/* The admin's totals: three big numbers in a card */
+/* The admin's totals: four big numbers in a card, two by two */
 .totals {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px 8px;
   padding: 16px;
   border: 1px solid var(--line);
   border-radius: 10px;

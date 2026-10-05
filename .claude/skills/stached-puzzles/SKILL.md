@@ -107,7 +107,9 @@ home. When Spencer wants custom copy, put it in `push` and stage again: a
 change to the line alone keeps everyone's games. It only counts before the
 push goes out. iOS adds "from Stached" (the home-screen app's name),
 which can't be turned off. Tapping it opens home, not the game, so the stache
-clock waits for Play.
+clock waits for Play. To see who came from it, the admin page counts the games
+started within 15 minutes of each puzzle's push by players who had
+notifications on then. iOS doesn't tell the app a notification was tapped, so that's the measure.
 
 ## Never delete games without asking
 
