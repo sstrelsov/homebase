@@ -2,7 +2,12 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import { due, useAsk } from "./ask";
 import Dialog from "./Dialog";
-import { HomeScreenApps, SafariToolbar, ShareSheet } from "./IPhone";
+import {
+  HomeScreenApps,
+  SafariMenu,
+  SafariToolbar,
+  ShareSheet,
+} from "./IPhone";
 import { useStached } from "./session";
 import styles from "./stached.module.css";
 
@@ -15,6 +20,56 @@ export const isHomeScreenApp = () =>
 const isIOS = () =>
   /iPhone|iPad/.test(navigator.userAgent) ||
   (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
+
+// Safari 26 keeps Share under ⋯ and Add to Home Screen under View More. Its
+// user agent freezes the iOS version at 18, so this reads Safari's own.
+const isSafari26 = () =>
+  Number(navigator.userAgent.match(/Version\/(\d+)/)?.[1]) >= 26;
+
+// The steps to the home screen, in the words and pictures of this Safari.
+const STEPS = () =>
+  isSafari26()
+    ? [
+        {
+          key: "share",
+          words: (
+            <>
+              Tap <strong>⋯</strong>, then <strong>Share</strong>
+            </>
+          ),
+          picture: <SafariMenu />,
+        },
+        {
+          key: "add",
+          words: (
+            <>
+              Tap <strong>View More</strong>, then{" "}
+              <strong>Add to Home Screen</strong>
+            </>
+          ),
+          picture: <ShareSheet />,
+        },
+      ]
+    : [
+        {
+          key: "share",
+          words: (
+            <>
+              Tap <strong>Share</strong>
+            </>
+          ),
+          picture: <SafariToolbar />,
+        },
+        {
+          key: "add",
+          words: (
+            <>
+              Tap <strong>Add to Home Screen</strong>
+            </>
+          ),
+          picture: <ShareSheet />,
+        },
+      ];
 
 const HANDOFF = "handoff";
 
@@ -162,21 +217,13 @@ const HomeScreen = () => {
             It's the only way to get notifications for new games.
           </p>
           <ol className={styles.steps}>
-            <li>
-              <span className={styles.stepNumber}>1</span>
-              <p className="flex-1">
-                Tap <strong>Share</strong>
-              </p>
-              <SafariToolbar />
-            </li>
-            <li>
-              <span className={styles.stepNumber}>2</span>
-              <p className="flex-1">
-                Tap <strong>View More</strong>, then{" "}
-                <strong>Add to Home Screen</strong>
-              </p>
-              <ShareSheet />
-            </li>
+            {STEPS().map(({ key, words, picture }, i) => (
+              <li key={key}>
+                <span className={styles.stepNumber}>{i + 1}</span>
+                <p className="flex-1">{words}</p>
+                {picture}
+              </li>
+            ))}
           </ol>
         </>
       )}

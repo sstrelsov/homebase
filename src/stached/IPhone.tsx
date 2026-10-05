@@ -67,6 +67,20 @@ const TabsIcon = () => (
   </svg>
 );
 
+/** Add to Bookmarks: a bookmark ribbon. */
+const BookmarkIcon = () => (
+  <svg {...stroke} aria-hidden="true">
+    <path d="M6 3h12v18l-6-5-6 5z" />
+  </svg>
+);
+
+/** More: three dots. */
+const MoreIcon = () => (
+  <svg {...stroke} aria-hidden="true">
+    <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth={3.5} />
+  </svg>
+);
+
 const Chevron = ({ back }: { back?: boolean }) => (
   <svg {...stroke} aria-hidden="true">
     <path d={back ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} />
@@ -111,7 +125,7 @@ export const LockScreen = ({ number }: { number: number }) => (
   </div>
 );
 
-/** Safari's toolbar, with Share ringed. */
+/** Safari's toolbar before iOS 26, with Share ringed. */
 export const SafariToolbar = () => (
   <div role="img" aria-label="Safari's toolbar" className={styles.step}>
     <div className={styles.toolbar}>
@@ -129,7 +143,37 @@ export const SafariToolbar = () => (
   </div>
 );
 
-/** The share menu's list, after View More, with Add to Home Screen ringed. */
+/**
+ * Safari's bar as iOS 26 draws it (back, the address, and ⋯), with ⋯'s menu
+ * open above it and Share ringed.
+ */
+export const SafariMenu = () => (
+  <div
+    role="img"
+    aria-label="Safari's ⋯ menu, with Share"
+    className={styles.step}
+  >
+    <div className={styles.menu}>
+      <p className={`${styles.row} ${styles.lit}`}>
+        <ShareIcon /> Share
+      </p>
+      <p className={styles.row}>
+        <BookmarkIcon /> Add to Bookmarks
+      </p>
+    </div>
+    <div className={styles.bar}>
+      <span className={styles.barButton}>
+        <Chevron back />
+      </span>
+      <span className={styles.barAddress}>spencerstrelsov.com</span>
+      <span className={styles.barButton}>
+        <MoreIcon />
+      </span>
+    </div>
+  </div>
+);
+
+/** The share menu's list, with Add to Home Screen ringed. */
 export const ShareSheet = () => (
   <div role="img" aria-label="The share menu" className={styles.step}>
     <div className={styles.sheet}>

@@ -156,7 +156,55 @@
   display: grid;
 }
 
-/* A row of the share menu: its icon, then its name */
+/* Safari's bar as iOS 26 draws it: back, the address and ⋯, each a pill of
+   glass floating over the page */
+.bar {
+  position: absolute;
+  inset: auto 6px 6px;
+  display: flex;
+  gap: 4px;
+  height: 24px;
+}
+
+.barButton,
+.barAddress {
+  composes: glass;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.barButton {
+  width: 24px;
+  flex: none;
+}
+
+.barButton .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.barAddress {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 6px;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+/* ⋯'s menu, open above it */
+.menu {
+  composes: glass;
+  position: absolute;
+  right: 6px;
+  bottom: 34px;
+  width: 104px;
+  padding: 3px;
+  border-radius: 10px;
+}
+
+/* A row of a menu: its icon, then its name */
 .row {
   display: flex;
   align-items: center;
@@ -170,6 +218,17 @@
 .row .icon {
   width: 13px;
   height: 13px;
+}
+
+/* ⋯'s menu has smaller rows than the share menu */
+.menu .row {
+  height: 18px;
+  font-size: 8.5px;
+}
+
+.menu .row .icon {
+  width: 11px;
+  height: 11px;
 }
 
 /* The share menu's list, after View More: a few rows, the middle one ringed */
