@@ -30,23 +30,24 @@
   --c3: #ff3b2f;
   --c4: #3d5bff;
   --tile: #110e14;
-  /* Dialogs and the home-screen tip */
+  /* Dialogs */
   --panel: #0a0908;
   /* Phosphor glow: the light around type, tiles and buttons */
   --glow: 0 0 2px rgba(255, 241, 201, 0.7), 0 0 14px rgba(255, 196, 90, 0.55);
   --glow-gold: var(--gold);
   --glow-cream: var(--ink);
   /* The old TV's columns (a dark line, then a light one for dark surfaces)
-     and dim corners, and the shade behind dialogs and the home-screen tip */
+     and dim corners, and the shade behind dialogs */
   --crt-line: rgba(0, 0, 0, 0.24);
   --crt-glint: transparent;
   --crt-edge: rgba(0, 0, 0, 0.6);
   --scrim: rgba(0, 0, 0, 0.72);
-  --scrim-tip: rgba(0, 0, 0, 0.85);
 
   position: relative;
-  /* The whole screen, with the browser's toolbar space, so it runs under it */
-  min-height: 100lvh;
+  /* The visible screen, so no screen scrolls unless its content needs to.
+     The toolbar space beyond it takes the document's background, which
+     StachedPage sets to --bg while Stached is open. */
+  min-height: 100dvh;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--text);
@@ -74,7 +75,6 @@
   --crt-glint: rgba(255, 246, 225, 0.12);
   --crt-edge: rgba(110, 70, 20, 0.2);
   --scrim: color-mix(in srgb, var(--ink) 45%, transparent);
-  --scrim-tip: var(--scrim);
 }
 
 /* Group colors, set on anything with data-color */
@@ -154,6 +154,12 @@
 .stacheText {
   color: var(--accent);
   text-shadow: 0 0 12px color-mix(in srgb, var(--glow-gold) 60%, transparent);
+}
+
+/* Small gold links, like home's Rules and Past games */
+.link {
+  composes: display stacheText;
+  font-size: 13px;
 }
 
 .alert {
@@ -300,47 +306,99 @@
   }
 }
 
-/* Words to live by, crawling off into space */
-.crawl {
+/* Words to live by in whatever room home has left, one at a time, rolling
+   up on their own (Quotes.tsx). The type grows with the room, up to the
+   logo's scale. */
+.quotes {
   position: relative;
   flex: 1;
-  min-height: 170px;
-  overflow: hidden;
-  perspective: 280px;
-  perspective-origin: 50% 0;
-  pointer-events: none;
-  mask-image: linear-gradient(to bottom, transparent, #000 55%);
-  -webkit-mask-image: linear-gradient(to bottom, transparent, #000 55%);
+  /* Room for a three-line quote; a screen with less scrolls home instead */
+  min-height: 90px;
+  mask-image: linear-gradient(
+    transparent,
+    #000 14px,
+    #000 calc(100% - 14px),
+    transparent
+  );
+  -webkit-mask-image: linear-gradient(
+    transparent,
+    #000 14px,
+    #000 calc(100% - 14px),
+    transparent
+  );
 }
 
-.crawlText {
+/* Laid over the room rather than in it, so each quote can be its full height */
+.quotesReel {
   position: absolute;
-  top: 100%;
-  left: 4%;
-  right: 4%;
-  transform-origin: 50% 0;
+  inset: 0;
+  container-type: size;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+
+.quotesReel::-webkit-scrollbar {
+  display: none;
+}
+
+.quote {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding-inline: 4%;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
   color: var(--accent);
   font-family: var(--display);
   font-weight: 800;
-  font-size: 25px;
+  font-size: clamp(20px, 11cqh, 26px);
   line-height: 1.1;
   text-align: center;
   text-transform: uppercase;
   text-shadow: 0 0 12px color-mix(in srgb, var(--glow-gold) 50%, transparent);
-  animation: crawl 50s linear infinite;
 }
 
-.crawlText p + p {
-  margin-top: 1.1em;
+/* A switch in settings: a pill whose knob slides over, gold when it's on */
+.toggleRow {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
 }
 
-@keyframes crawl {
-  from {
-    transform: rotateX(30deg) translateY(0);
-  }
-  to {
-    transform: rotateX(30deg) translateY(calc(-100% - 70dvh));
-  }
+.switch {
+  position: relative;
+  width: 50px;
+  height: 28px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  transition: transform 0.15s;
+}
+
+.toggleRow[aria-checked="true"] .switch {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+
+.toggleRow[aria-checked="true"] .switch::after {
+  background: var(--on-gold);
+  transform: translateX(22px);
 }
 
 /* The board */
@@ -622,6 +680,7 @@
   font-family: var(--text);
   font-weight: 500;
   box-shadow: 0 0 32px color-mix(in srgb, var(--glow-gold) 30%, transparent);
+  outline: none;
   overscroll-behavior: contain;
 }
 
@@ -640,78 +699,30 @@
   }
 }
 
-/* "Get Stached on your home screen": an install card that slides up over
-   the browser's toolbar, pointing down at Safari's Share on an iPhone */
-.tip {
-  inset: auto 12px calc(12px + env(safe-area-inset-bottom));
-  width: auto;
-  max-width: 440px;
-  margin: 0 auto;
-  overflow: visible;
-  padding: 16px 16px 18px;
-  border: 2px solid var(--accent);
-  border-radius: 18px;
-  background: var(--panel);
-  color: var(--ink);
-  text-align: left;
-  box-shadow: 0 0 32px color-mix(in srgb, var(--glow-gold) 28%, transparent);
-  animation: tip-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15);
-}
-
-/* A dark fade up from the bottom, so the card stands clear of the page */
-.tip::backdrop {
-  background: linear-gradient(to top, var(--scrim-tip), transparent 45%);
-  pointer-events: none;
-}
-
-.tip[data-arrow]::after {
-  content: "";
-  position: absolute;
-  bottom: -9px;
-  left: 50%;
-  width: 14px;
-  height: 14px;
-  translate: -50% 0;
-  rotate: 45deg;
-  border-right: 2px solid var(--accent);
-  border-bottom: 2px solid var(--accent);
-  background: var(--panel);
-}
-
-.tipIcon {
-  width: 52px;
-  height: 52px;
-  flex: none;
-  border-radius: 12px;
-  box-shadow: 0 0 0 1px var(--line);
-}
-
-.tipSteps {
+/* "Get Stached on your home screen": each step in words, then a picture */
+.steps {
   display: grid;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
+  gap: 16px;
   font-size: 17px;
+  line-height: 1.25;
 }
 
-.tipSteps li {
+.steps li {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
 }
 
-.tipSteps strong {
+.steps strong {
   font-weight: 600;
 }
 
-.tipStep {
+.stepNumber {
   display: grid;
   width: 24px;
   height: 24px;
   flex: none;
   place-items: center;
-  margin-right: 3px;
   border-radius: 50%;
   background: var(--gold);
   color: var(--on-gold);
@@ -719,12 +730,6 @@
   font-size: 13px;
   font-style: italic;
   font-weight: 800;
-}
-
-@keyframes tip-in {
-  from {
-    translate: 0 calc(100% + 40px);
-  }
 }
 
 .swatch {
@@ -843,7 +848,8 @@
 }
 
 /* A day: green solved, red missed, Gerald on the day's fastest stache, a dot
-   for a day not played, and a dashed outline for today until it's finished */
+   for a day not finished in time, and a dashed outline for one that still
+   counts until it's finished */
 .mark {
   display: grid;
   flex: none;
@@ -913,6 +919,127 @@
   height: 18px;
 }
 
+/* Your week on home, under Play: a strip of days to swipe, edge to edge,
+   that opens at the end, on today's. It keeps its height while home loads. */
+.homeWeek {
+  position: relative;
+  display: flex;
+  gap: 6px;
+  margin-inline: -16px;
+  padding-block: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  min-height: 102px;
+}
+
+.homeWeek::-webkit-scrollbar {
+  display: none;
+}
+
+/* The page's gutter at either end. When the days all fit, they sit to the
+   right, ending at today's, as a full strip does. */
+.homeWeek::before,
+.homeWeek::after {
+  content: "";
+  flex: none;
+  width: 10px;
+}
+
+.homeWeek::before {
+  margin-left: auto;
+}
+
+.homeDay {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 3px;
+  scroll-snap-align: center;
+}
+
+.homeDay .mark {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  font-size: 22px;
+}
+
+/* A day that didn't count, outlined so its dot isn't lost */
+.homeDay .mark[data-mark="none"] {
+  border: 1.5px solid var(--line);
+}
+
+.homeDay .markStache {
+  width: 44px;
+  height: 14px;
+}
+
+.homeDay .weekday {
+  font-size: 11px;
+}
+
+/* Past the days on home's strip, in a day's square: "View all" (every game
+   so far), then settings */
+.homeTile {
+  composes: display;
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
+}
+
+@supports (animation-timeline: view()) {
+  .homeDay {
+    animation: day-focus linear both;
+    animation-timeline: view(inline);
+  }
+}
+
+/* Days blur a little as they slide off the left, into the past */
+@keyframes day-focus {
+  0%,
+  85% {
+    filter: none;
+    opacity: 1;
+  }
+  100% {
+    filter: blur(1.5px);
+    opacity: 0.5;
+  }
+}
+
+/* Back to today: once today's is swiped out of view, a chip at the end
+   pointing at it. A tap slides the strip back. */
+.homeBackToToday {
+  composes: display;
+  position: absolute;
+  top: calc(50% - 4px);
+  right: 0;
+  padding: 6px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 10px;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--ink) 35%, transparent);
+  animation: back-in 0.2s ease-out both;
+}
+
+@keyframes back-in {
+  from {
+    opacity: 0;
+  }
+}
+
 .pointKeyStache {
   width: 26px;
   height: 8px;
@@ -970,18 +1097,13 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rise,
+  .homeBackToToday,
   .bar[data-color="stache"],
   .life[data-bonus],
   .life[data-lost],
   .dialog[open],
   .toast,
-  .tip,
   .shake {
-    animation: none;
-  }
-
-  .crawlText {
-    top: 0;
     animation: none;
   }
 }
