@@ -107,7 +107,7 @@ const TTL = 12 * 3600;
 /**
  * The puzzle as the title (iOS adds "from Stached" under it, and fills in an
  * empty title with "Stached"), then the puzzle's own line, or a random one
- * from the crawl on home. Tapping it opens home, not the game, so the clock
+ * of the quotes on home. Tapping it opens home, not the game, so the clock
  * waits for Play (public/stached/sw.js).
  */
 export const notification = (number: number, push?: string | null) => ({

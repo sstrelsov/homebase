@@ -36,7 +36,7 @@ export interface Score {
   name: string;
   completed: boolean;
   stachedMs: number | null;
-  /** Played after the puzzle's day, so it doesn't count. */
+  /** Played once the puzzle stopped counting, so it doesn't count. */
   late: boolean;
 }
 
@@ -61,6 +61,11 @@ export interface Day {
   };
   play: Play | null;
   board: Score[];
+}
+
+/** Today's game, and your squares for the week, as on the leaderboard. */
+export interface Today extends Day {
+  week: { date: string; mark: Mark }[];
 }
 
 // The leaderboard's shape comes with its rules, so the two can't drift apart.
@@ -161,7 +166,7 @@ async function request<T>(
 export const api = {
   login: (name: string, password: string) =>
     request<Session>("/login", { body: { name, password } }),
-  today: (token: string) => request<Day>("/today", { token }),
+  today: (token: string) => request<Today>("/today", { token }),
   leaderboard: (token: string) =>
     request<Leaderboard>("/leaderboard", { token }),
   /** Starts that day's game, or picks it back up. */
@@ -220,6 +225,28 @@ export function saveSession(session: Session | null) {
   }
 }
 
+export type Look = "light" | "dark";
+
+const LOOK_KEY = "stached.look";
+
+/** The look this device picked in settings, if it picked one. */
+export function loadLook(): Look | null {
+  try {
+    const saved = localStorage.getItem(LOOK_KEY);
+    return saved === "light" || saved === "dark" ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveLook(look: Look) {
+  try {
+    localStorage.setItem(LOOK_KEY, look);
+  } catch {
+    // Private mode: the look lasts as long as the tab.
+  }
+}
+
 /** 42_300 → "0:42.3", or "0:42" without tenths. No time is a dash. */
 export function formatTime(ms: number | null, tenths = true) {
   if (ms === null) return "—";
@@ -244,3 +271,7 @@ export function formatDate(
   const [year, month, day] = date.split("-").map(Number);
   return new Date(year, month - 1, day).toLocaleDateString("en-US", options);
 }
+
+/** "2026-10-05" → "Mo", as the leaderboard and home head each day. */
+export const weekday = (date: string) =>
+  formatDate(date, { weekday: "short" }).slice(0, 2);

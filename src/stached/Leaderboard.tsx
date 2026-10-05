@@ -4,6 +4,7 @@ import {
   formatDate,
   formatTime,
   type Mark,
+  weekday,
 } from "./api";
 import { Mustache } from "./Logo";
 import Screen from "./Screen";
@@ -15,12 +16,12 @@ const MARKS: Record<Mark, string> = {
   "won-missed": "Missed, with the fastest stache",
   solved: "Solved",
   missed: "Missed",
-  none: "Not finished on its day",
+  none: "Not finished in time",
   open: "Still to play",
 };
 
 /** A day: green solved, red missed, Gerald on the day's fastest stache. */
-const Square = ({ mark }: { mark: Mark }) => (
+export const Square = ({ mark }: { mark: Mark }) => (
   <span
     className={styles.mark}
     data-mark={mark}
@@ -114,7 +115,7 @@ const Week = ({ board: { days, players } }: { board: Board }) => {
                   className={styles.weekday}
                   data-today={i === days.length - 1 || undefined}
                 >
-                  {formatDate(day.date, { weekday: "short" }).slice(0, 2)}
+                  {weekday(day.date)}
                 </span>
               ))}
             </span>

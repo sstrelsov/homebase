@@ -101,7 +101,7 @@ const tomorrow = () => {
 
 /**
  * Tomorrow's push on a lock screen: "Puzzle #N is up", iOS's "from Stached",
- * then a line from the crawl, like the ones the API sends.
+ * then one of the quotes on home, like the ones the API sends.
  */
 export const LockScreen = ({ number }: { number: number }) => (
   <div
