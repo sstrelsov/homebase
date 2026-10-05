@@ -430,6 +430,12 @@
   font-size: 13px;
 }
 
+/* A word with a capital inside it keeps its own case in the ident's caps
+   (Cased, in Game.tsx). */
+.asWritten {
+  text-transform: none;
+}
+
 .barWords {
   font-family: var(--text);
   font-weight: 600;

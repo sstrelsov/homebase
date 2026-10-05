@@ -49,7 +49,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 
 ## The look
 
-A 1984 TV-station ident: heavy italic caps, the four broadcast colors, Gerald, and an old TV's phosphor columns over everything. It comes two ways, sharing every rule:
+A 1984 TV-station ident: heavy italic caps, the four broadcast colors, Gerald, and an old TV's phosphor columns over everything. A puzzle word with a capital after a lowercase letter, like "BigX" or "iPhone", keeps its own case, since caps would make it read as "BIGX" (`Cased` in `src/stached/Game.tsx`). It comes two ways, sharing every rule:
 
 - **Light** (the default): dark ink on cream paper. Glows give way to print: Gerald's red and blue fringes look like misregistered ink, and bars get a darker bottom edge like the buttons. The phosphor columns stay, two-tone (a dark line, then a faint light one), so the pixels show on the page, the bars and the black selected tiles alike. Bright gold can't be read on cream, so gold type, outlines and thin marks like today's weekday on the leaderboard (`--accent`) are a deep amber; gold fills stay gold. The leaderboard's green (`--green`) is deeper on paper too.
 - **Dark**: warm phosphor cream on black, glowing.
