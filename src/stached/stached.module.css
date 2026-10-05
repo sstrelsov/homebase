@@ -1035,12 +1035,13 @@
   font-size: 11px;
 }
 
-/* "View all", past the days on home's strip: every game so far */
+/* "View all", past the days on home's strip: every game so far, in a day's
+   square */
 .homeAll {
   composes: display;
   display: grid;
   place-items: center;
-  width: 76px;
+  width: 60px;
   height: 60px;
   border: 1.5px solid var(--line);
   border-radius: 12px;
