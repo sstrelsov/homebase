@@ -30,7 +30,7 @@ React 19, TypeScript, Vite 6, TanStack Router, Tailwind CSS, NextUI, Three.js (t
 | `make phone` | Run the site on your phone over Tailscale and print a QR code (below) |
 | `make phone-preview` | Same with a production build, to see the link preview when sharing |
 | `make tester` | Deploy the branch you're on to the tester, an always-on copy of Stached for your phone (below) |
-| `scripts/stached` | Stage, preview and publish Stached puzzles, on the Studio (below) |
+| `scripts/stached` | Stage Stached puzzles (onto the tester, to play first) and publish them, on the Studio (below) |
 
 ## Deployment
 
@@ -44,7 +44,7 @@ Unlisted Connections-style game with a stache group and a leaderboard. **[`stach
 - **This repo is public.** The real puzzles and the password live only on the Studio (`~/.config/stached/`). Never commit them; `stached-api/puzzles.example.json` is the made-up stand-in.
 - **Schema changes are new numbered files in `stached-api/migrations/`.** They apply on API boot. Never edit a shipped migration.
 - **Deploy the API with `make deploy-stached`** (it backs up first). Deploy it before merging a site change that needs a new endpoint, since merging deploys the site.
-- **Publish puzzles with the puzzle CLI, `scripts/stached`** (`stage`, `preview`, `confirm`, `list`), never by editing `puzzles.json`. It runs on the Studio, from anywhere, and needs no deploy. **The [`stached-puzzles`](.claude/skills/stached-puzzles/SKILL.md) skill** walks through it.
+- **Publish puzzles with the puzzle CLI, `scripts/stached`** (`stage`, `confirm`, `list`), never by editing `puzzles.json`. It runs on the Studio, from anywhere, and needs no deploy. `stage` also makes the puzzle today's on the tester (below), so Spencer plays it in the tester's home-screen app before anyone else. **The [`stached-puzzles`](.claude/skills/stached-puzzles/SKILL.md) skill** walks through it.
 - Editing or removing a puzzle that people have played deletes their games for it, so the CLI refuses without `--delete-games`. Only Spencer decides that.
 - Each puzzle sends one push notification to the home-screen apps that tapped the bell on home: at 9:12am New York time on its date, or within a minute if it goes live later that day. The VAPID private key lives only in the Studio's `api.env`.
 - `/stached/admin` shows usage totals, who has played in the home-screen app, turnout per puzzle and every finished game's share grid (by puzzle and by player) to the admin only (`ADMIN_NAME` and `ADMIN_PASSWORD` in the Studio's `api.env`), who stays off the scoreboards. It reads games (each one keeps whether it started in the home-screen app or the website, and on a device in dark or light mode), push subscriptions and when each push went out; don't add tracking of visits or activity. See Admin page in the README.
@@ -63,7 +63,7 @@ Unlisted Connections-style game with a stache group and a leaderboard. **[`stach
 
 ### The tester (`make tester`)
 
-For trying a branch on a phone again and again, `make tester` deploys it to an always-on copy of Stached on the Studio, at `https://studio.<tailnet>.ts.net:8444/stached/`. It keeps its database, push keys and puzzles between deploys, so its home-screen app is set up once. `scripts/stached --tester` drives its puzzles, and `scripts/stached --tester push-again` resends today's push to try a tap. It has its own clone, settings, Postgres, ports and Serve entry (`:8444`) and never touches the live game; leave the live game's ports (3999, 5432) and `scripts/stached preview`'s (3998, 5499, 5190, 8443) alone. See The tester in [`stached-api/README.md`](stached-api/README.md).
+For trying a branch on a phone again and again, `make tester` deploys it to an always-on copy of Stached on the Studio, at `https://studio.<tailnet>.ts.net:8444/stached/`. It keeps its database, push keys and puzzles between deploys, so its home-screen app is set up once. Staging a live puzzle makes it today's there, `scripts/stached --tester` drives its own puzzles, and `scripts/stached --tester push-again` resends today's push. It has its own clone, settings, Postgres, ports and Serve entry (`:8444`) and never touches the live game; leave the live game's ports (3999, 5432) and a `make phone` run's (3998, 5499, 5190, 8443) alone. See The tester in [`stached-api/README.md`](stached-api/README.md).
 
 ### Link previews
 

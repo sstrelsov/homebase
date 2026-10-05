@@ -132,21 +132,19 @@ Puzzles live in `~/.config/stached/puzzles.json` on the Studio (mode 600), becau
 
 ### The puzzle CLI
 
-`scripts/stached` stages, previews and publishes puzzles (the code is `stached-api/cli.ts`, and the [`stached-puzzles`](../.claude/skills/stached-puzzles/SKILL.md) skill walks through it). It runs on the Studio with the API's settings. From this Mac it runs there over SSH, sending a puzzle file along. Publishing needs no deploy.
+`scripts/stached` stages puzzles, puts them on the tester to play first, and publishes them (the code is `stached-api/cli.ts`, and the [`stached-puzzles`](../.claude/skills/stached-puzzles/SKILL.md) skill walks through it). It runs on the Studio with the API's settings. From this Mac it runs there over SSH, sending a puzzle file along. Publishing needs no deploy.
 
 ```bash
-scripts/stached stage oct-2.json   # check it and stage it, not live (- reads stdin)
-scripts/stached preview            # play it on your phone first
+scripts/stached stage oct-2.json   # check it, stage it (not live), and put it on the tester (- reads stdin)
 scripts/stached confirm            # publish it
 scripts/stached list               # every puzzle: status, games, push
 ```
 
 | Command | What it does |
 |---|---|
-| `stage <file>` | Checks one puzzle, or a list, with the server's rules, and stages it in `staged.json` next to `puzzles.json`, replacing what was staged. Says each puzzle's number, its push line, and when it goes live and pushes |
-| `preview [date]` | Runs `make phone` on the Studio (ports 3998 and 8443) with just that staged puzzle, as today's, in a tmux session (`stached-preview`) that outlives your terminal. Prints the link and a QR code: Tailscale on, password `test`. Nothing played there reaches the live game. The first one installs the site's packages in the Studio's clone |
-| `preview stop` | Stops it, as Ctrl-C would |
-| `confirm` | Publishes what's staged: writes `puzzles.json` (keeping the old one as `puzzles.json.bak-…`), syncs Postgres as the API does when it starts, and stops the preview. The API serves it without a restart |
+| `stage <file>` | Checks one puzzle, or a list, with the server's rules, and stages it in `staged.json` next to `puzzles.json`, replacing what was staged. Says each puzzle's number, its push line, and when it goes live and pushes. Then makes the first one today's puzzle on the tester (The tester, below), to play in its home-screen app before anyone else, and says the address. If the tester hasn't pushed yet that day, its notification goes out within a minute, push line and all |
+| `preview <date>` | Puts another staged puzzle on the tester, as today's |
+| `confirm` | Publishes what's staged: writes `puzzles.json` (keeping the old one as `puzzles.json.bak-…`) and syncs Postgres as the API does when it starts. The API serves it without a restart |
 | `remove <date>` | Takes a published puzzle down |
 | `list` | Every puzzle with its number, status (out, today, upcoming, staged), games, and push (sent, none, or when) |
 | `vapid-keys` | Prints a new push key pair (Push keys, above) |
@@ -177,7 +175,7 @@ The API reads its settings from the environment (on the Studio, `~/.config/stach
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | the push key pair (Push keys, above). Without them, push is off |
 | `ANNOUNCE_AT` | when a puzzle's push goes out on its date, New York time: default `09:12` |
 | `ADMIN_NAME`, `ADMIN_PASSWORD` | the admin's name and their own password (Admin page, above). Set both or neither |
-| `STACHED_TESTER` | set on the tester only (The tester, below), where the puzzle CLI's `push-again` sends today's push again and `preview` is off |
+| `STACHED_TESTER` | set on the tester only (The tester, below), where the puzzle CLI's `play` takes a staged puzzle as today's and `push-again` sends today's push again |
 
 The site calls `https://api.spencerstrelsov.com` in production and `/stached-api` in dev; `VITE_STACHED_API` overrides either.
 
@@ -189,7 +187,8 @@ Checks: `bun run lint` (Biome, for the site and the API), `bun run build`, and `
 
 - **Once:** open it on your phone (Tailscale on, password `test`), add it to the home screen, open the app and tap the bell. It's a separate app from the real one. Play as any name but `admin`, since the admin's own games stay off the admin page, and open the admin page (name `admin`, password `admin`) somewhere else, like this Mac.
 - **Each change:** push the branch, `make tester`, and try it. The API applies the branch's new migrations as it starts. The tester's database keeps every migration it has run, even from a branch that never merges; reset it (below) if one gets in the way.
-- **Pushes:** the tester pushes as soon as today's puzzle is live (`ANNOUNCE_AT=00:00`). Stage and confirm one with `scripts/stached --tester` (the same commands, on the tester's own puzzles and checkout, but no `preview`: confirm it and play it there, so the live game's preview keeps running), and `scripts/stached --tester push-again` sends today's push again within a minute, to try a tap as often as you like.
+- **Puzzles:** staging a puzzle for the live game makes it today's here too (`scripts/stached stage`, The puzzle CLI, above): the tester runs `play` (`stached-api/cli.ts`), which puts it in place of the tester's own puzzle for today. Its games there go with it when the words change, as on any edit. `scripts/stached --tester` drives the tester's own puzzles directly with the same commands.
+- **Pushes:** the tester pushes as soon as today's puzzle is live (`ANNOUNCE_AT=00:00`), once a day, and `scripts/stached --tester push-again` sends today's push again within a minute.
 - **Where it lives:** its own clone at `~/dev/homebase-tester`, detached at the branch; its settings, puzzles, Postgres and logs in `~/.config/stached-tester/`; its API and site in the tmux sessions `stached-tester-api` and `stached-tester-web`, on ports 3997 and 5197 behind Tailscale Serve's `:8444`, with Postgres on 5497. None of it touches the live game.
 - **After the Studio restarts,** run `make tester` again: tmux and the tester's Postgres don't start at boot.
 - **To stop or reset it:** `ssh personal-studio 'tmux kill-session -t stached-tester-api; tmux kill-session -t stached-tester-web; /opt/homebrew/opt/postgresql@17/bin/pg_ctl -D ~/.config/stached-tester/pg stop; /opt/homebrew/bin/tailscale serve --https=8444 off'` stops it. To start over, then delete `~/.config/stached-tester` there and run `make tester`. That signs the home-screen app out, so sign in again; it renews its notifications on its own, as after any change of push keys.
