@@ -86,6 +86,8 @@ export interface AdminGame {
   homeScreen: boolean | null;
   /** Started on a device set to dark mode; null before we knew. */
   dark: boolean | null;
+  /** Started from tapping the puzzle's push; null before we knew. */
+  fromPush: boolean | null;
   grid: Color[][];
 }
 
@@ -96,6 +98,8 @@ export interface AdminPuzzle {
   played: number;
   solved: number;
   late: number;
+  /** Games started from tapping its push. */
+  fromPush: number;
   /** Every finished game, late ones too, first finished first. */
   games: AdminGame[];
 }
@@ -114,13 +118,14 @@ export interface AdminStats {
 }
 
 /**
- * Where a game starts, for the admin page: the home-screen app or the
- * website, and whether the device is set to dark mode (Stached itself is
- * light for everyone).
+ * How a game starts, for the admin page: in the home-screen app or the
+ * website, whether the device is set to dark mode (Stached itself is light for
+ * everyone), and whether it's from tapping the puzzle's push.
  */
-export interface Device {
+export interface HowStarted {
   homeScreen: boolean;
   dark: boolean;
+  fromPush: boolean;
 }
 
 export class ApiError extends Error {
@@ -161,8 +166,8 @@ export const api = {
   leaderboard: (token: string) =>
     request<Leaderboard>("/leaderboard", { token }),
   /** Starts that day's game, or picks it back up. */
-  start: (token: string, date: string, device: Device) =>
-    request<Day>("/start", { token, body: { date, ...device } }),
+  start: (token: string, date: string, how: HowStarted) =>
+    request<Day>("/start", { token, body: { date, ...how } }),
   pastGames: (token: string) => request<PastGame[]>("/puzzles", { token }),
   /** Tells the server the board is on screen, so the clock keeps running. */
   clock: (token: string, puzzleId: number) =>

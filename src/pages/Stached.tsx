@@ -7,6 +7,7 @@ import {
   setHandoffCode,
 } from "../stached/HomeScreen";
 import Login from "../stached/Login";
+import { notePushTap, notePushTapInAddress } from "../stached/push";
 import RulesDialog from "../stached/RulesDialog";
 import { StachedContext } from "../stached/session";
 import styles from "../stached/stached.module.css";
@@ -75,13 +76,18 @@ const StachedPage = () => {
     };
   }, []);
 
+  // A notification tapped to open Stached says which puzzle in the address.
+  useEffect(notePushTapInAddress, []);
+
   // A notification tapped while Stached is open: the service worker
-  // (public/stached/sw.js) asks for home here, instead of a new window.
+  // (public/stached/sw.js) asks for home here, instead of a new window, and
+  // says which puzzle.
   const router = useRouter();
   useEffect(() => {
     const container = navigator.serviceWorker;
     if (!container) return;
     const open = (event: MessageEvent) => {
+      if (typeof event.data?.push === "string") notePushTap(event.data.push);
       if (typeof event.data?.open === "string")
         router.history.push(event.data.open);
     };

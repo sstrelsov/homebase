@@ -304,19 +304,20 @@ function redeem({ code }: Record<string, unknown>) {
 /** Starts a game (by date, or by id for older pages), or picks it back up. */
 async function start(
   userId: number,
-  { puzzleId, date, homeScreen, dark }: Record<string, unknown>,
+  { puzzleId, date, homeScreen, dark, fromPush }: Record<string, unknown>,
 ) {
   const puzzle = await (date !== undefined
     ? puzzleByDate(date)
     : puzzleById(puzzleId));
   if (!puzzle) return fail(404, "No puzzle for that day");
   // A game started after its day is late: it's yours, but it doesn't count.
-  // Where it started, for the admin page, is kept from that first start.
+  // How it started, for the admin page, is kept from that first start.
   const flag = (value: unknown) => (typeof value === "boolean" ? value : null);
   await sql`
-    insert into plays (user_id, puzzle_id, active_since, late, home_screen, dark)
+    insert into plays (user_id, puzzle_id, active_since, late,
+                       home_screen, dark, from_push)
     values (${userId}, ${puzzle.id}, ${new Date()}, ${!puzzle.today},
-            ${flag(homeScreen)}, ${flag(dark)})
+            ${flag(homeScreen)}, ${flag(dark)}, ${flag(fromPush)})
     on conflict (user_id, puzzle_id) do nothing`;
   return Response.json(await snapshot(userId, puzzle));
 }
@@ -441,6 +442,7 @@ async function adminStats() {
       finished: boolean;
       home_screen: boolean | null;
       dark: boolean | null;
+      from_push: boolean | null;
     }[],
     { players: number; notifications: number }[],
   ] = await Promise.all([
@@ -448,7 +450,7 @@ async function adminStats() {
     sql`
       select p.puzzle_id, u.name, p.guesses, p.completed, p.mistakes,
              p.stached_ms, p.late, p.finished_at is not null as finished,
-             p.home_screen, p.dark
+             p.home_screen, p.dark, p.from_push
       from plays p join users u on u.id = p.user_id
       where lower(u.name) <> ${ADMIN_NAME}
       order by p.finished_at`,
@@ -478,6 +480,7 @@ async function adminStats() {
         played: onTheDay.length,
         solved: onTheDay.filter((g) => g.completed).length,
         late: games.length - onTheDay.length,
+        fromPush: games.filter((g) => g.from_push).length,
         games: games
           .filter((g) => g.finished)
           .map((g) => ({
@@ -488,6 +491,7 @@ async function adminStats() {
             late: g.late,
             homeScreen: g.home_screen,
             dark: g.dark,
+            fromPush: g.from_push,
             grid: gridOf(puzzle, g.guesses),
           })),
       };

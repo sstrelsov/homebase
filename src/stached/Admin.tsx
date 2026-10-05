@@ -52,6 +52,9 @@ const GameLine = ({ title, game }: { title: string; game: AdminGame }) => (
           {game.dark ? "Dark mode" : "Light mode"}
         </span>
       )}
+      {game.fromPush && (
+        <span className={styles.label}>From the notification</span>
+      )}
     </div>
     <GuessGrid grid={game.grid} className="shrink-0" />
   </li>
@@ -144,7 +147,7 @@ const Admin = () => {
               <Row
                 key={puzzle.date}
                 title={puzzleTitle(puzzle)}
-                detail={`${puzzle.played} played · ${puzzle.solved} solved${puzzle.late > 0 ? ` · ${puzzle.late} late` : ""}`}
+                detail={`${puzzle.played} played · ${puzzle.solved} solved${puzzle.late > 0 ? ` · ${puzzle.late} late` : ""}${puzzle.fromPush > 0 ? ` · ${puzzle.fromPush} from the notification` : ""}`}
               >
                 {[...puzzle.games].sort(byResult).map((game) => (
                   <GameLine key={game.name} title={game.name} game={game} />

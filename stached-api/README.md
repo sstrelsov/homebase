@@ -84,6 +84,7 @@ Each puzzle sends one push to the home-screen apps that asked for it: "Puzzle #1
 - **When:** at 9:12am New York time on the puzzle's date (`ANNOUNCE_AT`). A puzzle published on its date after that pushes within a minute, and one dated before today never does. The API checks every minute.
 - **Never twice:** the API records the date in `announcements` before sending, and only the first claim sends. A restart, a second API, or editing and republishing a puzzle can't repeat it.
 - **Subscriptions** (`push_subscriptions`): one per browser, tied to the player who tapped the bell there. Home sends it again on every visit, so it survives a database reset and renews itself if the keys change. When a push service answers 404 or 410 (the app was deleted, say), it's dropped. The API only takes subscriptions from Apple's, Google's, Mozilla's and Microsoft's push services, so nobody can point it at another address.
+- **Counting taps:** the push carries its puzzle's date, and tapping it hands the date to the app: in the address (`/stached?push=<date>`) when the tap opens Stached, or in the service worker's message when it's already open. The app remembers the tap for that session (`src/stached/push.ts`), and starting that puzzle within 30 minutes of it sends `fromPush` with `POST /start`, so the admin page can count games started from the push. A tap on one phone doesn't count for a game started on another, and a phone counts taps only once it has the new service worker, which it picks up the next time it opens Stached.
 - **The protocol** is standard Web Push with no dependencies: `webpush.ts` encrypts each message for its browser (RFC 8291) and signs a VAPID token (RFC 8292) with WebCrypto. Its test checks the encryption against RFC 8291's published example. The service worker is scoped to `/stached/` and has no fetch handler, so it changes nothing about how pages load.
 - iOS adds "from Stached" (the home-screen app's name) under the title, and fills an empty title with "Stached" (an invisible one leaves a blank line). A web app can't turn either off, so the title is the puzzle.
 
@@ -102,7 +103,7 @@ Then restart the API (`make deploy-stached`). The private key never leaves the S
 `/stached/admin` is for one player, the admin (`ADMIN_NAME`; Spencer on the live game). Only the admin's home links to it, and the API answers anyone else's `GET /admin` with a 404.
 
 - **Signing in:** the admin's name takes `ADMIN_PASSWORD`, not the shared password, so no friend can sign in as them. The admin stays off the leaderboard and the day's scoreboard, but plays and gets pushes like anyone. The admin's sessions also depend on `ADMIN_PASSWORD`, so setting up the admin or changing that password signs the admin out everywhere, along with anyone who took the name with the shared password before.
-- **What it shows:** how many players there are, how many played one of the last seven puzzles on its day, how many have notifications on, and how many have played in the home-screen app. Then each puzzle: how many played and solved it on its day, and how many played it late. Open a puzzle to see every finished game's share grid for it, to judge how hard it was, or open a player to see their grids across puzzles. Each game says where it was played, the home-screen app or the website, and whether the device was in dark or light mode (Stached itself is light for everyone), and a player who has played in the app says "Home screen". It all comes from the games and push subscriptions the game already keeps: starting a game (`POST /start`) sends those two facts, kept on the play (`plays.home_screen`, `plays.dark`) from its first start. Games from before have neither. Nothing records visits.
+- **What it shows:** how many players there are, how many played one of the last seven puzzles on its day, how many have notifications on, and how many have played in the home-screen app. Then each puzzle: how many played and solved it on its day, and how many played it late. Open a puzzle to see every finished game's share grid for it, to judge how hard it was, or open a player to see their grids across puzzles. Each game says where it was played, the home-screen app or the website, whether the device was in dark or light mode (Stached itself is light for everyone), and whether it started from tapping the push (Counting taps, above); each puzzle counts the games started from its push, and a player who has played in the app says "Home screen". It all comes from the games and push subscriptions the game already keeps: starting a game (`POST /start`) sends those three facts, kept on the play (`plays.home_screen`, `plays.dark`, `plays.from_push`) from its first start. Games from before have none of them. Nothing records visits.
 
 ## Puzzles
 
@@ -204,7 +205,7 @@ Publishing a puzzle is not a deploy: the CLI writes the file and Postgres, and t
 
 ## Database and migrations
 
-Five tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the puzzles file, push lines too), `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result, whether it was played late, and where it started: home-screen app or website, dark or light mode), `push_subscriptions` (one per browser that tapped the bell), and `announcements` (each date whose push has gone out).
+Five tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the puzzles file, push lines too), `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result, whether it was played late, and how it started: home-screen app or website, dark or light mode, from the push or not), `push_subscriptions` (one per browser that tapped the bell), and `announcements` (each date whose push has gone out).
 
 | Migration | What it did |
 |---|---|
@@ -212,7 +213,7 @@ Five tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the pu
 | `0002_plays_late.sql` | `plays.late`, for games played after their day |
 | `0003_push.sql` | `push_subscriptions` and `announcements`, for push notifications |
 | `0004_puzzle_push.sql` | `puzzles.push`, a puzzle's own line for its push |
-| `0005_plays_device.sql` | `plays.home_screen` and `plays.dark`, where each game started |
+| `0005_plays_started.sql` | `plays.home_screen`, `plays.dark` and `plays.from_push`, how each game started |
 
 `schema_migrations` records which migrations ran. To change the schema, add the next numbered file:
 

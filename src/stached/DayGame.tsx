@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import { api } from "./api";
 import Game from "./Game";
 import { isHomeScreenApp } from "./HomeScreen";
+import { fromPushTap } from "./push";
 import { useLoad, useStached } from "./session";
 import styles from "./stached.module.css";
 
@@ -20,6 +21,7 @@ const DayGame = () => {
       api.start(token, date, {
         homeScreen: isHomeScreenApp(),
         dark: matchMedia("(prefers-color-scheme: dark)").matches,
+        fromPush: fromPushTap(date),
       }),
     [date],
   );
