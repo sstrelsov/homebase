@@ -36,6 +36,7 @@ const USAGE = `Stage, play and publish Stached puzzles.
   stached confirm            publish what's staged
   stached remove <date>      take a published puzzle down
   stached vapid-keys         make the API's push keys, for api.env
+  stached push-again         send today's push again (the tester only)
 
 Changing or removing a puzzle people have played deletes their games, so
 confirm and remove refuse to unless you add --delete-games.`;
@@ -44,6 +45,12 @@ confirm and remove refuse to unless you add --delete-games.`;
 class Stop extends Error {}
 
 const ROOT = join(import.meta.dir, "..");
+/**
+ * The tester (scripts/tester.sh): its puzzles are made up and played by
+ * publishing them, so it has no preview and never stops the live game's, and
+ * it can send today's push again.
+ */
+const TESTER = Boolean(process.env.STACHED_TESTER);
 const PREVIEW = {
   session: "stached-preview",
   // Its own API port, since the live API has 3999 on the Studio.
@@ -347,6 +354,10 @@ async function stopPreview() {
  * terminal. Nothing played there reaches the live game.
  */
 async function preview(arg: string | undefined) {
+  if (TESTER)
+    throw new Stop(
+      "The tester has no preview, so the live game's keeps running: confirm the puzzle and play it there.",
+    );
   if (arg === "stop") {
     console.log(
       (await stopPreview()) ? "Preview stopped." : "No preview running.",
@@ -433,7 +444,7 @@ async function confirm(deleteGames: boolean) {
   const puzzles = publish(published, staged, games, { deleteGames });
   await savePuzzles(puzzles);
   rmSync(stagedFile());
-  if (await stopPreview()) console.log("Stopped the preview.");
+  if (!TESTER && (await stopPreview())) console.log("Stopped the preview.");
   const number = numbers(puzzles);
   for (const { date, kind } of planned)
     console.log(
@@ -453,6 +464,25 @@ async function remove(date: string | undefined, deleteGames: boolean) {
   console.log(`Removed ${day(date)} (${date}).`);
 }
 
+/**
+ * The tester only: forgets that today's push went out, so the tester's API
+ * sends it again within a minute, to try a tap as often as you like. Never on
+ * the live game.
+ */
+async function pushAgain() {
+  if (!TESTER)
+    throw new Stop(
+      "push-again is for the tester only: scripts/stached --tester push-again",
+    );
+  const date = today();
+  if (!(await readPuzzles(puzzlesFile())).some((p) => p.date === date))
+    throw new Stop(
+      `No puzzle for today (${date}) on the tester: stage and confirm one first.`,
+    );
+  await sql`delete from announcements where date = ${date}`;
+  console.log("Today's push goes out again within a minute.");
+}
+
 async function vapidKeys() {
   const { publicKey, privateKey } = await generateVapidKeys();
   console.log(`VAPID_PUBLIC_KEY=${publicKey}\nVAPID_PRIVATE_KEY=${privateKey}`);
@@ -469,6 +499,7 @@ if (import.meta.main) {
     else if (command === "confirm") await confirm(deleteGames);
     else if (command === "remove") await remove(arg, deleteGames);
     else if (command === "vapid-keys") await vapidKeys();
+    else if (command === "push-again") await pushAgain();
     else console.log(USAGE);
   } catch (error) {
     if (!(error instanceof Stop)) throw error;

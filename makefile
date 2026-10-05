@@ -1,4 +1,4 @@
-.PHONY: phone phone-preview phone-live-data deploy-stached stached-backup stached-backup-install
+.PHONY: phone phone-preview phone-live-data tester deploy-stached stached-backup stached-backup-install
 
 # Play the site on your phone: local API + dev server behind Tailscale Serve,
 # with a QR code to scan. See scripts/phone.sh.
@@ -13,11 +13,22 @@ phone-preview:
 phone-live-data:
 	./scripts/phone.sh --live-data
 
+CURRENT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
+
+# Deploy a branch to the tester, the Studio's always-on copy of Stached on
+# your tailnet: the branch you're on, or BRANCH=…, as it is on GitHub. See
+# scripts/tester.sh.
+BRANCH ?= $(CURRENT_BRANCH)
+tester:
+	@git fetch -q origin $(BRANCH) || { echo "tester: push $(BRANCH) first; the tester deploys what's on GitHub" >&2; exit 1; }
+	@[ "$(BRANCH)" != "$(CURRENT_BRANCH)" ] || [ "$$(git rev-parse HEAD)" = "$$(git rev-parse FETCH_HEAD)" ] || \
+	  { echo "tester: push your last commits first; the tester deploys what's on GitHub" >&2; exit 1; }
+	ssh personal-studio 'bash -s' $(BRANCH) < scripts/tester.sh
+
 # Ship the Stached API to the Studio: back up the database, check out the branch
 # you're on here, pull it there, and restart the API (which applies any new
 # migrations as it boots). Under launchd, killing the API is enough (it runs as
 # sstrelsov-personal, so no sudo); a tmux stopgap session is restarted instead.
-CURRENT_BRANCH = $(shell git rev-parse --abbrev-ref HEAD)
 deploy-stached:
 	ssh personal-studio 'set -e; export PATH=/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$$PATH; C=$$HOME/.config/stached; \
 	  (umask 077; set -o pipefail; pg_dump -d stached | gzip > $$HOME/backups/stached/predeploy-$$(date +%F-%H%M).sql.gz); \
