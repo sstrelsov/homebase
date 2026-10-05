@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
+import { useAsk } from "./ask";
+import Dialog from "./Dialog";
+import { HomeScreenApps, SafariToolbar, ShareSheet } from "./IPhone";
 import { useStached } from "./session";
 import styles from "./stached.module.css";
 
@@ -36,69 +39,25 @@ interface InstallPrompt extends Event {
   prompt: () => Promise<unknown>;
 }
 
-// The tip shows once, ever, so it never nags.
-const SEEN = "stached.homeScreenTip";
-const seen = () => {
-  try {
-    return localStorage.getItem(SEEN) !== null;
-  } catch {
-    return true;
-  }
-};
-const markSeen = () => {
-  try {
-    localStorage.setItem(SEEN, "1");
-  } catch {
-    // Private mode: it may show again next visit.
-  }
-};
-
-// A popover sits above the page, out of reach of home's animated layout,
-// so it stays pinned to the bottom.
-const showAsPopover = (tip: HTMLElement | null) => {
-  tip?.showPopover();
-};
-
-// The icons iOS shows for each step, drawn in the text's color.
-const icon = {
-  className: "h-[22px] w-[22px] shrink-0",
-  viewBox: "0 0 24 24",
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 2,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-} as const;
-
-/** Share: a box with an arrow out of the top. */
-const ShareIcon = () => (
-  <svg {...icon} aria-hidden="true">
-    <path d="M12 3v12M8 7l4-4 4 4M8 10H5v11h14V10h-3" />
-  </svg>
-);
-
-/** Add to Home Screen: a plus in a rounded square. */
-const AddIcon = () => (
-  <svg {...icon} aria-hidden="true">
-    <rect x="3.5" y="3.5" width="17" height="17" rx="4" />
-    <path d="M12 8v8M8 12h8" />
-  </svg>
-);
-
 /**
- * "Get Stached on your home screen", once, sliding up from the bottom of a
- * browser tab. On Android its Add button is Chrome's own install prompt, and
- * the app shares Chrome's storage, so you stay signed in. iOS lets no page
- * add itself, so the tip points at Share instead. While it's up, a one-time
- * sign-in code sits in the address the app gets saved with, since iOS keeps
- * the app's storage apart from Safari's.
+ * "Get Stached on your home screen", in a browser tab: on an iPhone, only the
+ * home-screen app gets notifications. On Android its Add button is Chrome's
+ * own install prompt, and the app shares Chrome's storage, so you stay signed
+ * in. iOS lets no page add itself, so the dialog draws the steps instead.
+ * While it's up, a one-time sign-in code sits in the address the app gets
+ * saved with, since iOS keeps the app's storage apart from Safari's. Safari
+ * can't tell whether it's been added, so closed, it asks again in 3 days.
  */
 const HomeScreen = () => {
   const { session } = useStached();
   const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(
     null,
   );
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useAsk(
+    "stached.homeScreenAsked",
+    3,
+    isIOS() || installPrompt !== null,
+  );
 
   useEffect(() => {
     const keep = (event: Event) => {
@@ -109,24 +68,7 @@ const HomeScreen = () => {
     return () => removeEventListener("beforeinstallprompt", keep);
   }, []);
 
-  // A moment after home appears, the first time only. Browsers without
-  // popovers (before iOS 17) go without.
-  useEffect(() => {
-    if (
-      isHomeScreenApp() ||
-      seen() ||
-      !("popover" in HTMLElement.prototype) ||
-      !(isIOS() || installPrompt)
-    )
-      return;
-    const timer = setTimeout(() => {
-      markSeen();
-      setOpen(true);
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, [installPrompt]);
-
-  // On iOS, the sign-in code sits in the address only while the tip is up.
+  // On iOS, the sign-in code sits in the address only while the dialog is up.
   // Closing it, or leaving home, takes the code back out.
   useEffect(() => {
     if (!open || !isIOS()) return;
@@ -144,59 +86,73 @@ const HomeScreen = () => {
     };
   }, [open, session.token]);
 
-  if (!open) return null;
+  const close = () => setOpen(false);
 
   return (
-    <div
-      ref={showAsPopover}
-      popover="manual"
-      role="dialog"
-      aria-label="Get Stached on your home screen"
-      className={styles.tip}
-      data-arrow={isIPhoneSafari() || undefined}
-    >
-      <div className="flex items-center gap-3.5">
-        <img
-          src="/images/stached-icon-v2-180.png"
-          alt=""
-          className={styles.tipIcon}
-        />
-        <p className="flex-1 text-[19px] font-semibold leading-tight [text-wrap:balance]">
-          Get Stached on your home screen
-        </p>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          aria-label="Close"
-          className="-mr-1.5 self-start p-1.5 text-[26px] leading-none opacity-60"
-        >
-          ×
-        </button>
-      </div>
+    <Dialog open={open} onClose={close} title="Get Stached on your home screen">
       {installPrompt ? (
-        <button
-          type="button"
-          onClick={() => {
-            setOpen(false);
-            installPrompt.prompt();
-          }}
-          className={`${styles.button} ${styles.primary} mt-4 w-full`}
-        >
-          Add to home screen
-        </button>
+        <>
+          <div className="flex items-center gap-4">
+            <p className="flex-1 text-[19px] leading-snug">
+              It opens full screen, straight to the game.
+            </p>
+            <HomeScreenApps />
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              close();
+              installPrompt.prompt();
+            }}
+            className={`${styles.button} ${styles.primary} w-full`}
+          >
+            Add to home screen
+          </button>
+        </>
       ) : (
-        <ol className={styles.tipSteps}>
-          <li>
-            <span className={styles.tipStep}>1</span>
-            Tap <ShareIcon /> <strong>Share</strong>
-          </li>
-          <li>
-            <span className={styles.tipStep}>2</span>
-            Tap <AddIcon /> <strong>Add to Home Screen</strong>
-          </li>
-        </ol>
+        <>
+          <p className="text-[19px] leading-snug">
+            It's the only way to get notifications for new games.
+          </p>
+          <ol className={styles.steps}>
+            <li>
+              <span className={styles.stepNumber}>1</span>
+              <p className="flex-1">
+                Tap <strong>Share</strong>
+                {isIPhoneSafari() && (
+                  <span className="mt-0.5 block text-[15px] opacity-60">
+                    In Safari's toolbar, or under ⋯
+                  </span>
+                )}
+              </p>
+              <SafariToolbar />
+            </li>
+            <li>
+              <span className={styles.stepNumber}>2</span>
+              <p className="flex-1">
+                Tap <strong>Add to Home Screen</strong>, then{" "}
+                <strong>Add</strong>
+              </p>
+              <ShareSheet />
+            </li>
+            <li>
+              <span className={styles.stepNumber}>3</span>
+              <p className="flex-1">
+                Open <strong>Stached</strong> from your home screen
+              </p>
+              <HomeScreenApps />
+            </li>
+          </ol>
+        </>
       )}
-    </div>
+      <button
+        type="button"
+        onClick={close}
+        className={`${styles.link} mx-auto block`}
+      >
+        Not now
+      </button>
+    </Dialog>
   );
 };
 
