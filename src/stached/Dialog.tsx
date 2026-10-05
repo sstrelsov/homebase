@@ -14,7 +14,12 @@ const Dialog = ({ open, onClose, title, children }: DialogProps) => {
 
   useEffect(() => {
     const dialog = ref.current;
-    if (open && !dialog?.open) dialog?.showModal();
+    if (open && !dialog?.open) {
+      dialog?.showModal();
+      // The dialog itself, not Close: a dialog that opens on its own would
+      // ring Close as if it had been tabbed to.
+      dialog?.focus();
+    }
     if (!open && dialog?.open) dialog.close();
   }, [open]);
 
@@ -25,11 +30,14 @@ const Dialog = ({ open, onClose, title, children }: DialogProps) => {
       onClose={onClose}
       onClick={(e) => e.target === e.currentTarget && onClose()}
       aria-label={title}
+      tabIndex={-1}
       className={styles.dialog}
     >
       <div className="p-5 space-y-5">
         <header className="flex items-center justify-between gap-4">
-          <h2 className={`${styles.title} text-lg`}>{title}</h2>
+          <h2 className={`${styles.title} text-lg [text-wrap:balance]`}>
+            {title}
+          </h2>
           <button
             type="button"
             onClick={onClose}

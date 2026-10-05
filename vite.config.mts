@@ -64,16 +64,15 @@ export default defineConfig({
         const page = readFileSync(index, "utf8")
           .replace("<head>", `<head>${stached}`)
           .replace(/<title>.*<\/title>/, "<title>Stached</title>")
-          // Its own home-screen app: Gerald's icon, and a manifest scoped to
-          // /stached, so a saved Stached opens full screen on the game.
+          // Its own home-screen app: Gerald's icon, and no manifest yet. The
+          // page links Stached's, scoped to /stached, once it knows whether it
+          // carries a sign-in code: iOS reads only the first a page links
+          // (src/stached/HomeScreen.tsx).
           .replace(
             /<link rel="apple-touch-icon" href="[^"]*" \/>/,
             '<link rel="apple-touch-icon" href="/images/stached-icon-v2-180.png" />',
           )
-          .replace(
-            /<link rel="manifest" href="[^"]*" \/>/,
-            '<link rel="manifest" href="/stached/manifest.json" />',
-          )
+          .replace(/\s*<link rel="manifest" href="[^"]*" \/>/, "")
           // The toolbar and status bar take the page's cream before any JS runs
           .replace(
             /<meta name="theme-color" content="[^"]*" \/>/,

@@ -1,4 +1,4 @@
-// Stached's push notifications. A player turns them on with the bell on home
+// Stached's push notifications. A player turns them on from home
 // (src/stached/push.ts), and each browser's subscription is kept, tied to
 // that player, until its push service says it's gone (the app was deleted,
 // say). There's no off switch in Stached; iOS Settings has one.
@@ -107,7 +107,7 @@ const TTL = 12 * 3600;
 /**
  * The puzzle as the title (iOS adds "from Stached" under it, and fills in an
  * empty title with "Stached"), then the puzzle's own line, or a random one
- * from the crawl on home. Tapping it opens home, not the game, so the clock
+ * of the quotes on home. Tapping it opens home, not the game, so the clock
  * waits for Play (public/stached/sw.js).
  */
 export const notification = (number: number, push?: string | null) => ({
