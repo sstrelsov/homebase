@@ -52,23 +52,24 @@ const MarkupIcon = () => (
   </svg>
 );
 
-/** Add to Bookmarks: a bookmark ribbon. */
-const BookmarkIcon = () => (
+/** Bookmarks: an open book. */
+const BookIcon = () => (
   <svg {...stroke} aria-hidden="true">
-    <path d="M6 3h12v18l-6-5-6 5z" />
+    <path d="M12 6.5C10 5 7 4.5 3.5 5v14c3.5-.5 6.5 0 8.5 1.5 2-1.5 5-2 8.5-1.5V5C17 4.5 14 5 12 6.5zM12 6.5v14" />
   </svg>
 );
 
-const BackIcon = () => (
+/** Tabs: two squares, one over the other. */
+const TabsIcon = () => (
   <svg {...stroke} aria-hidden="true">
-    <path d="M15 5l-7 7 7 7" />
+    <rect x="8" y="8" width="13" height="13" rx="2.5" />
+    <path d="M4 16V6a2 2 0 0 1 2-2h10" />
   </svg>
 );
 
-/** More: three dots. */
-const MoreIcon = () => (
+const Chevron = ({ back }: { back?: boolean }) => (
   <svg {...stroke} aria-hidden="true">
-    <path d="M5 12h.01M12 12h.01M19 12h.01" strokeWidth={3.5} />
+    <path d={back ? "M15 5l-7 7 7 7" : "M9 5l7 7-7 7"} />
   </svg>
 );
 
@@ -106,28 +107,20 @@ export const LockScreen = ({ number }: { number: number }) => (
   </div>
 );
 
-/**
- * Safari's bar as iOS 26 draws it (back, the address, and ⋯), with ⋯'s menu
- * open above it and Share ringed.
- */
-export const SafariMenu = () => (
-  <div role="img" aria-label="Safari's ⋯ menu, with Share" className={x.step}>
-    <div className={x.menu}>
-      <p className={`${x.row} ${x.lit}`}>
-        <ShareIcon /> Share
-      </p>
-      <p className={x.row}>
-        <BookmarkIcon /> Add to Bookmarks
-      </p>
-    </div>
-    <div className={x.bar}>
-      <span className={x.barButton}>
-        <BackIcon />
-      </span>
-      <span className={x.barAddress}>spencerstrelsov.com</span>
-      <span className={x.barButton}>
-        <MoreIcon />
-      </span>
+/** Safari's toolbar, with Share ringed. */
+export const SafariToolbar = () => (
+  <div role="img" aria-label="Safari's toolbar" className={x.step}>
+    <div className={x.toolbar}>
+      <p className={x.address}>spencerstrelsov.com</p>
+      <div className={x.toolbarIcons}>
+        <Chevron back />
+        <Chevron />
+        <span className={x.lit}>
+          <ShareIcon />
+        </span>
+        <BookIcon />
+        <TabsIcon />
+      </div>
     </div>
   </div>
 );

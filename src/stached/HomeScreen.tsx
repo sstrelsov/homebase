@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import { due, useAsk } from "./ask";
 import Dialog from "./Dialog";
-import { HomeScreenApps, SafariMenu, ShareSheet } from "./IPhone";
+import { HomeScreenApps, SafariToolbar, ShareSheet } from "./IPhone";
 import { useStached } from "./session";
 import styles from "./stached.module.css";
 
@@ -15,11 +15,6 @@ export const isHomeScreenApp = () =>
 const isIOS = () =>
   /iPhone|iPad/.test(navigator.userAgent) ||
   (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1);
-
-// Safari on an iPhone, where Share is under ⋯ (iOS 26) or in the toolbar.
-const isIPhoneSafari = () =>
-  /iPhone/.test(navigator.userAgent) &&
-  !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent);
 
 const HANDOFF = "handoff";
 
@@ -167,14 +162,9 @@ const HomeScreen = () => {
             <li>
               <span className={styles.stepNumber}>1</span>
               <p className="flex-1">
-                Tap <strong>⋯</strong>, then <strong>Share</strong>
-                {isIPhoneSafari() && (
-                  <span className="mt-0.5 block text-[15px] opacity-60">
-                    Or Share, if it's in Safari's toolbar
-                  </span>
-                )}
+                Tap <strong>Share</strong>
               </p>
-              <SafariMenu />
+              <SafariToolbar />
             </li>
             <li>
               <span className={styles.stepNumber}>2</span>
@@ -183,13 +173,6 @@ const HomeScreen = () => {
                 <strong>Add to Home Screen</strong>
               </p>
               <ShareSheet />
-            </li>
-            <li>
-              <span className={styles.stepNumber}>3</span>
-              <p className="flex-1">
-                Tap <strong>Add</strong>, then open <strong>Stached</strong>
-              </p>
-              <HomeScreenApps />
             </li>
           </ol>
         </>

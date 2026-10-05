@@ -124,55 +124,39 @@
   flex: none;
 }
 
-/* Safari's bar as iOS 26 draws it: back, the address and ⋯, each a pill of
-   glass floating over the page */
-.bar {
+/* Safari's toolbar: the address, then back, forward, Share, bookmarks, tabs */
+.toolbar {
+  composes: glass;
   position: absolute;
-  inset: auto 6px 6px;
+  inset: auto 0 0;
   display: flex;
-  gap: 4px;
-  height: 24px;
+  flex-direction: column;
+  gap: 7px;
+  padding: 7px 8px 9px;
 }
 
-.barButton,
-.barAddress {
-  composes: glass;
+.address {
+  padding: 3px 0;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--glass-ink) 9%, transparent);
+  font-size: 9.5px;
+  text-align: center;
+}
+
+.toolbarIcons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+  color: var(--tint);
+}
+
+.toolbarIcons .lit {
   display: grid;
-  place-items: center;
-  border-radius: 999px;
+  border-radius: 6px;
 }
 
-.barButton {
-  width: 24px;
-  flex: none;
-}
-
-.barButton .icon {
-  width: 13px;
-  height: 13px;
-}
-
-.barAddress {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  padding: 0 6px;
-  font-size: 8px;
-  white-space: nowrap;
-}
-
-/* ⋯'s menu, open above it */
-.menu {
-  composes: glass;
-  position: absolute;
-  right: 6px;
-  bottom: 34px;
-  width: 104px;
-  padding: 3px;
-  border-radius: 10px;
-}
-
-/* A row of a menu: its icon, then its name */
+/* A row of the share menu: its icon, then its name */
 .row {
   display: flex;
   align-items: center;

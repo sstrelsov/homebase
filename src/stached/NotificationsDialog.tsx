@@ -10,8 +10,8 @@ interface NotificationsDialogProps extends ReturnType<typeof useNotifications> {
 }
 
 /**
- * "Please turn on notifications for new games!", in the home-screen app,
- * over a picture of the push. Its button is the tap iOS needs before it asks.
+ * "Notifications: please turn on notifications for new games!", in the
+ * home-screen app, over a picture of the push. Its button is the tap iOS needs before it asks.
  * Once they're on, or after "Don't Allow", it never shows again; closed, it
  * asks again the next day.
  */
@@ -27,8 +27,11 @@ const NotificationsDialog = ({
     <Dialog
       open={open && offer}
       onClose={() => setOpen(false)}
-      title="Please turn on notifications for new games!"
+      title="Notifications"
     >
+      <p className="text-[19px] leading-snug">
+        Please turn on notifications for new games!
+      </p>
       <LockScreen number={number} />
       <button
         type="button"
