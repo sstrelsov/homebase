@@ -106,39 +106,19 @@ export function useNotifications() {
   return { bell, busy, turnOn };
 }
 
-// A tap on the push (public/stached/sw.js) is remembered for this app
-// session, so a game started from it can say so on the admin page.
-const TAP = "stached.pushTap";
+// A tap on the push is remembered by the service worker (public/stached/sw.js)
+// in Cache Storage, which this page shares, so a game started from it can say
+// so on the admin page however iOS brought the app forward.
+const TAPS = "stached-push-tap";
 // How long after the tap starting the puzzle still counts as from it.
 const TAP_LASTS_MS = 30 * 60_000;
 
-/** Remembers a tap on that puzzle's push. */
-export function notePushTap(date: string) {
-  try {
-    sessionStorage.setItem(TAP, JSON.stringify({ date, at: Date.now() }));
-  } catch {
-    // Private mode: the game just won't say it came from the push.
-  }
-}
-
-/**
- * A tap that opens Stached fresh lands on /stached?push=<date>: remembers it,
- * and clears it from the address.
- */
-export function notePushTapInAddress() {
-  const url = new URL(location.href);
-  const date = url.searchParams.get("push");
-  if (!date) return;
-  notePushTap(date);
-  url.searchParams.delete("push");
-  history.replaceState(history.state, "", url);
-}
-
 /** Whether starting this puzzle now comes from tapping its push. */
-export function fromPushTap(date: string) {
+export async function fromPushTap(date: string) {
   try {
-    const tap = JSON.parse(sessionStorage.getItem(TAP) ?? "null");
-    return tap?.date === date && Date.now() - tap.at < TAP_LASTS_MS;
+    const tap = await caches.match("/stached/push-tap", { cacheName: TAPS });
+    const { date: tapped, at } = tap ? await tap.json() : {};
+    return tapped === date && Date.now() - at < TAP_LASTS_MS;
   } catch {
     return false;
   }

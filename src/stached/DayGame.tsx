@@ -17,11 +17,11 @@ const DayGame = () => {
   const { date } = useParams({ from: "/stached/$date" });
   const { session, openRules } = useStached();
   const start = useCallback(
-    (token: string) =>
+    async (token: string) =>
       api.start(token, date, {
         homeScreen: isHomeScreenApp(),
         dark: matchMedia("(prefers-color-scheme: dark)").matches,
-        fromPush: fromPushTap(date),
+        fromPush: await fromPushTap(date),
       }),
     [date],
   );
