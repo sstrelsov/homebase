@@ -112,9 +112,14 @@
   font-size: 13px;
 }
 
+/* iOS shows about three lines of it */
 .noticeBody {
   margin-top: 2px;
+  overflow: hidden;
   font-size: 15px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
 }
 
 /* A step's picture, beside its words */
