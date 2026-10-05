@@ -1,0 +1,273 @@
+/* Simplified drawings of an iPhone, for home's dialogs (IPhone.tsx): a lock
+   screen, Safari's toolbar and share sheet, and a home screen. The phone's
+   parts are Apple's, so they keep Apple's glass and type, dark or light with
+   the look, on a wallpaper of the logo's bands. What to tap is ringed in the
+   game's accent. */
+.phone {
+  --glass: rgba(30, 30, 30, 0.78);
+  --glass-ink: #fff;
+  --glass-muted: rgba(235, 235, 245, 0.6);
+  --glass-line: rgba(235, 235, 245, 0.16);
+  --tint: #0a84ff;
+
+  position: relative;
+  overflow: hidden;
+  border-radius: 14px;
+  background: linear-gradient(
+    160deg,
+    var(--c4) 0 22%,
+    var(--c3) 0 44%,
+    var(--c2) 0 66%,
+    var(--c1) 0
+  );
+  color: #fff;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  font-weight: 400;
+  line-height: 1.25;
+  text-transform: none;
+  /* The drawings are pictures: nothing in them is a link or a button. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+[data-look="light"] .phone {
+  --glass: rgba(246, 246, 246, 0.82);
+  --glass-ink: #000;
+  --glass-muted: rgba(60, 60, 67, 0.62);
+  --glass-line: rgba(60, 60, 67, 0.16);
+  --tint: #007aff;
+}
+
+.glass {
+  background: var(--glass);
+  color: var(--glass-ink);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* What to tap */
+.lit {
+  border-radius: 6px;
+  box-shadow:
+    0 0 0 2px var(--glass),
+    0 0 0 4.5px var(--accent);
+}
+
+.icon {
+  width: 17px;
+  height: 17px;
+  flex: none;
+}
+
+/* The lock screen, as the push lands */
+.lock {
+  composes: phone;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 10px 11px;
+  border-radius: 22px;
+  text-align: center;
+}
+
+.lockDay {
+  font-size: 14px;
+  font-weight: 600;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+}
+
+.lockTime {
+  margin: -2px 0 10px;
+  font-size: 54px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
+}
+
+.notice {
+  composes: glass;
+  display: flex;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 18px;
+  text-align: left;
+}
+
+.noticeIcon {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 9px;
+}
+
+.notice strong {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.noticeMuted {
+  flex: none;
+  color: var(--glass-muted);
+  font-size: 13px;
+}
+
+.noticeBody {
+  margin-top: 2px;
+  font-size: 15px;
+}
+
+/* A step's picture, beside its words */
+.step {
+  composes: phone;
+  width: 136px;
+  height: 80px;
+  flex: none;
+}
+
+/* Safari's toolbar: the address, then back, forward, Share, bookmarks, tabs */
+.toolbar {
+  composes: glass;
+  position: absolute;
+  inset: auto 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 7px 8px 9px;
+}
+
+.address {
+  padding: 3px 0;
+  border-radius: 7px;
+  background: color-mix(in srgb, var(--glass-ink) 9%, transparent);
+  font-size: 9.5px;
+  text-align: center;
+}
+
+.toolbarIcons {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+  color: var(--tint);
+}
+
+.toolbarIcons .lit {
+  display: grid;
+}
+
+/* Safari's bar as iOS 26 draws it: back, the address and ⋯, each a pill of
+   glass floating over the page */
+.bar {
+  position: absolute;
+  inset: auto 6px 6px;
+  display: flex;
+  gap: 4px;
+  height: 24px;
+}
+
+.barButton,
+.barAddress {
+  composes: glass;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+}
+
+.barButton {
+  width: 24px;
+  flex: none;
+}
+
+.barButton .icon {
+  width: 13px;
+  height: 13px;
+}
+
+.barAddress {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  padding: 0 6px;
+  font-size: 8px;
+  white-space: nowrap;
+}
+
+/* ⋯'s menu, open above it */
+.menu {
+  composes: glass;
+  position: absolute;
+  right: 6px;
+  bottom: 34px;
+  width: 104px;
+  padding: 3px;
+  border-radius: 10px;
+}
+
+/* A row of a menu: its icon, then its name */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 22px;
+  padding: 0 5px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.row .icon {
+  width: 13px;
+  height: 13px;
+}
+
+/* ⋯'s menu has smaller rows than the share menu */
+.menu .row {
+  height: 18px;
+  font-size: 8.5px;
+}
+
+.menu .row .icon {
+  width: 11px;
+  height: 11px;
+}
+
+/* The share menu's list, after View More: a few rows, the middle one ringed */
+.sheet {
+  composes: glass;
+  position: absolute;
+  inset: 12px 6px auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 12px;
+}
+
+/* A home screen: two rows of apps, Stached among them */
+.apps {
+  display: grid;
+  grid-template-columns: repeat(4, 22px);
+  justify-content: space-evenly;
+  align-content: center;
+  row-gap: 8px;
+  height: 100%;
+  padding-top: 4px;
+}
+
+.app {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* Stached's name under its icon, wider than the icon */
+.appName {
+  display: block;
+  margin: 3px -10px 0;
+  font-size: 8px;
+  font-weight: 600;
+  text-align: center;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}

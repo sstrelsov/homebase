@@ -8,9 +8,10 @@ import {
   type Today,
   weekday,
 } from "./api";
-import HomeScreen from "./HomeScreen";
+import HomeScreen, { isHomeScreenApp } from "./HomeScreen";
 import { Square } from "./Leaderboard";
 import Logo from "./Logo";
+import NotificationsDialog from "./NotificationsDialog";
 import { useNotifications } from "./push";
 import Quotes from "./Quotes";
 import { Retry } from "./Screen";
@@ -29,9 +30,6 @@ function status({ play }: Day) {
 
 // The logo powers on once per visit, not every time you come back home.
 let introShown = false;
-
-/** The small links below the big buttons. */
-const link = `${styles.display} ${styles.stacheText} text-[13px]`;
 
 type WeekDay = Today["week"][number];
 
@@ -146,7 +144,7 @@ const SlidersIcon = () => (
   </svg>
 );
 
-/** A bell, ringing: drawn in the text's color, like the home-screen tip's. */
+/** A bell, ringing: drawn in the text's color. */
 const BellIcon = () => (
   <svg
     viewBox="0 0 24 24"
@@ -170,6 +168,7 @@ const Home = () => {
   const { session, openRules } = useStached();
   const { data: today, error, load, fail } = useLoad(api.today);
   const notifications = useNotifications();
+  const [app] = useState(isHomeScreenApp);
   const [intro] = useState(() => !introShown);
 
   useEffect(() => {
@@ -207,8 +206,9 @@ const Home = () => {
         </p>
       </div>
       <div className={`${rise} flex gap-3`} style={{ animationDelay: "1.3s" }}>
-        {/* Until notifications are on: iOS asks only right after a tap. */}
-        {notifications.bell && (
+        {/* In a browser tab that can get pushes (desktop Chrome, Android),
+            until they're on. The home-screen app asks in a dialog instead. */}
+        {notifications.offer && !app && (
           <button
             type="button"
             onClick={notifications.turnOn}
@@ -244,13 +244,24 @@ const Home = () => {
           note && <p className={styles.label}>{note}</p>
         )}
         {session.admin && (
-          <Link to="/stached/admin" className={link}>
+          <Link to="/stached/admin" className={styles.link}>
             Admin
           </Link>
         )}
-        <HomeScreen />
       </div>
       <Quotes className={rise} style={{ animationDelay: "1.6s" }} />
+      {/* One asks in a browser tab, the other in the home-screen app, so
+          they never stack. */}
+      {app ? (
+        today && (
+          <NotificationsDialog
+            {...notifications}
+            number={today.puzzle.number + 1}
+          />
+        )
+      ) : (
+        <HomeScreen />
+      )}
     </div>
   );
 };

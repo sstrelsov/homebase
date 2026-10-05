@@ -131,14 +131,14 @@ To move a puzzle to another date: stage it on the new date, confirm, then
 the throwaway copy: `STACHED_ENV=.phone/api.env scripts/stached list`. There,
 a puzzle's push goes out as soon as it's live (no waiting for 9:12). To see one
 on a phone, run `make phone-preview` (only a build serves the home-screen app),
-add its `/stached/` to the home screen, open it, tap the bell, then stage and
-confirm a made-up puzzle dated today.
+add its `/stached/` to the home screen, open it, turn on notifications when it
+asks, then stage and confirm a made-up puzzle dated today.
 
 ## Troubleshooting
 
 | Symptom | Look at |
 |---|---|
 | `list` says `any minute` for long | Is the API up (`https://api.spencerstrelsov.com/health`)? Without VAPID keys in `api.env` it logs "Push notifications are off" at start |
-| `sent`, but a phone got nothing | The API log's `Announced #N: … sent, … gone, … failed` line. "gone" means that subscription was dropped (the app was deleted, say); its owner taps the bell again. Notifications only reach the home-screen app, and only after its bell was tapped and allowed |
+| `sent`, but a phone got nothing | The API log's `Announced #N: … sent, … gone, … failed` line. "gone" means that subscription was dropped (the app was deleted, say); its owner turns them on again. Notifications only reach the home-screen app, and only once they're turned on there and allowed |
 | `preview` didn't start | It prints the end of its log (`stached-preview.log` in the Studio's temp folder). Usually port 8443 or 3998 is taken, or `tailscale serve` was refused |
 | `stage` complains | It lists every problem at once; fix them all and stage again |

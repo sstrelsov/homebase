@@ -1,4 +1,4 @@
-// Stached's push notifications. A player turns them on with the bell on home
+// Stached's push notifications. A player turns them on from home
 // (src/stached/push.ts), and each browser's subscription is kept, tied to
 // that player, until its push service says it's gone (the app was deleted,
 // say). There's no off switch in Stached; iOS Settings has one.
