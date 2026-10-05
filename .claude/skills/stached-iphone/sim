@@ -1,0 +1,38 @@
+#!/bin/bash
+# An iPhone in the iOS Simulator on the Mac Studio, driven from this Mac over
+# SSH with WebDriverAgent. See SKILL.md next to this file.
+#
+#   sim up              make the iPhone (once), boot it, start WebDriverAgent
+#   sim flow [url]      the whole Stached flow (default: the tester), a checked
+#                       screenshot per step, pulled to ./sim-shots
+#   sim w <command...>  one step: labels, tap X Y, click LABEL, type TEXT,
+#                       shot NAME, alert [text|accept|dismiss], home, addr
+#   sim pull [dir]      copy the Studio's screenshots here (default ./sim-shots)
+#   sim erase           wipe the iPhone: fresh Safari, no home-screen apps
+#   sim down            stop WebDriverAgent and shut the iPhone down
+#   sim delete          delete the iPhone and everything this made on the Studio
+set -euo pipefail
+
+STUDIO=nxb-studio
+DIR=/tmp/stached-sim
+HERE=$(cd "$(dirname "$0")" && pwd)
+
+# ssh nxb-studio always exits 0, so the Studio's scripts print what happened.
+on_studio() { ssh "$STUDIO" "cd $DIR && $*"; }
+sync() { tar cf - -C "$HERE/studio" . | ssh "$STUDIO" "mkdir -p $DIR/shots && tar xf - -C $DIR"; }
+pull() {
+  mkdir -p "${1:-sim-shots}"
+  ssh "$STUDIO" "cd $DIR/shots && tar cf - *.png 2>/dev/null" | tar xf - -C "${1:-sim-shots}"
+  echo "screenshots in ${1:-sim-shots}/"
+}
+
+case "${1:-}" in
+  up) sync; on_studio ./up.sh ;;
+  flow) sync; on_studio ./up.sh; on_studio "./flow.sh ${2:-}"; pull ;;
+  w) shift; on_studio "python3 w.py $(printf '%q ' "$@")" ;;
+  pull) pull "${2:-}" ;;
+  erase) sync; on_studio "./down.sh && ./up.sh erase" ;;
+  down) on_studio ./down.sh ;;
+  delete) on_studio "./down.sh delete"; ssh "$STUDIO" "rm -rf $DIR" ;;
+  *) sed -n '2,15p' "$0"; exit 1 ;;
+esac

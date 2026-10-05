@@ -59,6 +59,7 @@ Unlisted Connections-style game with a stache group and a leaderboard. **[`stach
 - Each run makes its own push keys and writes its settings to `.phone/api.env`, so the puzzle CLI can drive it: `STACHED_ENV=.phone/api.env scripts/stached confirm`. Pushes go out as soon as a puzzle is live, with no wait for 9:12. To get them on a phone, run `make phone-preview` (the dev server doesn't serve the home-screen app's manifest), add its `/stached/` to the home screen, open it, and turn on notifications when it asks. It's a separate app from the real one.
 - The script only touches Serve port 8443 and refuses to start if something else already uses it. Other Serve entries on this Mac belong to other projects; leave them alone.
 - Needs `bun`, `node`, `tailscale`, and Homebrew's `postgresql@17` (`initdb`, `pg_ctl`, `createdb`).
+- To try iOS without a phone, the [`stached-iphone`](.claude/skills/stached-iphone/SKILL.md) skill drives an iPhone in the Studio's iOS Simulator through Safari, Add to Home Screen and the home-screen app, with a screenshot of every step.
 - On the Studio, the live Stached API has port 3999: run `STACHED_API_PORT=3998 make phone` (or `phone-preview`). The script refuses to start if the API port is taken, since Vite would otherwise send `/stached-api` to the live API. Never stop or touch the live API, its Postgres, or its LaunchDaemons.
 
 ### The tester (`make tester`)
