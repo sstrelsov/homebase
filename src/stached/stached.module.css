@@ -30,19 +30,18 @@
   --c3: #ff3b2f;
   --c4: #3d5bff;
   --tile: #110e14;
-  /* Dialogs and the home-screen tip */
+  /* Dialogs */
   --panel: #0a0908;
   /* Phosphor glow: the light around type, tiles and buttons */
   --glow: 0 0 2px rgba(255, 241, 201, 0.7), 0 0 14px rgba(255, 196, 90, 0.55);
   --glow-gold: var(--gold);
   --glow-cream: var(--ink);
   /* The old TV's columns (a dark line, then a light one for dark surfaces)
-     and dim corners, and the shade behind dialogs and the home-screen tip */
+     and dim corners, and the shade behind dialogs */
   --crt-line: rgba(0, 0, 0, 0.24);
   --crt-glint: transparent;
   --crt-edge: rgba(0, 0, 0, 0.6);
   --scrim: rgba(0, 0, 0, 0.72);
-  --scrim-tip: rgba(0, 0, 0, 0.85);
 
   position: relative;
   /* The whole screen, with the browser's toolbar space, so it runs under it */
@@ -74,7 +73,6 @@
   --crt-glint: rgba(255, 246, 225, 0.12);
   --crt-edge: rgba(110, 70, 20, 0.2);
   --scrim: color-mix(in srgb, var(--ink) 45%, transparent);
-  --scrim-tip: var(--scrim);
 }
 
 /* Group colors, set on anything with data-color */
@@ -154,6 +152,12 @@
 .stacheText {
   color: var(--accent);
   text-shadow: 0 0 12px color-mix(in srgb, var(--glow-gold) 60%, transparent);
+}
+
+/* Small gold links, like home's Rules and Past games */
+.link {
+  composes: display stacheText;
+  font-size: 13px;
 }
 
 .alert {
@@ -622,6 +626,7 @@
   font-family: var(--text);
   font-weight: 500;
   box-shadow: 0 0 32px color-mix(in srgb, var(--glow-gold) 30%, transparent);
+  outline: none;
   overscroll-behavior: contain;
 }
 
@@ -640,78 +645,30 @@
   }
 }
 
-/* "Get Stached on your home screen": an install card that slides up over
-   the browser's toolbar, pointing down at Safari's Share on an iPhone */
-.tip {
-  inset: auto 12px calc(12px + env(safe-area-inset-bottom));
-  width: auto;
-  max-width: 440px;
-  margin: 0 auto;
-  overflow: visible;
-  padding: 16px 16px 18px;
-  border: 2px solid var(--accent);
-  border-radius: 18px;
-  background: var(--panel);
-  color: var(--ink);
-  text-align: left;
-  box-shadow: 0 0 32px color-mix(in srgb, var(--glow-gold) 28%, transparent);
-  animation: tip-in 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.15);
-}
-
-/* A dark fade up from the bottom, so the card stands clear of the page */
-.tip::backdrop {
-  background: linear-gradient(to top, var(--scrim-tip), transparent 45%);
-  pointer-events: none;
-}
-
-.tip[data-arrow]::after {
-  content: "";
-  position: absolute;
-  bottom: -9px;
-  left: 50%;
-  width: 14px;
-  height: 14px;
-  translate: -50% 0;
-  rotate: 45deg;
-  border-right: 2px solid var(--accent);
-  border-bottom: 2px solid var(--accent);
-  background: var(--panel);
-}
-
-.tipIcon {
-  width: 52px;
-  height: 52px;
-  flex: none;
-  border-radius: 12px;
-  box-shadow: 0 0 0 1px var(--line);
-}
-
-.tipSteps {
+/* "Get Stached on your home screen": each step in words, then a picture */
+.steps {
   display: grid;
-  gap: 12px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--line);
+  gap: 16px;
   font-size: 17px;
+  line-height: 1.25;
 }
 
-.tipSteps li {
+.steps li {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: 10px;
 }
 
-.tipSteps strong {
+.steps strong {
   font-weight: 600;
 }
 
-.tipStep {
+.stepNumber {
   display: grid;
   width: 24px;
   height: 24px;
   flex: none;
   place-items: center;
-  margin-right: 3px;
   border-radius: 50%;
   background: var(--gold);
   color: var(--on-gold);
@@ -719,12 +676,6 @@
   font-size: 13px;
   font-style: italic;
   font-weight: 800;
-}
-
-@keyframes tip-in {
-  from {
-    translate: 0 calc(100% + 40px);
-  }
 }
 
 .swatch {
@@ -975,7 +926,6 @@
   .life[data-lost],
   .dialog[open],
   .toast,
-  .tip,
   .shake {
     animation: none;
   }

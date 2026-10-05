@@ -4,6 +4,7 @@ import { api, loadSession, type Session, saveSession } from "../stached/api";
 import {
   handoffCode,
   isHomeScreenApp,
+  linkManifestUnlessAsking,
   setHandoffCode,
 } from "../stached/HomeScreen";
 import Login from "../stached/Login";
@@ -54,6 +55,9 @@ const StachedPage = () => {
       .catch(() => {})
       .finally(() => setRedeeming(false));
   }, [code, redeeming, signIn]);
+
+  // Stached's manifest, so any of its pages saves as the home-screen app.
+  useEffect(() => linkManifestUnlessAsking(), []);
 
   // While Stached is open, its color fills the strips around the page: Safari
   // paints those behind the status bar and toolbar from the document's
