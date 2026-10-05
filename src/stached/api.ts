@@ -119,8 +119,8 @@ export interface AdminStats {
 
 /**
  * How a game starts, for the admin page: in the home-screen app or the
- * website, whether the device is set to dark mode (Stached itself is light for
- * everyone), and whether it's from tapping the puzzle's push.
+ * website, whether the device is set to dark mode (its own setting, not
+ * Stached's look), and whether it's from tapping the puzzle's push.
  */
 export interface HowStarted {
   homeScreen: boolean;

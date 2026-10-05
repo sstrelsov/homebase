@@ -16,6 +16,10 @@ const puzzleTitle = ({ number, date }: AdminPuzzle) =>
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
+/** The parts that apply, between dots. */
+const dotted = (...parts: (string | false)[]) =>
+  parts.filter(Boolean).join(" · ");
+
 /** Solved first, then by fewest mistakes; late games last. */
 const byResult = (a: AdminGame, b: AdminGame) =>
   Number(a.late) - Number(b.late) ||
@@ -112,11 +116,8 @@ const Admin = () => {
         ...(players.get(game.name) ?? []),
         { puzzle, game },
       ]);
-  // Everyone with a finished game, or a game in the home-screen app.
+  const names = [...players.keys()].sort((a, b) => a.localeCompare(b));
   const homeScreen = new Set(stats?.homeScreen);
-  const names = [...new Set([...players.keys(), ...homeScreen])].sort((a, b) =>
-    a.localeCompare(b),
-  );
 
   return (
     <Screen title="Admin" error={error} onRetry={load}>
@@ -147,7 +148,13 @@ const Admin = () => {
               <Row
                 key={puzzle.date}
                 title={puzzleTitle(puzzle)}
-                detail={`${puzzle.played} played · ${puzzle.solved} solved${puzzle.late > 0 ? ` · ${puzzle.late} late` : ""}${puzzle.fromPush > 0 ? ` · ${puzzle.fromPush} from the notification` : ""}`}
+                detail={dotted(
+                  `${puzzle.played} played`,
+                  `${puzzle.solved} solved`,
+                  puzzle.late > 0 && `${puzzle.late} late`,
+                  puzzle.fromPush > 0 &&
+                    `${puzzle.fromPush} from the notification`,
+                )}
               >
                 {[...puzzle.games].sort(byResult).map((game) => (
                   <GameLine key={game.name} title={game.name} game={game} />
@@ -164,7 +171,11 @@ const Admin = () => {
                 <Row
                   key={name}
                   title={name}
-                  detail={`${plural(games.length, "game")} · ${games.filter(({ game }) => game.completed).length} solved${homeScreen.has(name) ? " · Home screen" : ""}`}
+                  detail={dotted(
+                    plural(games.length, "game"),
+                    `${games.filter(({ game }) => game.completed).length} solved`,
+                    homeScreen.has(name) && "Home screen",
+                  )}
                 >
                   {games.map(({ puzzle, game }) => (
                     <GameLine
