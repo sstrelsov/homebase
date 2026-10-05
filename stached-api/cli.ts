@@ -36,6 +36,7 @@ const USAGE = `Stage, play and publish Stached puzzles.
   stached confirm            publish what's staged
   stached remove <date>      take a published puzzle down
   stached vapid-keys         make the API's push keys, for api.env
+  stached push-again         send today's push again (the tester only)
 
 Changing or removing a puzzle people have played deletes their games, so
 confirm and remove refuse to unless you add --delete-games.`;
@@ -453,6 +454,25 @@ async function remove(date: string | undefined, deleteGames: boolean) {
   console.log(`Removed ${day(date)} (${date}).`);
 }
 
+/**
+ * The tester only (STACHED_TESTER, scripts/tester.sh): forgets that today's
+ * push went out, so the tester's API sends it again within a minute, to try a
+ * tap as often as you like. Never on the live game.
+ */
+async function pushAgain() {
+  if (!process.env.STACHED_TESTER)
+    throw new Stop(
+      "push-again is for the tester only: scripts/stached --tester push-again",
+    );
+  const date = today();
+  if (!(await readPuzzles(puzzlesFile())).some((p) => p.date === date))
+    throw new Stop(
+      `No puzzle for today (${date}) on the tester: stage and confirm one first.`,
+    );
+  await sql`delete from announcements where date = ${date}`;
+  console.log("Today's push goes out again within a minute.");
+}
+
 async function vapidKeys() {
   const { publicKey, privateKey } = await generateVapidKeys();
   console.log(`VAPID_PUBLIC_KEY=${publicKey}\nVAPID_PRIVATE_KEY=${privateKey}`);
@@ -469,6 +489,7 @@ if (import.meta.main) {
     else if (command === "confirm") await confirm(deleteGames);
     else if (command === "remove") await remove(arg, deleteGames);
     else if (command === "vapid-keys") await vapidKeys();
+    else if (command === "push-again") await pushAgain();
     else console.log(USAGE);
   } catch (error) {
     if (!(error instanceof Stop)) throw error;

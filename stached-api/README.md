@@ -150,7 +150,7 @@ scripts/stached list               # every puzzle: status, games, push
 | `list` | Every puzzle with its number, status (out, today, upcoming, staged), games, and push (sent, none, or when) |
 | `vapid-keys` | Prints a new push key pair (Push keys, above) |
 
-`confirm` and `remove` won't change or remove a puzzle anyone has played: they name it and its games, and stop. Add `--delete-games` to go ahead. A puzzle nobody has played can change freely. With `STACHED_ENV=.phone/api.env`, the CLI drives a `make phone` run instead of the live game.
+`confirm` and `remove` won't change or remove a puzzle anyone has played: they name it and its games, and stop. Add `--delete-games` to go ahead. A puzzle nobody has played can change freely. With `STACHED_ENV=.phone/api.env`, the CLI drives a `make phone` run instead of the live game, and with `--tester` first (`scripts/stached --tester list`), the tester (The tester, below).
 
 ## Local development
 
@@ -176,10 +176,22 @@ The API reads its settings from the environment (on the Studio, `~/.config/stach
 | `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | the push key pair (Push keys, above). Without them, push is off |
 | `ANNOUNCE_AT` | when a puzzle's push goes out on its date, New York time: default `09:12` |
 | `ADMIN_NAME`, `ADMIN_PASSWORD` | the admin's name and their own password (Admin page, above). Set both or neither |
+| `STACHED_TESTER` | set on the tester only (The tester, below), where it lets the puzzle CLI's `push-again` send today's push again |
 
 The site calls `https://api.spencerstrelsov.com` in production and `/stached-api` in dev; `VITE_STACHED_API` overrides either.
 
 Checks: `bun run lint` (Biome, for the site and the API), `bun run build`, and `cd stached-api && bunx tsc && bun test`.
+
+## The tester
+
+`make tester` deploys the branch you're on, as it is on GitHub (`BRANCH=…` for another), to the tester: an always-on copy of Stached on the Studio, at `https://studio.<tailnet>.ts.net:8444/stached/` on your tailnet (it prints the address). Unlike `make phone`, it keeps its database, push keys and puzzles between deploys, so the home-screen app you add from it once stays signed in, keeps notifications on, and keeps its games. Try a change on your phone there before it ships.
+
+- **Once:** open it on your phone (Tailscale on, password `test`), add it to the home screen, open the app and tap the bell. It's a separate app from the real one. Play as any name but `admin`, since the admin's own games stay off the admin page, and open the admin page (name `admin`, password `admin`) somewhere else, like this Mac.
+- **Each change:** push the branch, `make tester`, and try it. The API applies the branch's new migrations as it starts. The tester's database keeps every migration it has run, even from a branch that never merges; reset it (below) if one gets in the way.
+- **Pushes:** the tester pushes as soon as today's puzzle is live (`ANNOUNCE_AT=00:00`). Stage and confirm one with `scripts/stached --tester` (the same commands, on the tester's own puzzles and checkout), and `scripts/stached --tester push-again` sends today's push again within a minute, to try a tap as often as you like.
+- **Where it lives:** its own clone at `~/dev/homebase-tester`, detached at the branch; its settings, puzzles, Postgres and logs in `~/.config/stached-tester/`; its API and site in the tmux sessions `stached-tester-api` and `stached-tester-web`, on ports 3997 and 5197 behind Tailscale Serve's `:8444`, with Postgres on 5497. None of it touches the live game.
+- **After the Studio restarts,** run `make tester` again: tmux and the tester's Postgres don't start at boot.
+- **To stop or reset it:** `ssh personal-studio 'tmux kill-session -t stached-tester-api; tmux kill-session -t stached-tester-web; /opt/homebrew/opt/postgresql@17/bin/pg_ctl -D ~/.config/stached-tester/pg stop; /opt/homebrew/bin/tailscale serve --https=8444 off'` stops it. To start over, then delete `~/.config/stached-tester` there and run `make tester`: new push keys mean tapping the bell again.
 
 ## Deploying
 

@@ -3,9 +3,13 @@
 # is stached-api/cli.ts). It runs where the puzzles live, with the API's
 # settings: on the Studio, right there; anywhere else, on the Studio over SSH,
 # sending a puzzle file to stage along. STACHED_ENV points it at another
-# settings file instead, such as a `make phone` run's .phone/api.env.
+# settings file instead, such as a `make phone` run's .phone/api.env, and
+# --tester at the tester's (scripts/tester.sh), to drive it instead of the
+# live game.
 set -euo pipefail
-env_file="${STACHED_ENV:-$HOME/.config/stached/api.env}"
+tester=""
+if [ "${1:-}" = --tester ]; then tester=1 && shift; fi
+env_file="${STACHED_ENV:-$HOME/.config/stached${tester:+-tester}/api.env}"
 if [ -f "$env_file" ]; then
   # --env-file doesn't override the shell, so the file's names are cleared first.
   unset $(sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' "$env_file")
@@ -16,7 +20,10 @@ if [ -n "${STACHED_ENV:-}" ]; then
   exit 1
 fi
 
-remote() { ssh -o BatchMode=yes personal-studio "~/dev/homebase/scripts/stached $(printf '%q ' "$@")"; }
+# The tester's puzzles go through the tester's checkout, with the code it runs.
+cli="~/dev/homebase/scripts/stached"
+[ -z "$tester" ] || cli="STACHED_ENV=~/.config/stached-tester/api.env ~/dev/homebase-tester/scripts/stached"
+remote() { ssh -o BatchMode=yes personal-studio "$cli $(printf '%q ' "$@")"; }
 if [ "${1:-}" = stage ] && [ -f "${2:-}" ]; then
   remote stage - <"$2"
 else
