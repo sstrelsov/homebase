@@ -51,6 +51,22 @@ function barsFor(play: Play): Group[] {
 }
 
 /**
+ * Text in the ident's caps, except a word with a capital after a lowercase
+ * letter (BigX, iPhone), which keeps its own case: in caps it reads as BIGX.
+ */
+const Cased = ({ text }: { text: string }) =>
+  text.split(/(\s+)/).map((part, i) =>
+    /\p{Ll}\p{Lu}/u.test(part) ? (
+      // biome-ignore lint/suspicious/noArrayIndexKey: the parts of a word never move
+      <span key={i} className={styles.asWritten}>
+        {part}
+      </span>
+    ) : (
+      part
+    ),
+  );
+
+/**
  * Shrinks a word until it fits its tile, never breaking it. At each size a
  * word too wide for the tile first tries the font's narrowest width, so a long
  * word stays as big as it can.
@@ -85,7 +101,7 @@ const FitWord = ({ word }: { word: string }) => {
 
   return (
     <span ref={ref} className={styles.word}>
-      {word}
+      <Cased text={word} />
     </span>
   );
 };
@@ -316,9 +332,11 @@ const Game = ({
             >
               <span className={styles.barTitle}>
                 {group.color === "stache" && <Mustache className="w-7" />}
-                {group.title}
+                <Cased text={group.title} />
               </span>
-              <span className={styles.barWords}>{group.words.join(", ")}</span>
+              <span className={styles.barWords}>
+                <Cased text={group.words.join(", ")} />
+              </span>
             </motion.div>
           ))}
         </AnimatePresence>
