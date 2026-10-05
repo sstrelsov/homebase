@@ -32,7 +32,7 @@ describe("a puzzle's push", () => {
     expect(announceDue("2026-10-01", FRI_912)).toBe(false);
   });
 
-  test("names the puzzle, then quotes the crawl", () => {
+  test("names the puzzle, then one of home's quotes", () => {
     expect(notification(12).title).toBe("Puzzle #12 is up");
     expect(QUOTES).toContain(notification(12).body);
     expect(QUOTES).toContain(notification(12, null).body);

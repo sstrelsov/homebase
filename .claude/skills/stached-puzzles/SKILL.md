@@ -106,7 +106,7 @@ and publishing the next one on time doesn't cut it short.
 The API checks every minute and records each date in `announcements` before
 sending, so a puzzle never pushes twice, even across restarts or if it's edited
 or published again. The notification says "Puzzle #12 is up", then the
-puzzle's `push` line if it has one, or else a random line from the crawl on
+puzzle's `push` line if it has one, or else a random one of the quotes on
 home. When Spencer wants custom copy, put it in `push` and stage again: a
 change to the line alone keeps everyone's games. It only counts before the
 push goes out. iOS adds "from Stached" (the home-screen app's name),

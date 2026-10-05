@@ -8,11 +8,11 @@ import {
   type Today,
   weekday,
 } from "./api";
-import Crawl from "./Crawl";
 import HomeScreen from "./HomeScreen";
 import { Square } from "./Leaderboard";
 import Logo from "./Logo";
 import { useNotifications } from "./push";
+import Quotes from "./Quotes";
 import { Retry } from "./Screen";
 import { useLoad, useStached } from "./session";
 import styles from "./stached.module.css";
@@ -53,9 +53,15 @@ const DaySquare = ({ date, mark, today }: WeekDay & { today: boolean }) => (
 /**
  * Your week under Play: the leaderboard's squares in a strip to swipe, ending
  * at today's, where it opens. A dashed square is still to play. Past the days
- * before is every game so far. Tap a day to open it.
+ * before are every game so far, then settings. Tap a day to open it.
  */
-const Week = ({ week }: { week: Today["week"] }) => {
+const Week = ({
+  week,
+  onSettings,
+}: {
+  week: Today["week"];
+  onSettings: () => void;
+}) => {
   const strip = useRef<HTMLElement>(null);
   // Whether today's, at the end, is swiped out of view.
   const [away, setAway] = useState(false);
@@ -86,10 +92,21 @@ const Week = ({ week }: { week: Today["week"] }) => {
         aria-label="Your week"
         className={styles.homeWeek}
       >
-        <Link to="/stached/past" className={styles.homeDay}>
-          {/* A blank weekday, so it lines up with the days */}
+        {/* Each under a blank weekday, so they line up with the days */}
+        <button
+          type="button"
+          onClick={onSettings}
+          aria-label="Settings and how to play"
+          className={styles.homeDay}
+        >
           <span className={styles.weekday}>&nbsp;</span>
-          <span className={styles.homeAll}>View all</span>
+          <span className={styles.homeTile}>
+            <SlidersIcon />
+          </span>
+        </button>
+        <Link to="/stached/past" className={styles.homeDay}>
+          <span className={styles.weekday}>&nbsp;</span>
+          <span className={styles.homeTile}>View all</span>
         </Link>
         {week.map((day, i) => (
           <DaySquare key={day.date} {...day} today={i === week.length - 1} />
@@ -110,7 +127,7 @@ const Week = ({ week }: { week: Today["week"] }) => {
 
 /**
  * Three sliders, like an old set's brightness and contrast, for settings and
- * the rules: drawn in the text's color.
+ * how to play: drawn in the text's color.
  */
 const SlidersIcon = () => (
   <svg
@@ -147,7 +164,7 @@ const BellIcon = () => (
   </svg>
 );
 
-/** The logo, your week, settings and Leaderboard, and words to live by. */
+/** The logo, Leaderboard and Play, your week (and settings), and quotes. */
 const Home = () => {
   const navigate = useNavigate();
   const { session, openRules } = useStached();
@@ -174,18 +191,11 @@ const Home = () => {
   const note = today ? status(today) : "Loading…";
 
   return (
-    // At least the screen, less the page's padding, with the crawl in whatever
-    // room is left, so home fits without scrolling. A screen too short for the
-    // rest (a phone on its side) scrolls rather than hide the bottom.
-    <div className="relative flex min-h-[calc(100dvh-40px)] flex-col gap-5 pt-4">
-      <button
-        type="button"
-        onClick={openRules}
-        aria-label="Settings and how to play"
-        className={styles.homeSettings}
-      >
-        <SlidersIcon />
-      </button>
+    // At least the screen, less the page's padding, with the quotes in
+    // whatever room is left, so home fits without scrolling. A screen too
+    // short for it all (a phone on its side) scrolls rather than hide the
+    // bottom.
+    <div className="flex min-h-[calc(100dvh-40px)] flex-col gap-5 pt-4">
       <Logo intro={intro} />
       <div
         className={`${rise} flex flex-col items-center gap-3`}
@@ -222,7 +232,7 @@ const Home = () => {
         </button>
       </div>
       <div className={rise} style={{ animationDelay: "1.4s" }}>
-        <Week week={today?.week ?? []} />
+        <Week week={today?.week ?? []} onSettings={openRules} />
       </div>
       <div
         className={`${rise} flex flex-col items-center gap-4 text-center`}
@@ -240,7 +250,7 @@ const Home = () => {
         )}
         <HomeScreen />
       </div>
-      <Crawl />
+      <Quotes className={rise} style={{ animationDelay: "1.6s" }} />
     </div>
   );
 };

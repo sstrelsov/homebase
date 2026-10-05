@@ -13,7 +13,7 @@ export interface Group {
 export interface DayPuzzle {
   date: string;
   groups: Group[];
-  /** Its push notification's line, in place of a random one from the crawl. */
+  /** Its push notification's line, in place of a random quote from home. */
   push?: string | null;
 }
 

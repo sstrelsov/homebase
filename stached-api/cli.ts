@@ -314,7 +314,7 @@ async function stage(source: string | undefined) {
     const titles = groups.map((g) => g.title + (g.stache ? " (stache)" : ""));
     console.log(`#${number.get(date)} · ${day(date)} (${date})`);
     console.log(`  ${titles.join(" · ")}`);
-    console.log(`  Push line: ${push ?? "a random one from the crawl"}`);
+    console.log(`  Push line: ${push ?? "a random quote from home"}`);
     if (change.kind === "same") {
       console.log("  Already published, word for word.");
       continue;
