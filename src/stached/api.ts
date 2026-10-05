@@ -86,7 +86,7 @@ export interface AdminGame {
   homeScreen: boolean | null;
   /** Started on a device set to dark mode; null before we knew. */
   dark: boolean | null;
-  /** Started within 15 minutes of the puzzle's push, with notifications on. */
+  /** Started within 15 minutes of the puzzle's push, which the player got. */
   afterPush: boolean;
   grid: Color[][];
 }
@@ -98,7 +98,7 @@ export interface AdminPuzzle {
   played: number;
   solved: number;
   late: number;
-  /** Games started within 15 minutes of its push, with notifications on. */
+  /** Games started within 15 minutes of its push, by players who got it. */
   afterPush: number;
   /** Every finished game, late ones too, first finished first. */
   games: AdminGame[];

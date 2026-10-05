@@ -452,12 +452,14 @@ async function adminStats() {
              p.stached_ms, p.late, p.finished_at is not null as finished,
              p.home_screen, p.dark,
              -- After the push: started within 15 minutes of it, by a player
-             -- with notifications on. iOS doesn't tell a home-screen app that
-             -- its notification was tapped, so this is the measure.
+             -- who had notifications on when it went out. iOS doesn't tell a
+             -- home-screen app that its notification was tapped, so this is
+             -- the measure.
              coalesce(p.started_at between a.sent_at
                         and a.sent_at + interval '15 minutes'
                       and exists (select 1 from push_subscriptions s
-                                  where s.user_id = p.user_id), false)
+                                  where s.user_id = p.user_id
+                                    and s.created_at <= a.sent_at), false)
                as after_push
       from plays p join users u on u.id = p.user_id
         join puzzles z on z.id = p.puzzle_id
