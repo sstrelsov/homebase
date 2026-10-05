@@ -10,7 +10,13 @@
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
 import { type CardPuzzle, nextColor, renderCard } from "./card";
-import { type Day, type Game, leaderboardOf, WEEK } from "./leaderboard";
+import {
+  type Day,
+  type Game,
+  leaderboardOf,
+  WEEK,
+  weekOf,
+} from "./leaderboard";
 import { migrate } from "./migrate";
 import {
   announce,
@@ -177,20 +183,39 @@ async function pastGames(userId: number) {
 }
 
 /**
+ * The puzzles out so far as the leaderboard reads them: each one's number,
+ * date and whether it still counts, never the words or a puzzle still to come.
+ */
+const boardDays = (): Promise<Day[]> =>
+  sql`select id, number, date, counts from ${released()} order by date`;
+
+/** Games as the leaderboard reads them: by default, all but the admin's. */
+const boardGames = (
+  where = sql`lower(u.name) <> ${ADMIN_NAME}`,
+): Promise<Game[]> =>
+  sql`
+    select u.name, p.puzzle_id as "puzzleId", p.completed,
+           p.stached_ms as "stachedMs", p.late
+    from plays p join users u on u.id = p.user_id
+    where ${where}`;
+
+/**
  * The last week's puzzles, a square per player per day, and today's fastest
- * stache (leaderboard.ts). It reads only each puzzle's number, date and
- * whether it still counts: never the words, and never a puzzle still to come.
+ * stache (leaderboard.ts).
  */
 async function leaderboard() {
-  const [days, games]: [Day[], Game[]] = await Promise.all([
-    sql`select id, number, date, counts from ${released()} order by date`,
-    sql`
-      select u.name, p.puzzle_id as "puzzleId", p.completed,
-             p.stached_ms as "stachedMs", p.late
-      from plays p join users u on u.id = p.user_id
-      where lower(u.name) <> ${ADMIN_NAME}`,
-  ]);
+  const [days, games] = await Promise.all([boardDays(), boardGames()]);
   return leaderboardOf(days, games);
+}
+
+/** This player's squares for the week, as on the leaderboard, for home. */
+async function week(userId: number) {
+  const [days, games, mine] = await Promise.all([
+    boardDays(),
+    boardGames(),
+    boardGames(sql`p.user_id = ${userId}`),
+  ]);
+  return weekOf(days, games, mine);
 }
 
 /** Clock time up to now, if the game has kept checking in. */
@@ -554,7 +579,11 @@ async function route(req: Request): Promise<Response> {
     case "GET /today": {
       const puzzle = await findPuzzle();
       if (!puzzle) return fail(404, "No puzzle yet");
-      return Response.json(await snapshot(userId, puzzle));
+      const [day, squares] = await Promise.all([
+        snapshot(userId, puzzle),
+        week(userId),
+      ]);
+      return Response.json({ ...day, week: squares });
     }
     case "POST /start":
       return start(userId, data);

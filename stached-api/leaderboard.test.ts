@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { type Day, type Game, leaderboardOf } from "./leaderboard";
+import { type Day, type Game, leaderboardOf, weekOf } from "./leaderboard";
 
 // Eight made-up puzzles out so far, #1 to #8; #8 is today's, the only one that
 // still counts. The week is the last seven, #2 to #8. Every name here is made
@@ -183,6 +183,50 @@ describe("yesterday's puzzle, while it still counts", () => {
     const sal = player(before, "Sal");
     expect(sal?.marks.slice(-3)).toEqual(["won", "none", "won"]);
     expect(sal?.streak).toBe(1);
+  });
+});
+
+describe("a player's week, for home", () => {
+  const marks = (days: Day[], games: Game[], mine: Game[]) =>
+    weekOf(days, games, mine).map((day) => day.mark);
+
+  test("is their squares from the leaderboard, oldest first", () => {
+    const games = [
+      solved("Zoe", 6, 40),
+      solved("Abe", 6, 30),
+      missed("Zoe", 7),
+    ];
+    const zoe = games.filter((game) => game.name === "Zoe");
+    expect(weekOf(DAYS, games, zoe).map((day) => day.date)).toEqual(
+      DATES.slice(1),
+    );
+    expect(marks(DAYS, games, zoe)).toEqual([
+      ...Array(4).fill("none"),
+      "solved",
+      "missed",
+      "open",
+    ]);
+  });
+
+  test("marks the admin's games, which never take the fastest stache", () => {
+    const everyone = [solved("Abe", 6, 30)];
+    const admin = [solved("Boss", 6, 20), solved("Boss", 7, 50)];
+    expect(marks(DAYS, everyone, admin).slice(-3)).toEqual([
+      "solved",
+      "solved",
+      "open",
+    ]);
+  });
+
+  test("dots a late game, and dashes yesterday's while it counts", () => {
+    const days = DAYS.map((day) => ({ ...day, counts: day.id >= 7 }));
+    const mine = [late(solved("Zoe", 5, 40))];
+    expect(marks(days, mine, mine).slice(-4)).toEqual([
+      "none",
+      "none",
+      "open",
+      "open",
+    ]);
   });
 });
 

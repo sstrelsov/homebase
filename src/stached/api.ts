@@ -63,6 +63,11 @@ export interface Day {
   board: Score[];
 }
 
+/** Today's game, and your squares for the week, as on the leaderboard. */
+export interface Today extends Day {
+  week: { date: string; mark: Mark }[];
+}
+
 // The leaderboard's shape comes with its rules, so the two can't drift apart.
 export type { Leaderboard, Mark };
 
@@ -161,7 +166,7 @@ async function request<T>(
 export const api = {
   login: (name: string, password: string) =>
     request<Session>("/login", { body: { name, password } }),
-  today: (token: string) => request<Day>("/today", { token }),
+  today: (token: string) => request<Today>("/today", { token }),
   leaderboard: (token: string) =>
     request<Leaderboard>("/leaderboard", { token }),
   /** Starts that day's game, or picks it back up. */

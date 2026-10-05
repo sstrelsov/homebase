@@ -1,8 +1,9 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { api, type Day, formatDate, formatTime } from "./api";
+import { api, type Day, formatDate, formatTime, type Today } from "./api";
 import Crawl from "./Crawl";
 import HomeScreen from "./HomeScreen";
+import { Square } from "./Leaderboard";
 import Logo from "./Logo";
 import { useNotifications } from "./push";
 import { Retry } from "./Screen";
@@ -24,6 +25,31 @@ let introShown = false;
 
 /** The small links below the big buttons. */
 const link = `${styles.display} ${styles.stacheText} text-[13px]`;
+
+/**
+ * Your week under Play, in the leaderboard's squares: a dashed one still
+ * counts, yesterday's too while it does. Tap a day to open it.
+ */
+const Week = ({ week }: { week: Today["week"] }) => (
+  <nav aria-label="Your week" className={styles.homeWeek}>
+    {week.map(({ date, mark }, i) => (
+      <Link
+        key={date}
+        to="/stached/$date"
+        params={{ date }}
+        className={styles.homeDay}
+      >
+        <span
+          className={styles.weekday}
+          data-today={i === week.length - 1 || undefined}
+        >
+          {formatDate(date, { weekday: "short" }).slice(0, 2)}
+        </span>
+        <Square mark={mark} />
+      </Link>
+    ))}
+  </nav>
+);
 
 /** A bell, ringing: drawn in the text's color, like the home-screen tip's. */
 const BellIcon = () => (
@@ -105,6 +131,9 @@ const Home = () => {
         >
           Play
         </button>
+      </div>
+      <div className={rise} style={{ animationDelay: "1.4s" }}>
+        <Week week={today?.week ?? []} />
       </div>
       <div
         className={`${rise} flex flex-col items-center gap-4 text-center`}

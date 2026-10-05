@@ -913,6 +913,34 @@
   height: 18px;
 }
 
+/* Your week on home, under Play: the leaderboard's squares, big enough to
+   tap, each under its weekday. It keeps its height while home loads. */
+.homeWeek {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  min-height: 58px;
+}
+
+.homeDay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 4px;
+}
+
+.homeDay .mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
+}
+
+.homeDay .markStache {
+  width: 24px;
+  height: 8px;
+}
+
 .pointKeyStache {
   width: 26px;
   height: 8px;

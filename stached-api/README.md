@@ -4,7 +4,7 @@ A daily Connections-style puzzle with a twist: one of the four groups is stache 
 
 | Page | Route |
 |---|---|
-| Home (logo, Leaderboard, Play) | `/stached` |
+| Home (logo, Leaderboard, Play, your week) | `/stached` |
 | A day's game | `/stached/2026-09-30` (Play opens today's) |
 | Past games | `/stached/past` |
 | Leaderboard | `/stached/leaderboard` |
@@ -43,6 +43,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 - **Four mistakes** end the game. Solving the stache group earns a **bonus life**, a fifth mustache in the lives row. Puzzles before 2026-10-02 have none, even played late (`BONUS_LIFE_FROM` in `stached-api/rules.ts`). Three right words out of four gets a "one away" hint.
 - **Stache time** counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; if a phone sleeps before it can say so, the gap counts for at most 15 seconds. The server keeps the real clock.
 - **The leaderboard** covers the last seven puzzles. On top, in a gold box, is **today's fastest stache**: the lowest stache time on a game finished today, solved or not, shared by everyone tied for it. Below it, **this week** gives each player a square per day: green for solved, red for missed, Gerald on that day's fastest stache, a dot for a day not finished while it counted, and a dashed square for a puzzle that still counts until it's finished. Players rank by points, one for each solve and one for each fastest stache (the key beside "This week" reads "green square +1, Gerald +1"), and ties share a place. Only players with a game finished this week are listed, so not playing never ties a loss. Two or more puzzles solved in a row show under a name as a streak, which a puzzle that still counts doesn't break until you finish (or miss) it. The rules are `leaderboard.ts`, with tests; it reads only the puzzles out so far, by number and date, never their words.
+- **Your week** sits under Play on home: your last seven puzzles in the leaderboard's squares, each under its weekday. A dashed one still counts, so while yesterday's does, it's dashed beside today's. Tap a day to open it.
 - **The daily puzzle** is the newest one dated on or before today in New York; a day without a puzzle of its own keeps the last one. Puzzles are numbered by date (#1 is the first). A puzzle **counts** while it's the daily puzzle and for 24 hours after its push, even once the next one is out: one pushed at 11pm counts until 11pm the next day, so a late push still gives everyone a full day (`released()` in `server.ts`).
 - **Notifications:** in the home-screen app, a bell left of Leaderboard turns on a push for each new puzzle (Push notifications, below).
 - **Past games** shows a tile per day so far. A finished day opens your board, the answers, and that day's scoreboard: solvers first, then misses, each by stache time. A missed day can be played any time after, and an unfinished one finished, but that game is marked **late** (started or guessed once its puzzle stops counting): it shows in your history and on that day's scoreboard (tagged late), and it never counts on the leaderboard (solves, fastest staches or streaks).
