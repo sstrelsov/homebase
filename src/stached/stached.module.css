@@ -306,7 +306,7 @@
 .crawl {
   position: relative;
   flex: 1;
-  /* Whatever room home has left, so home never scrolls */
+  /* Whatever room home has left, so home fits the screen */
   min-height: 0;
   overflow: hidden;
   perspective: 280px;
@@ -399,20 +399,6 @@
   height: 44px;
   color: var(--ink);
   opacity: 0.7;
-}
-
-/* "View all", past the days on home's strip: every game so far */
-.homeAll {
-  composes: display;
-  display: grid;
-  place-items: center;
-  width: 76px;
-  height: 60px;
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
-  font-size: 10px;
-  line-height: 1.2;
-  text-align: center;
 }
 
 /* The board */
@@ -915,7 +901,8 @@
 }
 
 /* A day: green solved, red missed, Gerald on the day's fastest stache, a dot
-   for a day not played, and a dashed outline for today until it's finished */
+   for a day not finished in time, and a dashed outline for one that still
+   counts until it's finished */
 .mark {
   display: grid;
   flex: none;
@@ -985,9 +972,8 @@
   height: 18px;
 }
 
-/* Your week on home, in place of a Play button: a strip of days to swipe,
-   edge to edge, that opens on today's in the middle. Days blur a little as
-   they slide away from the middle. It keeps its height while home loads. */
+/* Your week on home, under Play: a strip of days to swipe, edge to edge,
+   that opens at the end, on today's. It keeps its height while home loads. */
 .homeWeek {
   position: relative;
   display: flex;
@@ -1047,6 +1033,20 @@
 
 .homeDay .weekday {
   font-size: 11px;
+}
+
+/* "View all", past the days on home's strip: every game so far */
+.homeAll {
+  composes: display;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 60px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
 }
 
 @supports (animation-timeline: view()) {

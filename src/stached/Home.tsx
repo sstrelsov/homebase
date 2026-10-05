@@ -1,6 +1,13 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { api, type Day, formatDate, formatTime, type Today } from "./api";
+import {
+  api,
+  type Day,
+  formatDate,
+  formatTime,
+  type Today,
+  weekday,
+} from "./api";
 import Crawl from "./Crawl";
 import HomeScreen from "./HomeScreen";
 import { Square } from "./Leaderboard";
@@ -27,10 +34,6 @@ let introShown = false;
 const link = `${styles.display} ${styles.stacheText} text-[13px]`;
 
 type WeekDay = Today["week"][number];
-
-/** "Mo" for a date like 2026-10-05. */
-const weekday = (date: string) =>
-  formatDate(date, { weekday: "short" }).slice(0, 2);
 
 /** A day under its weekday, in the leaderboard's square. */
 const DaySquare = ({ date, mark, today }: WeekDay & { today: boolean }) => (
@@ -171,9 +174,10 @@ const Home = () => {
   const note = today ? status(today) : "Loading…";
 
   return (
-    // Exactly the screen, less the page's padding: home never scrolls, and the
-    // crawl gets whatever room is left.
-    <div className="relative flex h-[calc(100dvh-40px)] flex-col gap-5 overflow-y-clip pt-4">
+    // At least the screen, less the page's padding, with the crawl in whatever
+    // room is left, so home fits without scrolling. A screen too short for the
+    // rest (a phone on its side) scrolls rather than hide the bottom.
+    <div className="relative flex min-h-[calc(100dvh-40px)] flex-col gap-5 pt-4">
       <button
         type="button"
         onClick={openRules}

@@ -12,7 +12,9 @@ interface RulesDialogProps {
   onSwitchPlayer: () => void;
 }
 
-/** How to play, behind the gear on home and Rules in a game. */
+/**
+ * Settings and how to play, behind the sliders on home and Rules in a game.
+ */
 const RulesDialog = ({
   open,
   onClose,

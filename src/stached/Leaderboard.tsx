@@ -4,6 +4,7 @@ import {
   formatDate,
   formatTime,
   type Mark,
+  weekday,
 } from "./api";
 import { Mustache } from "./Logo";
 import Screen from "./Screen";
@@ -114,7 +115,7 @@ const Week = ({ board: { days, players } }: { board: Board }) => {
                   className={styles.weekday}
                   data-today={i === days.length - 1 || undefined}
                 >
-                  {formatDate(day.date, { weekday: "short" }).slice(0, 2)}
+                  {weekday(day.date)}
                 </span>
               ))}
             </span>

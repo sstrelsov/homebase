@@ -271,3 +271,7 @@ export function formatDate(
   const [year, month, day] = date.split("-").map(Number);
   return new Date(year, month - 1, day).toLocaleDateString("en-US", options);
 }
+
+/** "2026-10-05" → "Mo", as the leaderboard and home head each day. */
+export const weekday = (date: string) =>
+  formatDate(date, { weekday: "short" }).slice(0, 2);
