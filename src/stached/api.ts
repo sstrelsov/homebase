@@ -225,6 +225,28 @@ export function saveSession(session: Session | null) {
   }
 }
 
+export type Look = "light" | "dark";
+
+const LOOK_KEY = "stached.look";
+
+/** The look this device picked in settings, if it picked one. */
+export function loadLook(): Look | null {
+  try {
+    const saved = localStorage.getItem(LOOK_KEY);
+    return saved === "light" || saved === "dark" ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveLook(look: Look) {
+  try {
+    localStorage.setItem(LOOK_KEY, look);
+  } catch {
+    // Private mode: the look lasts as long as the tab.
+  }
+}
+
 /** 42_300 → "0:42.3", or "0:42" without tenths. No time is a dash. */
 export function formatTime(ms: number | null, tenths = true) {
   if (ms === null) return "—";

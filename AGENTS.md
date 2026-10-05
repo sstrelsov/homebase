@@ -48,7 +48,7 @@ Unlisted Connections-style game with a stache group and a leaderboard. **[`stach
 - Editing or removing a puzzle that people have played deletes their games for it, so the CLI refuses without `--delete-games`. Only Spencer decides that.
 - Each puzzle sends one push notification to the home-screen apps that tapped the bell on home: at 9:12am New York time on its date, or within a minute if it goes live later that day. The VAPID private key lives only in the Studio's `api.env`.
 - `/stached/admin` shows usage totals, who has played in the home-screen app, turnout per puzzle and every finished game's share grid (by puzzle and by player) to the admin only (`ADMIN_NAME` and `ADMIN_PASSWORD` in the Studio's `api.env`), who stays off the scoreboards. It reads games (each one keeps whether it started in the home-screen app or the website, and on a device in dark or light mode), push subscriptions and when each push went out; don't add tracking of visits or activity. See Admin page in the README.
-- The look is a 1984 TV-station ident, light by default (ink on cream), with the original dark look kept. `THEME` in `src/pages/Stached.tsx` picks one, and the static home-screen colors must change with it. Both palettes are at the top of `src/stached/stached.module.css`; see The look in the README.
+- The look is a 1984 TV-station ident, light by default (ink on cream), with the original dark look kept. `THEME` in `src/pages/Stached.tsx` is the default, a Dark mode switch in settings lets each device pick its own, and the static home-screen colors must change with `THEME`. Both palettes are at the top of `src/stached/stached.module.css`; see The look in the README.
 
 ## Testing on your phone (`make phone`)
 

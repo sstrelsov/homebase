@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { api, type Day, formatDate, formatTime, type Today } from "./api";
 import Crawl from "./Crawl";
 import HomeScreen from "./HomeScreen";
@@ -26,29 +26,104 @@ let introShown = false;
 /** The small links below the big buttons. */
 const link = `${styles.display} ${styles.stacheText} text-[13px]`;
 
+type WeekDay = Today["week"][number];
+
+/** "Mo" for a date like 2026-10-05. */
+const weekday = (date: string) =>
+  formatDate(date, { weekday: "short" }).slice(0, 2);
+
+/** A day under its weekday, in the leaderboard's square. */
+const DaySquare = ({ date, mark, today }: WeekDay & { today: boolean }) => (
+  <Link
+    to="/stached/$date"
+    params={{ date }}
+    className={styles.homeDay}
+    data-today={today || undefined}
+  >
+    <span className={styles.weekday} data-today={today || undefined}>
+      {weekday(date)}
+    </span>
+    <Square mark={mark} />
+  </Link>
+);
+
 /**
- * Your week under Play, in the leaderboard's squares: a dashed one still
- * counts, yesterday's too while it does. Tap a day to open it.
+ * Your week under Play: the leaderboard's squares in a strip to swipe, ending
+ * at today's, where it opens. A dashed square is still to play. Past the days
+ * before is every game so far. Tap a day to open it.
  */
-const Week = ({ week }: { week: Today["week"] }) => (
-  <nav aria-label="Your week" className={styles.homeWeek}>
-    {week.map(({ date, mark }, i) => (
-      <Link
-        key={date}
-        to="/stached/$date"
-        params={{ date }}
-        className={styles.homeDay}
+const Week = ({ week }: { week: Today["week"] }) => {
+  const strip = useRef<HTMLElement>(null);
+  // Whether today's, at the end, is swiped out of view.
+  const [away, setAway] = useState(false);
+  const last = week.at(-1)?.date;
+  const toToday = (behavior: ScrollBehavior) =>
+    strip.current?.scrollTo({ left: strip.current.scrollWidth, behavior });
+
+  // Opens at the end, on today's, once there is a today.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: toToday reads the strip, which last's arrival fills
+  useLayoutEffect(() => {
+    if (last) toToday("instant");
+  }, [last]);
+
+  const onScroll = () => {
+    const today = strip.current?.querySelector<HTMLElement>("a[data-today]");
+    if (!strip.current || !today) return;
+    const { scrollLeft, clientWidth } = strip.current;
+    setAway(
+      today.offsetLeft + today.offsetWidth > scrollLeft + clientWidth + 2,
+    );
+  };
+
+  return (
+    <div className="relative">
+      <nav
+        ref={strip}
+        onScroll={onScroll}
+        aria-label="Your week"
+        className={styles.homeWeek}
       >
-        <span
-          className={styles.weekday}
-          data-today={i === week.length - 1 || undefined}
+        <Link to="/stached/past" className={styles.homeDay}>
+          {/* A blank weekday, so it lines up with the days */}
+          <span className={styles.weekday}>&nbsp;</span>
+          <span className={styles.homeAll}>View all</span>
+        </Link>
+        {week.map((day, i) => (
+          <DaySquare key={day.date} {...day} today={i === week.length - 1} />
+        ))}
+      </nav>
+      {away && (
+        <button
+          type="button"
+          onClick={() => toToday("smooth")}
+          className={styles.homeBackToToday}
         >
-          {formatDate(date, { weekday: "short" }).slice(0, 2)}
-        </span>
-        <Square mark={mark} />
-      </Link>
-    ))}
-  </nav>
+          Today →
+        </button>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Three sliders, like an old set's brightness and contrast, for settings and
+ * the rules: drawn in the text's color.
+ */
+const SlidersIcon = () => (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth={2.2}
+    strokeLinecap="round"
+    aria-hidden="true"
+    className="h-6 w-6"
+  >
+    <path d="M3 6h4M11 6h10M3 12h10M17 12h4M3 18h2M9 18h12" />
+    <circle cx="9" cy="6" r="2" />
+    <circle cx="15" cy="12" r="2" />
+    <circle cx="7" cy="18" r="2" />
+  </svg>
 );
 
 /** A bell, ringing: drawn in the text's color, like the home-screen tip's. */
@@ -69,10 +144,10 @@ const BellIcon = () => (
   </svg>
 );
 
-/** The logo, Leaderboard and Play, and ways to the rules and past games. */
+/** The logo, your week, settings and Leaderboard, and words to live by. */
 const Home = () => {
   const navigate = useNavigate();
-  const { session, signOut, openRules } = useStached();
+  const { session, openRules } = useStached();
   const { data: today, error, load, fail } = useLoad(api.today);
   const notifications = useNotifications();
   const [intro] = useState(() => !introShown);
@@ -96,7 +171,17 @@ const Home = () => {
   const note = today ? status(today) : "Loading…";
 
   return (
-    <div className="flex min-h-[calc(100dvh-40px)] flex-col gap-7 pt-4">
+    // Exactly the screen, less the page's padding: home never scrolls, and the
+    // crawl gets whatever room is left.
+    <div className="relative flex h-[calc(100dvh-40px)] flex-col gap-5 overflow-y-clip pt-4">
+      <button
+        type="button"
+        onClick={openRules}
+        aria-label="Settings and how to play"
+        className={styles.homeSettings}
+      >
+        <SlidersIcon />
+      </button>
       <Logo intro={intro} />
       <div
         className={`${rise} flex flex-col items-center gap-3`}
@@ -144,27 +229,12 @@ const Home = () => {
         ) : (
           note && <p className={styles.label}>{note}</p>
         )}
-        <div className="flex gap-6">
-          <button type="button" onClick={openRules} className={link}>
-            Rules
-          </button>
-          <Link to="/stached/past" className={link}>
-            Past games
-          </Link>
-        </div>
         {session.admin && (
           <Link to="/stached/admin" className={link}>
             Admin
           </Link>
         )}
         <HomeScreen />
-        <button
-          type="button"
-          onClick={signOut}
-          className={`${styles.label} underline underline-offset-4`}
-        >
-          Not {session.name}? Switch player
-        </button>
       </div>
       <Crawl />
     </div>

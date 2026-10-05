@@ -45,8 +45,10 @@
   --scrim-tip: rgba(0, 0, 0, 0.85);
 
   position: relative;
-  /* The whole screen, with the browser's toolbar space, so it runs under it */
-  min-height: 100lvh;
+  /* The visible screen, so no screen scrolls unless its content needs to.
+     The toolbar space beyond it takes the document's background, which
+     StachedPage sets to --bg while Stached is open. */
+  min-height: 100dvh;
   background: var(--bg);
   color: var(--ink);
   font-family: var(--text);
@@ -304,7 +306,8 @@
 .crawl {
   position: relative;
   flex: 1;
-  min-height: 170px;
+  /* Whatever room home has left, so home never scrolls */
+  min-height: 0;
   overflow: hidden;
   perspective: 280px;
   perspective-origin: 50% 0;
@@ -341,6 +344,75 @@
   to {
     transform: rotateX(30deg) translateY(calc(-100% - 70dvh));
   }
+}
+
+/* A switch in settings: a pill whose knob slides over, gold when it's on */
+.toggleRow {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.switch {
+  position: relative;
+  width: 50px;
+  height: 28px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--ink);
+  transition: transform 0.15s;
+}
+
+.toggleRow[aria-checked="true"] .switch {
+  border-color: var(--gold);
+  background: var(--gold);
+}
+
+.toggleRow[aria-checked="true"] .switch::after {
+  background: var(--on-gold);
+  transform: translateX(22px);
+}
+
+/* Settings and how to play, tucked into home's top corner */
+.homeSettings {
+  position: absolute;
+  top: 2px;
+  right: -10px;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: var(--ink);
+  opacity: 0.7;
+}
+
+/* "View all", past the days on home's strip: every game so far */
+.homeAll {
+  composes: display;
+  display: grid;
+  place-items: center;
+  width: 76px;
+  height: 60px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  font-size: 10px;
+  line-height: 1.2;
+  text-align: center;
 }
 
 /* The board */
@@ -913,32 +985,111 @@
   height: 18px;
 }
 
-/* Your week on home, under Play: the leaderboard's squares, big enough to
-   tap, each under its weekday. It keeps its height while home loads. */
+/* Your week on home, in place of a Play button: a strip of days to swipe,
+   edge to edge, that opens on today's in the middle. Days blur a little as
+   they slide away from the middle. It keeps its height while home loads. */
 .homeWeek {
+  position: relative;
   display: flex;
-  justify-content: center;
-  gap: 4px;
-  min-height: 58px;
+  gap: 6px;
+  margin-inline: -16px;
+  padding-block: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  min-height: 102px;
+}
+
+.homeWeek::-webkit-scrollbar {
+  display: none;
+}
+
+/* The page's gutter at either end. When the days all fit, they sit to the
+   right, ending at today's, as a full strip does. */
+.homeWeek::before,
+.homeWeek::after {
+  content: "";
+  flex: none;
+  width: 10px;
+}
+
+.homeWeek::before {
+  margin-left: auto;
 }
 
 .homeDay {
   display: flex;
+  flex: none;
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  padding: 4px;
+  padding: 3px;
+  scroll-snap-align: center;
 }
 
 .homeDay .mark {
-  width: 30px;
-  height: 30px;
-  border-radius: 7px;
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  font-size: 22px;
+}
+
+/* A day that didn't count, outlined so its dot isn't lost */
+.homeDay .mark[data-mark="none"] {
+  border: 1.5px solid var(--line);
 }
 
 .homeDay .markStache {
-  width: 24px;
-  height: 8px;
+  width: 44px;
+  height: 14px;
+}
+
+.homeDay .weekday {
+  font-size: 11px;
+}
+
+@supports (animation-timeline: view()) {
+  .homeDay {
+    animation: day-focus linear both;
+    animation-timeline: view(inline);
+  }
+}
+
+/* Days blur a little as they slide off the left, into the past */
+@keyframes day-focus {
+  0%,
+  85% {
+    filter: none;
+    opacity: 1;
+  }
+  100% {
+    filter: blur(1.5px);
+    opacity: 0.5;
+  }
+}
+
+/* Back to today: once today's is swiped out of view, a chip at the end
+   pointing at it. A tap slides the strip back. */
+.homeBackToToday {
+  composes: display;
+  position: absolute;
+  top: calc(50% - 4px);
+  right: 0;
+  padding: 6px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink);
+  font-size: 10px;
+  box-shadow: 0 3px 0 color-mix(in srgb, var(--ink) 35%, transparent);
+  animation: back-in 0.2s ease-out both;
+}
+
+@keyframes back-in {
+  from {
+    opacity: 0;
+  }
 }
 
 .pointKeyStache {
@@ -998,6 +1149,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .rise,
+  .homeBackToToday,
   .bar[data-color="stache"],
   .life[data-bonus],
   .life[data-lost],

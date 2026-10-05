@@ -1,6 +1,14 @@
 import { Outlet, useRouter } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { api, loadSession, type Session, saveSession } from "../stached/api";
+import {
+  api,
+  type Look,
+  loadLook,
+  loadSession,
+  type Session,
+  saveLook,
+  saveSession,
+} from "../stached/api";
 import {
   handoffCode,
   isHomeScreenApp,
@@ -11,10 +19,11 @@ import RulesDialog from "../stached/RulesDialog";
 import { StachedContext } from "../stached/session";
 import styles from "../stached/stached.module.css";
 
-// The look, for everyone: "light" (ink on cream) or "dark" (phosphor on black).
-// No switch on screen yet. The home-screen app's colors don't follow this:
-// they're set for light in public/stached/manifest.json and vite.config.mts.
-const THEME: "light" | "dark" = "light";
+// The look until a device picks its own with the switch in settings: "light"
+// (ink on cream) or "dark" (phosphor on black). The home-screen app's launch
+// and status-bar colors don't follow either: they're set for light in
+// public/stached/manifest.json and vite.config.mts.
+const THEME: Look = "light";
 
 // The router loads every Stached screen from here, so they share one chunk.
 export { default as StachedAdmin } from "../stached/Admin";
@@ -30,6 +39,7 @@ export { default as StachedPast } from "../stached/PastGames";
 const StachedPage = () => {
   const [session, setSession] = useState(loadSession);
   const page = useRef<HTMLDivElement>(null);
+  const [look, setLook] = useState<Look>(() => loadLook() ?? THEME);
   const [rulesOpen, setRulesOpen] = useState(false);
   // A sign-in code from Safari (HomeScreen.tsx), on the home-screen app's
   // first launch. Only the app trades it, so a shared link signs no one in.
@@ -59,6 +69,7 @@ const StachedPage = () => {
   // paints those behind the status bar and toolbar from the document's
   // background, and other browsers tint their toolbar from theme-color. The
   // site gets its own back after.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: each look has its own --bg, read from the page once the look is on it
   useEffect(() => {
     if (!page.current) return;
     const bg = getComputedStyle(page.current).getPropertyValue("--bg");
@@ -73,7 +84,7 @@ const StachedPage = () => {
       root.background = before.background;
       if (meta) meta.content = before.theme;
     };
-  }, []);
+  }, [look]);
 
   // A notification tapped while Stached is open: the service worker
   // (public/stached/sw.js) asks for home here, instead of a new window.
@@ -96,7 +107,7 @@ const StachedPage = () => {
   }, []);
 
   return (
-    <div ref={page} data-look={THEME} className={styles.stached}>
+    <div ref={page} data-look={look} className={styles.stached}>
       <div aria-hidden="true" className={styles.crt} />
       <div className="mx-auto w-full max-w-md px-4 pt-4 pb-6">
         {session ? (
@@ -104,7 +115,21 @@ const StachedPage = () => {
             value={{ session, signOut, openRules: () => setRulesOpen(true) }}
           >
             <Outlet />
-            <RulesDialog open={rulesOpen} onClose={() => setRulesOpen(false)} />
+            <RulesDialog
+              open={rulesOpen}
+              onClose={() => setRulesOpen(false)}
+              dark={look === "dark"}
+              onDark={(dark) => {
+                const next = dark ? "dark" : "light";
+                saveLook(next);
+                setLook(next);
+              }}
+              name={session.name}
+              onSwitchPlayer={() => {
+                setRulesOpen(false);
+                signOut();
+              }}
+            />
           </StachedContext>
         ) : redeeming ? (
           <p className={`${styles.label} pt-24 text-center`}>Signing you in…</p>
