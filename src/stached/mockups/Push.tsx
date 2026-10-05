@@ -1,5 +1,6 @@
 import { useState } from "react";
-import QUOTES from "../quotes.json";
+import { formatDate } from "../api";
+import { LockScreen } from "../IPhone";
 import styles from "../stached.module.css";
 import x from "./mockups.module.css";
 import { PUSH_TIME, pushed, TODAY } from "./rules";
@@ -11,84 +12,40 @@ const SUGGESTIONS = [
   "Dip it, shake it, crack the keys",
 ];
 
-// iOS shows about three lines of it on the lock screen.
+// What the lock screen shows of it: about three lines.
 const ROOM = 110;
 
-/** "9:12", for the lock screen's clock. */
-const CLOCK = PUSH_TIME.slice(0, -2);
+/** Why it has no push to send, if it hasn't: one went out, or none will. */
+const noPush = (date: string, published: boolean) =>
+  published && pushed(date)
+    ? `It went out at ${PUSH_TIME}. A puzzle never pushes twice.`
+    : date < TODAY
+      ? "It's dated before today, so it gets no push."
+      : null;
 
-/** "Monday, October 5" */
-const longDay = (date: string) =>
-  new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  });
-
-/** When its push goes out: never, already, within a minute, or at 9:12. */
-export function pushWhen(date: string, published: boolean) {
-  if (date < TODAY) return "never";
-  if (date === TODAY && pushed(date)) return published ? "sent" : "now";
-  return "later";
-}
-
-interface PreviewProps {
+interface PushProps {
   number: number;
   date: string;
+  /** Its line; empty takes a random quote from home. */
   push: string;
-  /** A puzzle on its date is out already, so today's push may be sent. */
+  /** Published already, so its push may have gone out. */
   published: boolean;
+  /** Home-screen apps with notifications on. */
+  reach: number;
+  onChange: (push: string) => void;
 }
 
-/**
- * The push as it lands on an iPhone's lock screen: "Puzzle #N is up", iOS's
- * "from Stached", and the line, or a crawl line when it has none.
- */
-export const PushPreview = ({
+/** The push's line, under the lock screen it lands on. */
+const Push = ({
   number,
   date,
   push,
   published,
-}: PreviewProps) => {
-  const now = pushWhen(date, published) === "now";
-  return (
-    <div className={x.lock}>
-      <p className={x.lockDay}>{longDay(date)}</p>
-      <p className={x.lockTime}>{now ? "Now" : CLOCK}</p>
-      <div className={x.notice}>
-        <img
-          src="/images/stached-icon-v2-180.png"
-          alt=""
-          className={x.noticeIcon}
-        />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-baseline justify-between gap-2">
-            <strong className="truncate">Puzzle #{number} is up</strong>
-            <span className={x.noticeWhen}>{now ? "now" : `${CLOCK} AM`}</span>
-          </div>
-          <p className={x.noticeFrom}>from Stached</p>
-          <p className={x.noticeBody} data-crawl={!push || undefined}>
-            {push || QUOTES[3]}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-interface PushProps extends PreviewProps {
-  onChange: (push: string) => void;
-  /** Home-screen apps with notifications on. */
-  reach: number;
-}
-
-/** The push's line, with its lock screen above it. */
-const Push = ({ onChange, reach, ...puzzle }: PushProps) => {
-  const { date, push } = puzzle;
+  reach,
+  onChange,
+}: PushProps) => {
   const [suggesting, setSuggesting] = useState(false);
-  const when = pushWhen(date, puzzle.published);
-  const sent = when === "never" || when === "sent";
+  const none = noPush(date, published);
 
   const suggest = () => {
     setSuggesting(true);
@@ -104,16 +61,20 @@ const Push = ({ onChange, reach, ...puzzle }: PushProps) => {
       <div className="flex items-baseline justify-between gap-3">
         <h2 className={styles.label}>Notification</h2>
         <span className={styles.label}>
-          {sent ? "No push to send" : `To ${reach} home-screen apps`}
+          {none ? "No push to send" : `To ${reach} home-screen apps`}
         </span>
       </div>
-      <PushPreview {...puzzle} />
-      {sent ? (
-        <p className={styles.label}>
-          {when === "never"
-            ? "It's dated before today, so it gets no push."
-            : `It went out at ${PUSH_TIME}. A puzzle never pushes twice.`}
-        </p>
+      <LockScreen
+        number={number}
+        day={formatDate(date, {
+          weekday: "long",
+          month: "long",
+          day: "numeric",
+        })}
+        line={push || undefined}
+      />
+      {none ? (
+        <p className={styles.label}>{none}</p>
       ) : (
         <>
           <textarea
@@ -128,7 +89,7 @@ const Push = ({ onChange, reach, ...puzzle }: PushProps) => {
             }}
             enterKeyHint="done"
             rows={2}
-            placeholder="Its own line, or leave it for a crawl line"
+            placeholder="Its own line, or leave it for a quote"
             className={`${styles.input} ${x.pushInput}`}
           />
           <div className="flex items-center justify-between gap-3">
@@ -147,7 +108,7 @@ const Push = ({ onChange, reach, ...puzzle }: PushProps) => {
                   onClick={() => onChange("")}
                   className={x.link}
                 >
-                  Use a crawl line
+                  Use a quote
                 </button>
               )}
             </div>
@@ -161,8 +122,7 @@ const Push = ({ onChange, reach, ...puzzle }: PushProps) => {
           </div>
           {!push && (
             <p className={styles.label}>
-              No line of its own: it gets a random one from the crawl, like
-              this.
+              No line of its own: it gets a random quote from home, like this.
             </p>
           )}
         </>

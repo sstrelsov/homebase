@@ -55,7 +55,7 @@ const NOTES: Record<ScreenId, [string, string]> = {
   ],
   push: [
     "Notification",
-    "The line under “Puzzle #N is up”, on the lock screen it lands on. Empty uses a random crawl line, as now. Haiku can suggest one.",
+    "The line under “Puzzle #N is up”, on the lock screen it lands on. Empty uses a random quote from home, as now. Haiku can suggest one.",
   ],
   saved: [
     "Draft saved",

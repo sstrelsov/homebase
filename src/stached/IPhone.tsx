@@ -100,16 +100,26 @@ const tomorrow = () => {
 };
 
 /**
- * Tomorrow's push on a lock screen: "Puzzle #N is up", iOS's "from Stached",
- * then one of the quotes on home, like the ones the API sends.
+ * A push on a lock screen: "Puzzle #N is up", iOS's "from Stached", then its
+ * line. Tomorrow's, with one of the quotes on home like the ones the API sends,
+ * unless it's given another day or a puzzle's own line.
  */
-export const LockScreen = ({ number }: { number: number }) => (
+export const LockScreen = ({
+  number,
+  day = tomorrow(),
+  line = QUOTES[0],
+}: {
+  number: number;
+  /** "Monday, October 5" */
+  day?: string;
+  line?: string;
+}) => (
   <div
     role="img"
     aria-label={`A notification on an iPhone: Puzzle #${number} is up, from Stached`}
     className={styles.lock}
   >
-    <p className={styles.lockDay}>{tomorrow()}</p>
+    <p className={styles.lockDay}>{day}</p>
     <p className={styles.lockTime}>{PUSH_TIME}</p>
     <div className={styles.notice}>
       <img src={ICON} alt="" className={styles.noticeIcon} />
@@ -119,7 +129,7 @@ export const LockScreen = ({ number }: { number: number }) => (
           <span className={styles.noticeMuted}>{PUSH_TIME} AM</span>
         </div>
         <p className={styles.noticeMuted}>from Stached</p>
-        <p className={styles.noticeBody}>{QUOTES[0]}</p>
+        <p className={styles.noticeBody}>{line}</p>
       </div>
     </div>
   </div>

@@ -294,7 +294,6 @@ const Shuffled = ({ draft }: { draft: Draft }) => {
 };
 
 interface PublishProps {
-  open: boolean;
   onClose: () => void;
   onPublish: () => void;
   draft: Draft;
@@ -304,9 +303,11 @@ interface PublishProps {
   lost: number;
 }
 
-/** What the CLI's confirm says: when it goes live and pushes, and what it costs. */
+/**
+ * What the CLI's confirm says: when it goes live and pushes, and what it costs.
+ * Made each time it opens, so the delete tick always starts off.
+ */
 const PublishDialog = ({
-  open,
   onClose,
   onPublish,
   draft,
@@ -317,7 +318,7 @@ const PublishDialog = ({
   const [agreed, setAgreed] = useState(false);
   return (
     <Dialog
-      open={open}
+      open
       onClose={onClose}
       title={kind === "new" ? `Publish #${number}?` : `Change #${number}?`}
     >
@@ -679,7 +680,9 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
                       field
                         ? focusField(field)
                         : document
-                            .querySelector(`.${x.rowHead}`)
+                            .querySelector(
+                              `.${issue.spots[0] === "date" ? x.datePick : x.rowHead}`,
+                            )
                             ?.scrollIntoView({ block: "center" })
                     }
                     className="text-left text-[17px] leading-snug"
@@ -748,15 +751,16 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
         </div>
       )}
 
-      <PublishDialog
-        open={board.publishing}
-        onClose={() => patch({ publishing: false })}
-        onPublish={publish}
-        draft={draft}
-        number={number}
-        kind={kind}
-        lost={lost}
-      />
+      {board.publishing && (
+        <PublishDialog
+          onClose={() => patch({ publishing: false })}
+          onPublish={publish}
+          draft={draft}
+          number={number}
+          kind={kind}
+          lost={lost}
+        />
+      )}
     </div>
   );
 };

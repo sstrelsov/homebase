@@ -1,6 +1,6 @@
 /* Admin mockups (dev only): what staging a puzzle adds to the game's look.
    Colors are the game's tokens (stached.module.css), so both looks work. The
-   lock screen and the pretend keyboard are Apple's, so they keep their own. */
+   pretend keyboard is Apple's, so it keeps its own. */
 
 /* The mockup's own switcher, kept apart from the screen */
 .controls {
@@ -524,101 +524,6 @@
   resize: none;
 }
 
-/* An iPhone's lock screen at push time, on a wallpaper of the logo's bands */
-.lock {
-  --glass: rgba(246, 246, 246, 0.8);
-  --glass-ink: #000;
-  --glass-muted: rgba(60, 60, 67, 0.65);
-
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  padding: 14px 10px 12px;
-  border-radius: 22px;
-  background: linear-gradient(
-    160deg,
-    var(--c4) 0 22%,
-    var(--c3) 0 44%,
-    var(--c2) 0 66%,
-    var(--c1) 0
-  );
-  color: #fff;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
-  text-align: center;
-}
-
-[data-look="dark"] .lock {
-  --glass: rgba(30, 30, 30, 0.78);
-  --glass-ink: #fff;
-  --glass-muted: rgba(235, 235, 245, 0.6);
-}
-
-.lockDay {
-  font-size: 15px;
-  font-weight: 600;
-  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
-}
-
-.lockTime {
-  margin: -2px 0 10px;
-  font-size: 58px;
-  font-weight: 700;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.3);
-}
-
-.notice {
-  display: flex;
-  gap: 10px;
-  padding: 11px 12px;
-  border-radius: 18px;
-  background: var(--glass);
-  color: var(--glass-ink);
-  text-align: left;
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-}
-
-.noticeIcon {
-  width: 38px;
-  height: 38px;
-  flex: none;
-  border-radius: 9px;
-}
-
-.notice strong {
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.noticeWhen,
-.noticeFrom {
-  color: var(--glass-muted);
-  font-size: 13px;
-}
-
-.noticeWhen {
-  flex: none;
-}
-
-.noticeBody {
-  margin-top: 2px;
-  overflow: hidden;
-  font-size: 15px;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-}
-
-/* A crawl line, standing in: one of many */
-.noticeBody[data-crawl] {
-  font-style: italic;
-  opacity: 0.7;
-}
-
 /* The pretend keyboard: an iPhone's, light or dark with the page */
 .keyboard {
   --keys: #d1d3d9;
@@ -632,7 +537,6 @@
   left: 50%;
   z-index: 60;
   width: min(100%, 448px);
-  height: 300px;
   translate: -50% 0;
   padding: 0 3px 30px;
   background: var(--keys);

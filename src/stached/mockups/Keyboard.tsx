@@ -25,6 +25,7 @@ const Keyboard = ({ field }: { field: string }) => {
       aria-hidden="true"
       onMouseDown={(e) => e.preventDefault()}
       className={x.keyboard}
+      style={{ height: KEYBOARD_PX }}
     >
       <div className={x.keyboardBar}>
         <span>⌃ ⌄</span>

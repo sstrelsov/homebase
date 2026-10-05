@@ -15,7 +15,8 @@ import styles from "./stached.module.css";
 const puzzleTitle = ({ number, date }: AdminPuzzle) =>
   `#${number} · ${formatDate(date, { weekday: "short", month: "short", day: "numeric" })}`;
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+export const plural = (n: number, word: string) =>
+  `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /** The parts that apply, between dots. */
 const dotted = (...parts: (string | false)[]) =>

@@ -1,3 +1,5 @@
+import type { Look } from "../api";
+
 /** Every screen and state the mockups show, in the order you'd meet them. */
 export const SCREENS = [
   "runs",
@@ -22,7 +24,7 @@ export type ScreenId = (typeof SCREENS)[number];
 /** What the mockups show, from the address: ?screen=board&look=dark. */
 export interface MockupSearch {
   screen: ScreenId;
-  look: "light" | "dark";
+  look: Look;
 }
 
 /** The option that matches, or the first. */
@@ -33,5 +35,5 @@ export const parseMockupSearch = (
   search: Record<string, unknown>,
 ): MockupSearch => ({
   screen: pick(search.screen, SCREENS),
-  look: pick(search.look, ["light", "dark"]),
+  look: pick<Look>(search.look, ["light", "dark"]),
 });

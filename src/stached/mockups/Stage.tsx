@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { plural } from "../Admin";
 import Logo from "../Logo";
 import styles from "../stached.module.css";
 import BoardScreen, { DatePick, focusField } from "./Board";
@@ -33,8 +34,6 @@ const weekday = (date: string) =>
     : date === addDays(TODAY, 1)
       ? "Tomorrow"
       : dayName(date).slice(0, 3);
-
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /** A day on the schedule: its puzzle and how it stands, or a gap to fill. */
 const Day = ({
@@ -324,10 +323,7 @@ const Published = ({
           }}
           className={`${styles.button} ${styles.primary}`}
         >
-          Stage{" "}
-          {weekday(next) === "Tomorrow"
-            ? "tomorrow"
-            : dayName(next).slice(0, 3)}
+          Stage {weekday(next)}
         </button>
       </div>
     </div>

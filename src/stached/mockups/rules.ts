@@ -2,6 +2,7 @@
 // Mockup copies of puzzleProblems (stached-api/puzzles.ts) and timing()
 // (stached-api/cli.ts), which import Bun and can't load in a browser. These
 // point at the row or tile at fault, so the editor can mark it.
+import { formatDate } from "../api";
 
 export interface DraftGroup {
   id: string;
@@ -14,7 +15,7 @@ export interface DraftGroup {
 export interface Draft {
   date: string;
   groups: DraftGroup[];
-  /** The push's line; empty takes a random one from the crawl. */
+  /** The push's line; empty takes a random quote from home. */
   push: string;
 }
 
@@ -50,12 +51,7 @@ export const addDays = (date: string, days: number) => {
 
 /** "Fri, Oct 2" */
 export const dayName = (date: string) =>
-  new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  });
+  formatDate(date, { weekday: "short", month: "short", day: "numeric" });
 
 /** On its date, from 9:12am New York time. */
 const announceDue = (date: string, now = new Date()) => {
