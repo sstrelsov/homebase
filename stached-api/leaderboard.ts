@@ -42,7 +42,10 @@ export type Mark = "won" | "won-missed" | "solved" | "missed" | "none" | "open";
 
 export interface Standing {
   name: string;
-  /** Ties share a place: 1, 2, 2, 4. Cat is always 1. */
+  /**
+   * Cat is always 1. Below her, ties share a place (1, 2, 2, 4), and a tie
+   * with her for the most points shares 1.
+   */
   rank: number;
   /** One per day of the week, oldest first; the last is today. */
   marks: Mark[];
@@ -68,27 +71,23 @@ export interface Leaderboard {
   days: Pick<Day, "number" | "date">[];
   /** Everyone tied for today's fastest stache, by name. */
   fastestToday: Fastest[];
-  /** Everyone who has finished a game, most points first. */
+  /** Everyone who has finished a game: Cat first, then most points first. */
   players: Standing[];
 }
 
 /**
- * Marks a game on its day. Each day's fastest stache is the lowest stache
+ * Marks a game on its day. Each puzzle's fastest stache is the lowest stache
  * time on a game finished while it counted, solved or not; ties share it.
  */
-function marker(week: Day[], counted: Game[]) {
+function marker(counted: Game[]) {
+  const finished = counted.filter(
+    (game): game is Finished =>
+      game.completed !== null && game.stachedMs !== null,
+  );
   const fastestMs = new Map(
-    week.map((day) => [
-      day.id,
-      Math.min(
-        ...counted.flatMap((game) =>
-          game.puzzleId === day.id &&
-          game.completed !== null &&
-          game.stachedMs !== null
-            ? [game.stachedMs]
-            : [],
-        ),
-      ),
+    [...Map.groupBy(finished, (game) => game.puzzleId)].map(([id, games]) => [
+      id,
+      Math.min(...games.map((game) => game.stachedMs)),
     ]),
   );
   const isFastest = (game: Game): game is Finished =>
@@ -111,7 +110,7 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
   const counted = games.filter((game) => !game.late);
   const week = days.slice(-WEEK);
   const today = days.at(-1);
-  const { isFastest, mark } = marker(days, counted);
+  const { isFastest, mark } = marker(counted);
 
   const standings = [...Map.groupBy(counted, (game) => game.name)].flatMap(
     ([name, played]) => {
@@ -174,10 +173,7 @@ function ranked<T extends { points: number }>(standings: T[]) {
  */
 export function weekOf(days: Day[], games: Game[], mine: Game[]) {
   const week = days.slice(-WEEK);
-  const { mark } = marker(
-    week,
-    games.filter((game) => !game.late),
-  );
+  const { mark } = marker(games.filter((game) => !game.late));
   const byDay = new Map(
     mine.filter((game) => !game.late).map((game) => [game.puzzleId, game]),
   );

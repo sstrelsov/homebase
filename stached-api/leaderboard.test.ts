@@ -3,7 +3,7 @@ import { type Day, type Game, leaderboardOf, weekOf } from "./leaderboard";
 
 // Eight made-up puzzles out so far, #1 to #8; #8 is today's, the only one that
 // still counts. The week is the last seven, #2 to #8. Every name here is made
-// up.
+// up but Cat's: she is the real player the leaderboard keeps at #1.
 const DATES = [
   "2026-09-25",
   "2026-09-26",
