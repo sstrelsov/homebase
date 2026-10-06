@@ -131,6 +131,46 @@ describe("the ranking", () => {
   });
 });
 
+describe("Cat", () => {
+  const games = [
+    solved("Bo", 6, 30),
+    solved("Bo", 7, 30),
+    solved("Cy", 6, 40),
+    solved("Cy", 7, 40),
+    solved("Di", 6, 60),
+  ];
+  const places = (...played: Game[]) =>
+    board(...played).players.map(({ rank, name, points }) => [
+      rank,
+      name,
+      points,
+    ]);
+
+  test("holds #1 with fewer points, and everyone else keeps their order", () => {
+    expect(places(...games, solved("Cat", 7, 50))).toEqual([
+      [1, "Cat", 1],
+      [2, "Bo", 4],
+      [3, "Cy", 2],
+      [4, "Di", 1],
+    ]);
+  });
+
+  test("is matched without case, and shares #1 with a tie", () => {
+    expect(places(solved("cat", 6, 40), solved("Bo", 7, 30))).toEqual([
+      [1, "cat", 2],
+      [1, "Bo", 2],
+    ]);
+  });
+
+  test("isn't listed without a finished game", () => {
+    expect(places(...games, playing("Cat", TODAY, 5))).toEqual([
+      [1, "Bo", 4],
+      [2, "Cy", 2],
+      [3, "Di", 1],
+    ]);
+  });
+});
+
 describe("a game in progress", () => {
   const games = [
     playing("Hal", TODAY, 10), // found the stache first, still playing
@@ -150,7 +190,7 @@ describe("a game in progress", () => {
     ]);
   });
 
-  test("doesn't list a player with nothing else finished this week", () => {
+  test("doesn't list a player with nothing finished", () => {
     expect(player(games, "Hal")).toBeUndefined();
   });
 
@@ -287,15 +327,36 @@ test("a puzzle not out yet never shows, nor do its games or words", () => {
   expect(JSON.stringify(result)).not.toContain("FUTURE");
 });
 
-test("the week is the last 7 puzzles, but a streak runs back further", () => {
+test("the squares are the last 7 puzzles, but points and a streak run back further", () => {
   const pia = player(
     DAYS.map((day) => solved("Pia", day.id, 45)),
     "Pia",
   );
   expect(pia?.marks).toEqual(Array(7).fill("won"));
-  expect(pia?.solved).toBe(7);
-  expect(pia?.points).toBe(14);
+  expect(pia?.solved).toBe(8);
+  expect(pia?.fastest).toBe(8);
+  expect(pia?.points).toBe(16);
   expect(pia?.streak).toBe(8);
+});
+
+test("lists a player whose only games are older than the week, with their points", () => {
+  const { players } = board(
+    solved("Wes", 1, 30), // #1's fastest, before the week
+    missed("Yan", 1, 40),
+    solved("Ula", 2, 50),
+  );
+  expect(
+    players.map(({ rank, name, points, marks }) => [
+      rank,
+      name,
+      points,
+      marks[0],
+    ]),
+  ).toEqual([
+    [1, "Ula", 2, "won"],
+    [1, "Wes", 2, "none"],
+    [3, "Yan", 0, "none"],
+  ]);
 });
 
 test("is empty before anyone finishes, or any puzzle is out", () => {
