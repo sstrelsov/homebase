@@ -200,8 +200,8 @@ const boardGames = (
     where ${where}`;
 
 /**
- * The last week's puzzles, a square per player per day, and today's fastest
- * stache (leaderboard.ts).
+ * Points on every puzzle so far, a square per player for each of the last
+ * week's puzzles, and today's fastest stache (leaderboard.ts).
  */
 async function leaderboard() {
   const [days, games] = await Promise.all([boardDays(), boardGames()]);
