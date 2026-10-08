@@ -14,9 +14,10 @@ description: >-
 
 # Stached puzzles
 
-A puzzle goes live in three steps: **stage** it (checked, not live), **preview**
-it (Spencer plays it on his phone before anyone else), and **confirm** it
-(published, with one push notification). The CLI does all of it; never edit
+A puzzle goes live in two steps: **stage** it (checked, not live, and made
+today's puzzle on the tester, so Spencer plays it in the tester's home-screen
+app before anyone else), then **confirm** it (published, with one push
+notification). The CLI does all of it; never edit
 `puzzles.json` by hand.
 
 ## Where the data lives
@@ -39,15 +40,14 @@ puzzle file along. With no command it prints its help.
 | Command | What it does |
 |---|---|
 | `list` | Every puzzle: number, date, status (out, today, upcoming, staged), games played, and its push (sent, none, or when) |
-| `stage <file>` | Checks the puzzles in the file (one, or a list) and stages them, replacing what was staged. `-` reads stdin |
-| `preview [date]` | Plays a staged puzzle (the first, or that date's) on Spencer's phone: `make phone` on the Studio with just that puzzle, as today's. Prints a link and a QR code |
-| `preview stop` | Stops the preview |
-| `confirm` | Publishes everything staged and stops the preview. The API picks it up without a restart |
+| `stage <file>` | Checks the puzzles in the file (one, or a list), stages them, replacing what was staged, and makes the first one today's puzzle on the tester. `-` reads stdin |
+| `preview <date>` | Makes another staged puzzle today's on the tester |
+| `confirm` | Publishes everything staged. The API picks it up without a restart |
 | `remove <date>` | Takes a published puzzle down |
 | `vapid-keys` | Prints a new pair of push keys for `api.env` |
 | `push-again` | The tester only: sends today's push again within a minute |
 
-Put `--tester` first (`scripts/stached --tester list`) to drive the tester, the always-on test copy on the Studio (`make tester`), instead of the live game: its own made-up puzzles, database and push, to try a change on a phone. It has no `preview`: confirm a puzzle and play it there. Nothing done there reaches real players.
+Put `--tester` first (`scripts/stached --tester list`) to drive the tester, the always-on test copy on the Studio (`make tester`), instead of the live game: its own puzzles, database and push, to try a change on a phone. Nothing done there reaches real players.
 
 ## The puzzle format
 
@@ -81,10 +81,12 @@ a line of text.
    EOF
    ```
    Fix whatever it reports and stage again. It prints each puzzle's number,
-   titles, push line, and when it goes live and pushes.
-3. Offer a preview: `scripts/stached preview`. Give Spencer the link it prints
-   (Tailscale on, password `test`, any name). It runs in tmux on the Studio
-   until `preview stop` or `confirm`. Nothing played there reaches the live game.
+   titles, push line, and when it goes live and pushes, then puts the first
+   one on the tester as today's puzzle and prints its address.
+3. Tell Spencer it's on the tester: he opens the tester's home-screen app and
+   plays it (Tailscale on). If the tester hasn't pushed yet that day, its
+   notification arrives within a minute too. Nothing played there reaches the
+   live game. Restaging replaces it there.
 4. **Confirm only when Spencer says to:** `scripts/stached confirm`. It publishes
    to real players and sends a real push. Read him the line it prints.
 5. `scripts/stached list` to show where things stand.
@@ -140,5 +142,5 @@ asks, then stage and confirm a made-up puzzle dated today.
 |---|---|
 | `list` says `any minute` for long | Is the API up (`https://api.spencerstrelsov.com/health`)? Without VAPID keys in `api.env` it logs "Push notifications are off" at start |
 | `sent`, but a phone got nothing | The API log's `Announced #N: … sent, … gone, … failed` line. "gone" means that subscription was dropped (the app was deleted, say); its owner turns them on again. Notifications only reach the home-screen app, and only once they're turned on there and allowed |
-| `preview` didn't start | It prints the end of its log (`stached-preview.log` in the Studio's temp folder). Usually port 8443 or 3998 is taken, or `tailscale serve` was refused |
+| `stage` couldn't put it on the tester | It's staged anyway. The tester is down, usually after the Studio restarted: `make tester` brings it back, then `scripts/stached preview <date>` |
 | `stage` complains | It lists every problem at once; fix them all and stage again |

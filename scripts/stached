@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Stage, preview and publish Stached puzzles: `scripts/stached help` (the CLI
-# is stached-api/cli.ts). It runs where the puzzles live, with the API's
-# settings: on the Studio, right there; anywhere else, on the Studio over SSH,
-# sending a puzzle file to stage along. STACHED_ENV points it at another
-# settings file instead, such as a `make phone` run's .phone/api.env, and
-# --tester at the tester's (scripts/tester.sh), to drive it instead of the
-# live game.
+# Stage and publish Stached puzzles, played on the tester first:
+# `scripts/stached help` (the CLI is stached-api/cli.ts). It runs where the
+# puzzles live, with the API's settings: on the Studio, right there; anywhere
+# else, on the Studio over SSH, sending a puzzle file to stage along.
+# STACHED_ENV points it at another settings file instead, such as a `make
+# phone` run's .phone/api.env, and --tester at the tester's
+# (scripts/tester.sh), to drive it instead of the live game.
 set -euo pipefail
 tester=""
 if [ "${1:-}" = --tester ]; then tester=1 && shift; fi

@@ -1,4 +1,4 @@
-// The puzzle CLI: stage a puzzle, play it on your phone before anyone else,
+// The puzzle CLI: stage a puzzle, play it on the tester before anyone else,
 // then publish it, without editing puzzles.json by hand. It runs where the
 // puzzles live (the Studio), with the API's settings, and writes the puzzles
 // file and Postgres the way the API does as it starts, so a published puzzle
@@ -12,7 +12,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { sql } from "bun";
 import { ANNOUNCE_AT, announceDue, newYorkTime } from "./push";
@@ -30,9 +30,9 @@ const USAGE = `Stage, play and publish Stached puzzles.
 
   stached list               every puzzle, published and staged
   stached stage <file>       check puzzles (one, or a list) and stage them,
-                             replacing what's staged; - reads them from stdin
-  stached preview [date]     play a staged puzzle on your phone, first
-  stached preview stop       stop the preview
+                             replacing what's staged, and make the first one
+                             today's on the tester; - reads them from stdin
+  stached preview <date>     make another staged puzzle today's on the tester
   stached confirm            publish what's staged
   stached remove <date>      take a published puzzle down
   stached vapid-keys         make the API's push keys, for api.env
@@ -44,21 +44,13 @@ confirm and remove refuse to unless you add --delete-games.`;
 /** A message for the person at the terminal, not a crash. */
 class Stop extends Error {}
 
-const ROOT = join(import.meta.dir, "..");
 /**
- * The tester (scripts/tester.sh): its puzzles are made up and played by
- * publishing them, so it has no preview and never stops the live game's, and
- * it can send today's push again.
+ * The tester (scripts/tester.sh), an always-on copy where a staged puzzle is
+ * played before anyone else: this CLI runs with its settings to put one there
+ * (play), and can send its push again.
  */
 const TESTER = Boolean(process.env.STACHED_TESTER);
-const PREVIEW = {
-  session: "stached-preview",
-  // Its own API port, since the live API has 3999 on the Studio.
-  port: "3998",
-  puzzles: join(tmpdir(), "stached-preview.json"),
-  log: join(tmpdir(), "stached-preview.log"),
-  url: join(ROOT, ".phone/url"),
-};
+const TESTER_ENV = join(homedir(), ".config/stached-tester/api.env");
 
 function puzzlesFile() {
   const file = process.env.PUZZLES_FILE;
@@ -329,107 +321,75 @@ async function stage(source: string | undefined) {
       console.log("  Changes only its push line, so its games stay.");
     console.log(`  ${timing(date, change.kind)}`);
   }
-  console.log(
-    "\nStaged, not live. Play it with `stached preview`, then publish it with `stached confirm`.",
-  );
-}
-
-const tmux = (...args: string[]) =>
-  spawnSync("tmux", args, { encoding: "utf8" });
-const previewRunning = () =>
-  tmux("has-session", "-t", PREVIEW.session).status === 0;
-
-/** Stops the preview the way Ctrl-C does, so it cleans up after itself. */
-async function stopPreview() {
-  if (!previewRunning()) return false;
-  tmux("send-keys", "-t", PREVIEW.session, "C-c");
-  for (let i = 0; i < 30 && previewRunning(); i++) await Bun.sleep(500);
-  if (previewRunning()) tmux("kill-session", "-t", PREVIEW.session);
-  return true;
+  if (!TESTER) toTester(staged[0]);
+  console.log("\nStaged, not live. Publish it with `stached confirm`.");
 }
 
 /**
- * Plays a staged puzzle on your phone before anyone else: `make phone` with
- * just that puzzle, as today's, in a tmux session that outlives this
- * terminal. Nothing played there reaches the live game.
+ * Makes a staged puzzle today's on the tester, to play in its home-screen app
+ * before anyone else. This CLI runs again with the tester's settings, since
+ * one process talks to one database.
  */
-async function preview(arg: string | undefined) {
-  if (TESTER)
-    throw new Stop(
-      "The tester has no preview, so the live game's keeps running: confirm the puzzle and play it there.",
-    );
-  if (arg === "stop") {
-    console.log(
-      (await stopPreview()) ? "Preview stopped." : "No preview running.",
-    );
+function toTester(puzzle: DayPuzzle) {
+  if (!existsSync(TESTER_ENV)) {
+    console.log("\nNo tester here to play it on: `make tester` sets one up.");
     return;
   }
-  const staged = await readStaged();
-  const puzzle = arg ? staged.find((p) => p.date === arg) : staged[0];
-  if (!puzzle)
-    throw new Stop(
-      staged.length
-        ? `Nothing staged for ${arg}.`
-        : "Nothing staged. Stage a puzzle first: stached stage <file>",
-    );
-
-  writePrivate(PREVIEW.puzzles, [{ ...puzzle, date: today() }]);
-  await stopPreview();
-  if (!existsSync(join(ROOT, "node_modules/.bin/vite"))) {
-    console.log(
-      "Installing the site's packages for previews (first time only)…",
-    );
-    const install = spawnSync("bun", ["install", "--frozen-lockfile"], {
-      cwd: ROOT,
-      stdio: "inherit",
-    });
-    if (install.status !== 0) throw new Stop("bun install failed.");
-  }
-  rmSync(PREVIEW.url, { force: true });
-  // A clean environment, so the preview never sees the live API's settings.
-  const started = spawnSync(
-    "tmux",
-    [
-      "new-session",
-      "-d",
-      "-s",
-      PREVIEW.session,
-      "-c",
-      ROOT,
-      `STACHED_API_PORT=${PREVIEW.port} PUZZLES_FILE='${PREVIEW.puzzles}' STACHE_PASSWORD=test ./scripts/phone.sh >'${PREVIEW.log}' 2>&1`,
-    ],
+  const played = spawnSync(
+    "bun",
+    [`--env-file=${TESTER_ENV}`, import.meta.path, "play"],
     {
-      env: {
-        HOME: process.env.HOME,
-        PATH: process.env.PATH,
-        LANG: "en_US.UTF-8",
-      },
+      input: JSON.stringify(puzzle),
+      // Only the tester's settings: never the live game's.
+      env: { HOME: process.env.HOME, PATH: process.env.PATH },
       encoding: "utf8",
     },
   );
-  if (started.status !== 0) throw new Stop(`tmux failed: ${started.stderr}`);
-
-  for (let i = 0; !existsSync(PREVIEW.url); i++) {
-    if (!previewRunning() || i > 120) {
-      await stopPreview();
-      const log = existsSync(PREVIEW.log)
-        ? await Bun.file(PREVIEW.log).text()
-        : "";
-      throw new Stop(
-        `The preview didn't start:\n${log.trim().split("\n").slice(-8).join("\n")}`,
-      );
-    }
-    await Bun.sleep(500);
-  }
-  const url = (await Bun.file(PREVIEW.url).text()).trim();
   console.log(
-    `Previewing ${day(puzzle.date)} (${puzzle.date}) as today's puzzle.\n`,
+    played.status === 0
+      ? `\n${played.stdout.trim()}`
+      : `\nCouldn't put it on the tester (is it up? \`make tester\`):\n${(played.stderr || played.stdout).trim()}`,
   );
-  spawnSync("bunx", ["qrcode", "--small", url], { stdio: "inherit" });
-  console.log(`  ${url}`);
-  console.log("  Tailscale on, password test, any name.");
+}
+
+/** Puts another staged puzzle on the tester, as today's. */
+async function preview(date: string | undefined) {
+  if (TESTER)
+    throw new Stop("On the tester, stage and confirm puzzles directly.");
+  const staged = await readStaged();
+  const puzzle = staged.find((p) => p.date === date);
+  if (!puzzle)
+    throw new Stop(
+      staged.length
+        ? `Stage has ${staged.map((p) => p.date).join(", ")}: preview which?`
+        : "Nothing staged. Stage a puzzle first: stached stage <file>",
+    );
+  toTester(puzzle);
+}
+
+/**
+ * The tester only: makes a puzzle from stdin today's, in place of the
+ * tester's own. Its games go with it if the words changed, as on any edit:
+ * they're all made up. If the tester hasn't pushed today, it does within a
+ * minute, so the notification shows too.
+ */
+async function play() {
+  if (!TESTER) throw new Stop("play is for the tester: stage sends it there.");
+  const date = today();
+  const puzzle = { ...plain(JSON.parse(await Bun.stdin.text())), date };
+  const puzzles = [
+    ...(await readPuzzles(puzzlesFile())).filter((p) => p.date !== date),
+    puzzle,
+  ].sort(byDate);
+  writePrivate(puzzlesFile(), puzzles);
+  await syncPuzzles(puzzles);
+  const [pushed] = await sql`select 1 from announcements where date = ${date}`;
+  const site = process.env.ALLOWED_ORIGINS?.split(",")[0];
+  console.log(`It's today's puzzle on the tester: ${site}/stached/`);
   console.log(
-    "\nIt keeps running until `stached preview stop` or `stached confirm`. Nothing played there reaches the live game.",
+    pushed
+      ? "Its push went out earlier today; `stached --tester push-again` sends it again."
+      : "Its push goes out within a minute.",
   );
 }
 
@@ -444,7 +404,6 @@ async function confirm(deleteGames: boolean) {
   const puzzles = publish(published, staged, games, { deleteGames });
   await savePuzzles(puzzles);
   rmSync(stagedFile());
-  if (!TESTER && (await stopPreview())) console.log("Stopped the preview.");
   const number = numbers(puzzles);
   for (const { date, kind } of planned)
     console.log(
@@ -500,6 +459,7 @@ if (import.meta.main) {
     else if (command === "remove") await remove(arg, deleteGames);
     else if (command === "vapid-keys") await vapidKeys();
     else if (command === "push-again") await pushAgain();
+    else if (command === "play") await play();
     else console.log(USAGE);
   } catch (error) {
     if (!(error instanceof Stop)) throw error;
