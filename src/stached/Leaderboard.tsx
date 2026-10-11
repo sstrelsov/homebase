@@ -38,7 +38,7 @@ export const Square = ({ mark }: { mark: Mark }) => (
 );
 
 /** Today's fastest stache, in a gold box. Ties share it. */
-const FastestToday = ({ board }: { board: Board }) => {
+export const FastestToday = ({ board }: { board: Board }) => {
   const { session } = useStached();
   const today = board.days.at(-1);
   if (!today) return null;
@@ -75,7 +75,7 @@ const FastestToday = ({ board }: { board: Board }) => {
 };
 
 /** The score, without words: a green square is a point, and so is Gerald. */
-const PointKey = () => (
+export const PointKey = () => (
   <p className={styles.pointKey}>
     <span>
       <Square mark="solved" />
@@ -165,17 +165,20 @@ const Standings = ({ board: { days, players } }: { board: Board }) => {
 /**
  * Today's fastest stache, then the standings: a point for each solve and each
  * fastest stache on every puzzle so far, with squares for the last week's.
+ * The leaderboard mockups show it too.
  */
+export const LeaderboardView = ({ board }: { board: Board }) => (
+  <div className="flex flex-col gap-6">
+    <FastestToday board={board} />
+    <Standings board={board} />
+  </div>
+);
+
 const Leaderboard = () => {
   const { data: board, error, load } = useLoad(api.leaderboard);
   return (
     <Screen title="Leaderboard" error={error} onRetry={load}>
-      {board && (
-        <div className="flex flex-col gap-6">
-          <FastestToday board={board} />
-          <Standings board={board} />
-        </div>
-      )}
+      {board && <LeaderboardView board={board} />}
     </Screen>
   );
 };

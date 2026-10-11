@@ -98,7 +98,7 @@ const NAMES = [
 ];
 
 /** A seeded coin, so the grids don't change between loads. */
-function seeded(seed: number) {
+export function seeded(seed: number) {
   return () => {
     seed = (seed * 1664525 + 1013904223) % 4294967296;
     return seed / 4294967296;
