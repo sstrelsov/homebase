@@ -111,12 +111,21 @@ function marker(counted: Game[]) {
   const isFastest = (game: Game): game is Finished =>
     game.completed !== null && game.stachedMs === fastestMs.get(game.puzzleId);
 
-  const mark = (day: Day, game: Game | undefined): Mark => {
+  const mark = (day: Day | undefined, byDay: Map<number, Game>): Mark => {
+    if (!day) return "gap";
+    const game = byDay.get(day.id);
     if (!game || game.completed === null) return day.counts ? "open" : "none";
     if (isFastest(game)) return game.completed ? "won" : "won-missed";
     return game.completed ? "solved" : "missed";
   };
   return { isFastest, mark };
+}
+
+/** A date ("2026-10-02") moved by some days, back for a negative count. */
+export function addDays(date: string, days: number) {
+  const moved = new Date(`${date}T12:00:00Z`);
+  moved.setUTCDate(moved.getUTCDate() + days);
+  return moved.toISOString().slice(0, 10);
 }
 
 /**
@@ -127,11 +136,9 @@ export function lastWeek<T extends Pick<Day, "date">>(days: T[]) {
   const last = days.at(-1);
   if (!last) return [];
   const byDate = new Map(days.map((day) => [day.date, day]));
-  return Array.from({ length: WEEK }, (_, i) => {
-    const date = new Date(`${last.date}T12:00:00Z`);
-    date.setUTCDate(date.getUTCDate() - (WEEK - 1 - i));
-    return date.toISOString().slice(0, 10);
-  })
+  return Array.from({ length: WEEK }, (_, i) =>
+    addDays(last.date, i - (WEEK - 1)),
+  )
     .filter((date) => date >= days[0].date)
     .map((date) => ({ date, day: byDate.get(date) }));
 }
@@ -144,15 +151,12 @@ export function lastWeek<T extends Pick<Day, "date">>(days: T[]) {
 export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
   const counted = games.filter((game) => !game.late);
   const week = lastWeek(days);
-  const today = new Map(
-    days.filter((day) => day.today).map((day) => [day.id, day.number]),
-  );
   const { isFastest, mark } = marker(counted);
 
   const standings = [...Map.groupBy(counted, (game) => game.name)].flatMap(
     ([name, played]) => {
       const byDay = new Map(played.map((game) => [game.puzzleId, game]));
-      const marks = days.map((day) => mark(day, byDay.get(day.id)));
+      const marks = days.map((day) => mark(day, byDay));
       if (marks.every((m) => m === "none" || m === "open")) return [];
       const solved = marks.filter((m) => m === "won" || m === "solved").length;
       const fastest = marks.filter(
@@ -161,9 +165,7 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
       return [
         {
           name,
-          marks: week.map(({ day }) =>
-            day ? mark(day, byDay.get(day.id)) : "gap",
-          ),
+          marks: week.map(({ day }) => mark(day, byDay)),
           solved,
           fastest,
           points: solved + fastest,
@@ -187,16 +189,20 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
       number: day?.number ?? null,
       today: day?.today ?? false,
     })),
-    fastestToday: counted
-      .filter((game) => today.has(game.puzzleId))
-      .filter(isFastest)
-      .map(({ puzzleId, name, stachedMs, completed }) => ({
-        number: today.get(puzzleId) as number,
-        name,
-        stachedMs,
-        solved: completed,
-      }))
-      .sort((a, b) => a.number - b.number || a.name.localeCompare(b.name)),
+    fastestToday: days
+      .filter((day) => day.today)
+      .flatMap(({ id, number }) =>
+        counted
+          .filter((game) => game.puzzleId === id)
+          .filter(isFastest)
+          .map(({ name, stachedMs, completed }) => ({
+            number,
+            name,
+            stachedMs,
+            solved: completed,
+          }))
+          .sort((a, b) => a.name.localeCompare(b.name)),
+      ),
     players: ranked(standings),
   };
 }
@@ -223,7 +229,7 @@ export function weekOf(days: Day[], games: Game[], mine: Game[]) {
   return lastWeek(days).map(({ date, day }) => ({
     date,
     today: day?.today ?? false,
-    mark: day ? mark(day, byDay.get(day.id)) : ("gap" as const),
+    mark: mark(day, byDay),
   }));
 }
 

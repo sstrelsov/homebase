@@ -154,10 +154,10 @@ export async function gamesByDate(): Promise<Map<string, number>> {
  * comes out on its date, or, for a missed day's published later to catch up,
  * on the day it was published (`out`). Today's are the ones out on the
  * newest day, oldest first: a day without a puzzle of its own keeps the last
- * ones. A puzzle counts while it's today's and for 24 hours after its push
- * (a push claims each of its dates), so one pushed late at night still has a
- * full day once the next one is out. Games started or guessed after that are
- * late.
+ * ones. A puzzle counts while it's today's and for 24 hours after its day's
+ * push (one for every puzzle out that day, even one published after it), so
+ * one pushed late at night still has a full day once the next one is out.
+ * Games started or guessed after that are late.
  */
 export const released = () => sql`(
   select z.id, to_char(z.date, 'YYYY-MM-DD') as date,
@@ -172,6 +172,6 @@ export const released = () => sql`(
            or coalesce(a.sent_at > now() - interval '24 hours', false) as counts
   from (select id, date, coalesce(out, date) as out, groups, push
         from puzzles) z
-    left join announcements a on a.date = z.date
+    left join announcements a on a.date = z.out
   where z.out <= (now() at time zone 'America/New_York')::date
 ) released`;

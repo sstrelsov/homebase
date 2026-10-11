@@ -2,15 +2,14 @@
 name: stached-puzzles
 description: >-
   Stage, play-test, publish, list and take down Stached puzzles with the puzzle
-  CLI (scripts/stached), and handle the push notification each puzzle sends.
-  Use whenever Spencer wants to add, write, check, schedule, preview, play-test,
+  CLI (scripts/stached), and handle the push notification each puzzle sends. Use
+  whenever Spencer wants to add, write, check, schedule, preview, play-test,
   confirm, publish, fix, move, replace or remove a Stached puzzle, catch up on a
-  missed day, or asks what's
-  coming up, which day is next, whether today's push went out, or why a push
-  didn't arrive. Trigger on "stage this puzzle", "new stached puzzle",
-  "tomorrow's puzzle", "today's puzzle", "preview it on my phone", "confirm it",
-  "publish it", "is it live", "did the notification go out", "VAPID keys", or a
-  pasted set of four groups of four words.
+  missed day, or asks what's coming up, which day is next, whether today's push
+  went out, or why a push didn't arrive. Trigger on "stage this puzzle", "new
+  stached puzzle", "tomorrow's puzzle", "today's puzzle", "preview it on my
+  phone", "confirm it", "publish it", "is it live", "did the notification go
+  out", "VAPID keys", or a pasted set of four groups of four words.
 ---
 
 # Stached puzzles
@@ -138,8 +137,8 @@ next day's is out. So a puzzle pushed at 11pm still gives everyone a full day,
 and publishing the next one on time doesn't cut it short.
 
 The API checks every minute, `confirm` sends a due push itself, and both
-record every date in the push in `announcements` before sending, so a puzzle
-never pushes twice, even across restarts or if it's edited or published again.
+record the day in `announcements` before sending, so a day never pushes twice,
+even across restarts or if a puzzle is edited or published again.
 The notification says "Puzzle #12 is up" ("Puzzles #17 and #18 are up" with a
 missed day's), then the oldest puzzle's `push` line if it has one, or else a
 random one of the quotes on home. When Spencer wants custom copy, put it in `push` and stage again: a

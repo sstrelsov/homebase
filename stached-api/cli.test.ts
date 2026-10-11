@@ -130,6 +130,20 @@ describe("catching up on a missed day", () => {
     ).toBeUndefined();
   });
 
+  test("puts one back on a day that was pushed and taken down, not caught up", () => {
+    expect(
+      outs(
+        publish([on("2026-10-11")], [on("2026-10-09")], new Map(), {
+          pushed,
+          now,
+        }),
+      ),
+    ).toEqual([
+      ["2026-10-09", undefined],
+      ["2026-10-11", undefined],
+    ]);
+  });
+
   test("refuses once a later day's push has gone out, since it would renumber", () => {
     expect(() =>
       publish(published, [on("2026-10-10")], new Map(), {
@@ -224,6 +238,12 @@ describe("timing", () => {
   test("a puzzle that joins today's after their push gets none", () => {
     expect(timing("2026-10-01", "new", true, night)).toBe(
       "It goes live right away, with no push: today's went out already.",
+    );
+  });
+
+  test("a puzzle back on a day before today gets none", () => {
+    expect(timing("2026-09-30", "new", true, night)).toBe(
+      "It's dated before today, so it gets no push.",
     );
   });
 });

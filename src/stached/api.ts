@@ -42,7 +42,7 @@ export interface Score {
 
 /** A puzzle so far, with how you did on it. */
 export interface PastGame
-  extends Pick<Day["puzzle"], "date" | "today" | "next"> {
+  extends Pick<Day["puzzle"], "date" | "out" | "today"> {
   play: Pick<Play, "finished" | "completed" | "stachedMs"> | null;
 }
 
@@ -53,6 +53,8 @@ export interface Day {
     /** #1 is the first puzzle, by date. */
     number: number;
     date: string;
+    /** The day it came out: its date, or a later one for a missed day's. */
+    out: string;
     /**
      * One of today's: out on the newest day, with any missed day's puzzle
      * caught up along with it.
@@ -80,7 +82,7 @@ export interface Day {
 export interface Today extends Day {
   week: (Pick<WeekDay, "date" | "today"> & { mark: Mark })[];
   /** Your game started last among today's, for home's note. */
-  latest: Pick<Play, "finished" | "completed" | "stachedMs"> | null;
+  latest: PastGame["play"];
 }
 
 // The leaderboard's shape comes with its rules, so the two can't drift apart.

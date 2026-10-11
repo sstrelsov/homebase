@@ -15,6 +15,8 @@ import {
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { sql } from "bun";
+import { addDays } from "./leaderboard";
+import { migrate } from "./migrate";
 import {
   ANNOUNCE_AT,
   announce,
@@ -123,6 +125,7 @@ export function timing(
     return "It's out already, so the change is live right away. A puzzle never pushes twice.";
   if (out > current)
     return `It goes live at midnight New York time on ${day(out)}, with its push at ${pushTime}.`;
+  if (out < current) return "It's dated before today, so it gets no push.";
   if (pushed)
     return "It goes live right away, with no push: today's went out already.";
   return announceDue(out, now)
@@ -223,8 +226,9 @@ function tooLate(date: string, pushed: Set<string>) {
 /**
  * The puzzles file after publishing staged puzzles: new dates added, edited
  * ones replaced, identical ones left as they were. A new one dated before
- * today catches up on a missed day: it comes out today, with today's.
- * `pushed` holds the dates whose push has gone out.
+ * today catches up on a missed day: it comes out today, with today's. One on
+ * a day that was pushed (and taken down since) wasn't missed, so it's back
+ * on its own day. `pushed` holds the days whose push has gone out.
  */
 export function publish(
   published: DayPuzzle[],
@@ -239,23 +243,25 @@ export function publish(
   staged.forEach((puzzle, i) => {
     if (planned[i].kind === "same") return;
     const old = puzzles.get(puzzle.date);
-    if (!old && puzzle.date < current) tooLate(puzzle.date, pushed);
+    const missed = !old && puzzle.date < current && !pushed.has(puzzle.date);
+    if (missed) tooLate(puzzle.date, pushed);
     // A published puzzle keeps the day it came out.
     puzzles.set(
       puzzle.date,
-      filed(
-        puzzle,
-        old ? old.out : puzzle.date < current ? current : undefined,
-      ),
+      filed(puzzle, old ? old.out : missed ? current : undefined),
     );
   });
   return [...puzzles.values()].sort(byDate);
 }
 
+/** The puzzles out on a day, oldest first. */
+const outOn = (puzzles: DayPuzzle[], out: string) =>
+  puzzles.filter((p) => outOf(p) === out);
+
 /** The puzzles out on the same day as the one with this date, oldest first. */
 const outWith = (puzzles: DayPuzzle[], date: string) => {
   const puzzle = puzzles.find((p) => p.date === date);
-  return puzzle ? puzzles.filter((p) => outOf(p) === outOf(puzzle)) : [];
+  return puzzle ? outOn(puzzles, outOf(puzzle)) : [];
 };
 
 /** The puzzles file without one puzzle. */
@@ -288,8 +294,8 @@ async function savePuzzles(puzzles: DayPuzzle[]) {
 const numbers = (puzzles: DayPuzzle[]) =>
   new Map(puzzles.map((p, i) => [p.date, i + 1]));
 
-/** The dates whose push has gone out (a push claims each of its dates). */
-const pushedDates = async () =>
+/** The days whose push has gone out, for every puzzle out on them. */
+const pushedDays = async () =>
   new Set<string>(
     (
       await sql`select to_char(date, 'YYYY-MM-DD') as date from announcements`
@@ -301,7 +307,7 @@ async function list() {
     readPuzzles(puzzlesFile()),
     readStaged(),
     gamesByDate(),
-    pushedDates(),
+    pushedDays(),
   ]);
   const now = new Date();
   const current = today(now);
@@ -316,7 +322,7 @@ async function list() {
     return p.out ? `${when}, caught up` : when;
   };
   const push = (p: DayPuzzle) =>
-    pushed.has(p.date)
+    pushed.has(outOf(p))
       ? "sent"
       : outOf(p) < current
         ? "none"
@@ -375,7 +381,7 @@ async function stage(source: string | undefined) {
   const [published, games, pushed] = await Promise.all([
     readPuzzles(puzzlesFile()),
     gamesByDate(),
-    pushedDates(),
+    pushedDays(),
   ]);
   // Before it's staged, so a missed day too late to catch up never is.
   const merged = publish(published, staged, games, {
@@ -410,8 +416,7 @@ async function stage(source: string | undefined) {
     if (change.kind === "push")
       console.log("  Changes only its push line, so its games stay.");
     const out = outOf(together[0]);
-    const sent = together.some((p) => pushed.has(p.date));
-    console.log(`  ${timing(out, change.kind, sent)}`);
+    console.log(`  ${timing(out, change.kind, pushed.has(out))}`);
   }
   if (!TESTER) toTester(outWith(merged, staged[0].date));
   console.log("\nStaged, not live. Publish it with `stached confirm`.");
@@ -456,8 +461,8 @@ async function preview(date: string | undefined) {
     readStaged(),
     readPuzzles(puzzlesFile()),
   ]);
-  const wanted = date ?? staged[0]?.date;
-  if (!staged.some((p) => p.date === wanted))
+  const puzzle = date ? staged.find((p) => p.date === date) : staged[0];
+  if (!puzzle)
     throw new Stop(
       staged.length
         ? `Nothing staged for ${date}.`
@@ -465,14 +470,8 @@ async function preview(date: string | undefined) {
     );
   // A preview publishes nothing, so no games are at stake.
   const merged = publish(published, staged, new Map(), { deleteGames: true });
-  toTester(outWith(merged, wanted as string));
+  toTester(outWith(merged, puzzle.date));
 }
-
-const addDays = (date: string, days: number) => {
-  const moved = new Date(`${date}T12:00:00Z`);
-  moved.setUTCDate(moved.getUTCDate() + days);
-  return moved.toISOString().slice(0, 10);
-};
 
 /**
  * The tester only: makes the puzzles from stdin (out on one day) today's, in
@@ -480,10 +479,12 @@ const addDays = (date: string, days: number) => {
  * today and any missed day's the days before, caught up. Their games go with
  * them if the words changed, as on any edit: they're all made up. It pushes
  * right away, even if today's push went out already, so each staging shows
- * its notification too.
+ * its notification too. The tester's own code may be older than this, so its
+ * database is brought up to this code's migrations first.
  */
 async function play() {
   if (!TESTER) throw new Stop("play is for the tester: stage sends it there.");
+  await migrate();
   const date = today();
   const incoming: DayPuzzle[] = JSON.parse(await Bun.stdin.text());
   const shift =
@@ -496,7 +497,7 @@ async function play() {
   const puzzles = [
     ...(await readPuzzles(puzzlesFile()))
       .filter((p) => !dates.has(p.date))
-      .map((p) => filed(p, undefined)),
+      .map(plain),
     ...moved,
   ].sort(byDate);
   writePrivate(puzzlesFile(), puzzles);
@@ -516,25 +517,24 @@ async function confirm(deleteGames: boolean) {
   const [published, games, pushed] = await Promise.all([
     readPuzzles(puzzlesFile()),
     gamesByDate(),
-    pushedDates(),
+    pushedDays(),
   ]);
   const planned = changes(published, staged, games);
   const puzzles = publish(published, staged, games, { deleteGames, pushed });
   await savePuzzles(puzzles);
   rmSync(stagedFile());
   const number = numbers(puzzles);
-  const outDay = new Map(puzzles.map((p) => [p.date, outOf(p)]));
+  const outs = new Set<string>();
   for (const { date, kind } of planned) {
-    const out = outDay.get(date) as string;
-    const sent = puzzles.some((p) => outOf(p) === out && pushed.has(p.date));
+    const out = outOf(outWith(puzzles, date)[0]);
+    outs.add(out);
     console.log(
       kind === "same"
         ? `#${number.get(date)} · ${day(date)} was already published.`
-        : `Published #${number.get(date)} · ${day(date)}. ${timing(out, kind, sent)}`,
+        : `Published #${number.get(date)} · ${day(date)}. ${timing(out, kind, pushed.has(out))}`,
     );
   }
-  for (const out of new Set(planned.map(({ date }) => outDay.get(date))))
-    await pushNow(puzzles, out as string);
+  for (const out of outs) await pushNow(puzzles, out);
 }
 
 /**
@@ -548,9 +548,11 @@ async function pushNow(puzzles: DayPuzzle[], out: string) {
   if (!keys) return;
   const number = numbers(puzzles);
   await announce(
-    puzzles
-      .filter((p) => outOf(p) === out)
-      .map((p) => ({ ...p, out, number: number.get(p.date) ?? 0 })),
+    outOn(puzzles, out).map((p) => ({
+      ...p,
+      out,
+      number: number.get(p.date) ?? 0,
+    })),
     keys,
   );
 }
@@ -576,12 +578,11 @@ async function pushAgain() {
     );
   const date = today();
   const puzzles = await readPuzzles(puzzlesFile());
-  const dates = puzzles.filter((p) => outOf(p) === date).map((p) => p.date);
-  if (!dates.length)
+  if (!outOn(puzzles, date).length)
     throw new Stop(
       `No puzzle out today (${date}) on the tester: stage one first.`,
     );
-  await sql`delete from announcements where date in ${sql(dates)}`;
+  await sql`delete from announcements where date = ${date}`;
   await pushNow(puzzles, date);
 }
 

@@ -42,12 +42,7 @@ const DaySquare = ({ date, mark, today }: WeekDay) => {
   return mark === "gap" ? (
     <span className={styles.homeDay}>{square}</span>
   ) : (
-    <Link
-      to="/stached/$date"
-      params={{ date }}
-      className={styles.homeDay}
-      data-today={today || undefined}
-    >
+    <Link to="/stached/$date" params={{ date }} className={styles.homeDay}>
       {square}
     </Link>
   );
@@ -79,9 +74,9 @@ const Week = ({
   }, [last]);
 
   const onScroll = () => {
-    // The last of today's, at the very end.
+    // Today's is last, at the very end.
     const today = strip.current?.querySelector<HTMLElement>(
-      "a[data-today]:last-of-type",
+      ":scope > :last-child",
     );
     if (!strip.current || !today) return;
     const { scrollLeft, clientWidth } = strip.current;
@@ -197,8 +192,10 @@ const Home = () => {
 
   const rise = intro ? styles.rise : "";
   const note = today ? status(today.latest) : "Loading…";
-  // Today's puzzles, more than one when a missed day's came out with today's.
+  // Today's puzzles, more than one when a missed day's came out with today's:
+  // Play says which is next until they're all done.
   const { nth, of } = today?.puzzle ?? { nth: 1, of: 1 };
+  const left = of > 1 && !today?.play?.finished;
 
   return (
     // At least the screen, less the page's padding, with the quotes in
@@ -213,9 +210,7 @@ const Home = () => {
       >
         <h1 className={`${styles.title} text-[32px]`}>Stached</h1>
         <p className={styles.label}>
-          {today
-            ? formatDate(today.week.at(-1)?.date ?? today.puzzle.date)
-            : " "}
+          {today ? formatDate(today.puzzle.out) : " "}
         </p>
       </div>
       <div className={`${rise} flex gap-3`} style={{ animationDelay: "1.3s" }}>
@@ -241,7 +236,7 @@ const Home = () => {
           disabled={!today}
           className={`${styles.button} ${styles.primary} flex-1`}
         >
-          {of > 1 ? `Play ${nth} of ${of}` : "Play"}
+          {left ? `Play ${nth} of ${of}` : "Play"}
         </button>
       </div>
       <div className={rise} style={{ animationDelay: "1.4s" }}>

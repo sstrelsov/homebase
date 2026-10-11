@@ -182,12 +182,12 @@ const todayFor = (
 
 /** Today's puzzles, oldest first, as their push and card know them. */
 const todays = (): Promise<Announced[]> =>
-  sql`select number, date, out, push from ${released()} where today order by date`;
+  sql`select number, out, push from ${released()} where today order by date`;
 
 /** Every puzzle so far, newest first, with how this player did on each. */
 async function pastGames(userId: number) {
   const rows = await sql`
-    select released.date, released.number, released.today, released.next,
+    select released.date, released.out, released.number, released.today,
            p.id as play,
            p.finished_at is not null as finished, p.completed,
            p.stached_ms as "stachedMs", p.late
@@ -196,18 +196,15 @@ async function pastGames(userId: number) {
     order by released.date desc`;
   return rows.map(
     ({
-      date,
-      number,
-      today,
-      next,
       play,
-      ...game
+      finished,
+      completed,
+      stachedMs,
+      late,
+      ...puzzle
     }: Record<string, unknown>) => ({
-      date,
-      number,
-      today,
-      next,
-      play: play === null ? null : game,
+      ...puzzle,
+      play: play === null ? null : { finished, completed, stachedMs, late },
     }),
   );
 }
@@ -310,6 +307,7 @@ async function snapshot(userId: number, puzzle: Puzzle) {
       id: puzzle.id,
       number: puzzle.number,
       date: puzzle.date,
+      out: puzzle.out,
       today: puzzle.today,
       nth: puzzle.nth,
       of: puzzle.of,
@@ -529,7 +527,7 @@ async function adminStats() {
                as after_push
       from plays p join users u on u.id = p.user_id
         join puzzles z on z.id = p.puzzle_id
-        left join announcements a on a.date = z.date
+        left join announcements a on a.date = coalesce(z.out, z.date)
       where lower(u.name) <> ${ADMIN_NAME}
       order by p.finished_at`,
     sql`

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { sql } from "bun";
 import QUOTES from "../src/stached/quotes.json";
+import { addDays } from "./leaderboard";
 import { migrate } from "./migrate";
 import {
   announce,
@@ -206,7 +207,7 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
     ).toEqual(["/down", "/ok"]);
   });
 
-  test("announces a missed day's puzzle with the day's it came out with, claiming both dates", async () => {
+  test("announces a missed day's puzzle with the day's it came out with, claiming the day", async () => {
     const keys = await generateVapidKeys();
     // Monday was missed, and caught up on Tuesday, October 6.
     const tuesday = minutes(FRI_912, 4 * 24 * 60);
@@ -219,11 +220,8 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
     const claimed = await sql`
       select to_char(date, 'YYYY-MM-DD') as date from announcements
       where date >= '2026-10-05' order by date`;
-    expect(claimed.map((r: { date: string }) => r.date)).toEqual([
-      "2026-10-05",
-      out,
-    ]);
-    // Neither date is pushed again, together or alone.
+    expect(claimed.map((r: { date: string }) => r.date)).toEqual([out]);
+    // Neither is pushed again, together or alone.
     expect(await announce(both, keys, minutes(tuesday, 60))).toBe(false);
     expect(await announce(both.slice(0, 1), keys, tuesday)).toBe(false);
     expect(await announce(both.slice(1), keys, tuesday)).toBe(false);
@@ -238,12 +236,12 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
     const out = "2026-10-08";
     const caughtUp = { number: 8, date: "2026-10-07", out };
     expect(await announce([caughtUp], keys, thursday)).toBe(true);
-    expect(
-      await announce([caughtUp, { number: 9, date: out, out }], keys, thursday),
-    ).toBe(false);
-    // All or nothing: Thursday's date isn't claimed by the push that failed.
-    const claimed = await sql`select 1 from announcements where date = ${out}`;
-    expect(claimed).toHaveLength(0);
+    expect(await announce([caughtUp, { number: 9, out }], keys, thursday)).toBe(
+      false,
+    );
+    const claimed = await sql`
+      select 1 from announcements where date >= '2026-10-07'`;
+    expect(claimed).toHaveLength(1);
   });
 
   test("changing a puzzle's push line keeps its games", async () => {
@@ -269,11 +267,7 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
   test("a missed day's puzzle is today's while it's new, and counts for a day after its push", async () => {
     const sample = examples[0] as DayPuzzle;
     const today = newYorkTime().slice(0, 10);
-    const ago = (days: number) => {
-      const date = new Date(`${today}T12:00:00Z`);
-      date.setUTCDate(date.getUTCDate() - days);
-      return date.toISOString().slice(0, 10);
-    };
+    const ago = (days: number) => addDays(today, -days);
     const puzzle = (date: string, out?: string): DayPuzzle => ({
       ...sample,
       date,
@@ -282,6 +276,8 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
     const releasedNow = () => sql`
       select date, number, today, nth, "of", next, counts
       from ${released()} order by date`;
+    // The pushes the tests above made, on dates that may be these.
+    await sql`delete from announcements`;
 
     // Caught up today: the day before yesterday's, with today's.
     await syncPuzzles([puzzle(ago(3)), puzzle(ago(2), today), puzzle(today)]);
@@ -327,11 +323,10 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
       puzzle(today),
     ]);
     const pushed = async (hours: number) => {
-      for (const date of [ago(2), ago(1)])
-        await sql`
-          insert into announcements (date, sent_at)
-          values (${date}, now() - ${`${hours} hours`}::interval)
-          on conflict (date) do update set sent_at = excluded.sent_at`;
+      await sql`
+        insert into announcements (date, sent_at)
+        values (${ago(1)}, now() - ${`${hours} hours`}::interval)
+        on conflict (date) do update set sent_at = excluded.sent_at`;
       return (await releasedNow()).map(
         (p: { date: string; today: boolean; counts: boolean }) => [
           p.date,

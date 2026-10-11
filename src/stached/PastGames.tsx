@@ -26,7 +26,7 @@ function daysAgo(date: string) {
  * missed day's puzzle caught up today goes by its own day.
  */
 function dayName(game: PastGame) {
-  if (game.today && !game.next) return "Today";
+  if (game.today && game.date === game.out) return "Today";
   if (daysAgo(game.date) === 1) return "Yesterday";
   return formatDate(game.date, { weekday: "long" });
 }

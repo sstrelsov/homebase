@@ -4,9 +4,9 @@
 // say). There's no off switch in Stached; iOS Settings has one.
 // The puzzles that come out on a day (that day's, and any missed day's
 // published with it to catch up) are announced once, together, in one push:
-// at 9:12am New York time, or as soon as they go live after that. Every one of
-// their dates goes into announcements first and only the first claim sends,
-// so no puzzle is announced twice, even across restarts.
+// at 9:12am New York time, or as soon as they go live after that. The day
+// goes into announcements first and only the first claim sends, so no day is
+// announced twice, even across restarts.
 import { sql } from "bun";
 import QUOTES from "../src/stached/quotes.json";
 import { numbered } from "./puzzles";
@@ -113,7 +113,6 @@ const TTL = 12 * 3600;
 /** A puzzle as its push announces it. */
 export interface Announced {
   number: number;
-  date: string;
   /** The day it comes out: its date, or a later one for a catch-up. */
   out: string;
   push?: string | null;
@@ -138,26 +137,10 @@ export const pushTitle = (numbers: number[]) =>
     : `Puzzles ${numbered(numbers)} are up`;
 
 /**
- * Claims the push for these dates, all or none: false if any has been
- * claimed already, so no date is pushed twice.
- */
-const claim = (dates: string[]) =>
-  sql.begin(async (tx) => {
-    const [taken] = await tx`
-      select 1 from announcements where date in ${tx(dates)}`;
-    if (taken) return false;
-    const claimed = await tx`
-      insert into announcements ${tx(dates.map((date) => ({ date })))}
-      on conflict do nothing
-      returning date`;
-    return claimed.length === dates.length;
-  });
-
-/**
  * Announces the puzzles out on a day (oldest first) to every subscription, in
- * one push, if it's due and nobody has claimed any of their dates yet. Drops
- * the subscriptions whose push service says they're gone. Returns whether
- * this call announced them.
+ * one push, if it's due and nobody has claimed the day yet. Drops the
+ * subscriptions whose push service says they're gone. Returns whether this
+ * call announced them.
  */
 export async function announce(
   puzzles: Announced[],
@@ -166,7 +149,11 @@ export async function announce(
 ) {
   const out = puzzles[0]?.out;
   if (!out || !announceDue(out, now)) return false;
-  if (!(await claim(puzzles.map((p) => p.date)))) return false;
+  const [claimed] = await sql`
+    insert into announcements (date) values (${out})
+    on conflict do nothing
+    returning date`;
+  if (!claimed) return false;
 
   const subscriptions: Subscription[] =
     await sql`select endpoint, p256dh, auth from push_subscriptions`;
