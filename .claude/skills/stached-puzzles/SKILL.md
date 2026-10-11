@@ -17,8 +17,7 @@ description: >-
 A puzzle goes live in two steps: **stage** it (checked, not live, and made
 today's puzzle on the tester, so Spencer plays it in the tester's home-screen
 app before anyone else), then **confirm** it (published, with one push
-notification). The CLI does all of it; never edit
-`puzzles.json` by hand.
+notification). The CLI does all of it; never edit `puzzles.json` by hand.
 
 ## Where the data lives
 
@@ -41,7 +40,7 @@ puzzle file along. With no command it prints its help.
 |---|---|
 | `list` | Every puzzle: number, date, status (out, today, upcoming, staged), games played, and its push (sent, none, or when) |
 | `stage <file>` | Checks the puzzles in the file (one, or a list), stages them, replacing what was staged, and makes the first one today's puzzle on the tester. `-` reads stdin |
-| `preview <date>` | Makes another staged puzzle today's on the tester |
+| `preview [date]` | Makes a staged puzzle (the first, or that date's) today's on the tester |
 | `confirm` | Publishes everything staged, and sends a push that's due right away. The API picks it up without a restart |
 | `remove <date>` | Takes a published puzzle down |
 | `vapid-keys` | Prints a new pair of push keys for `api.env` |
@@ -109,8 +108,8 @@ next day's is out. So a puzzle pushed at 11pm still gives everyone a full day,
 and publishing the next one on time doesn't cut it short.
 
 The API checks every minute, `confirm` sends a due push itself, and both
-record the date in `announcements` before sending, so a puzzle never pushes twice, even across restarts or if it's edited
-or published again. The notification says "Puzzle #12 is up", then the
+record the date in `announcements` before sending, so a puzzle never pushes
+twice, even across restarts or if it's edited or published again. The notification says "Puzzle #12 is up", then the
 puzzle's `push` line if it has one, or else a random one of the quotes on
 home. When Spencer wants custom copy, put it in `push` and stage again: a
 change to the line alone keeps everyone's games. It only counts before the
@@ -145,5 +144,5 @@ asks, then stage and confirm a made-up puzzle dated today.
 |---|---|
 | `list` says `any minute` for long | Is the API up (`https://api.spencerstrelsov.com/health`)? Without VAPID keys in `api.env` it logs "Push notifications are off" at start |
 | `sent`, but a phone got nothing | The API log's `Announced #N: … sent, … gone, … failed` line. "gone" means that subscription was dropped (the app was deleted, say); its owner turns them on again. Notifications only reach the home-screen app, and only once they're turned on there and allowed |
-| `stage` couldn't put it on the tester | It's staged anyway. The tester is down, usually after the Studio restarted: `make tester` brings it back, then `scripts/stached preview <date>` |
+| `stage` couldn't put it on the tester | It's staged anyway. The tester is down, usually after the Studio restarted: `make tester` brings it back, then `scripts/stached preview` |
 | `stage` complains | It lists every problem at once; fix them all and stage again |

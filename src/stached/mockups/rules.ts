@@ -75,7 +75,7 @@ export function timing(date: string, kind: Kind, now = new Date()) {
   if (date > TODAY)
     return `It goes live at midnight New York time on ${dayName(date)}, with its push at ${PUSH_TIME}.`;
   return announceDue(date, now)
-    ? "It goes live right away, with its push within a minute."
+    ? "It goes live and pushes right away."
     : `It goes live right away, with its push at ${PUSH_TIME}.`;
 }
 

@@ -38,7 +38,8 @@ const USAGE = `Stage, play and publish Stached puzzles.
   stached stage <file>       check puzzles (one, or a list) and stage them,
                              replacing what's staged, and make the first one
                              today's on the tester; - reads them from stdin
-  stached preview <date>     make another staged puzzle today's on the tester
+  stached preview [date]     make a staged puzzle (the first, or that date's)
+                             today's on the tester
   stached confirm            publish what's staged
   stached remove <date>      take a published puzzle down
   stached vapid-keys         make the API's push keys, for api.env
@@ -358,16 +359,16 @@ function toTester(puzzle: DayPuzzle) {
   );
 }
 
-/** Puts another staged puzzle on the tester, as today's. */
+/** Puts a staged puzzle (the first, or that date's) on the tester, as today's. */
 async function preview(date: string | undefined) {
   if (TESTER)
     throw new Stop("On the tester, stage and confirm puzzles directly.");
   const staged = await readStaged();
-  const puzzle = staged.find((p) => p.date === date);
+  const puzzle = date ? staged.find((p) => p.date === date) : staged[0];
   if (!puzzle)
     throw new Stop(
       staged.length
-        ? `Stage has ${staged.map((p) => p.date).join(", ")}: preview which?`
+        ? `Nothing staged for ${date}.`
         : "Nothing staged. Stage a puzzle first: stached stage <file>",
     );
   toTester(puzzle);
@@ -391,8 +392,7 @@ async function play() {
   await syncPuzzles(puzzles);
   const site = process.env.ALLOWED_ORIGINS?.split(",")[0];
   console.log(`It's today's puzzle on the tester: ${site}/stached/`);
-  await sql`delete from announcements where date = ${date}`;
-  await pushNow(puzzles, date);
+  await pushAgain();
 }
 
 async function confirm(deleteGames: boolean) {
