@@ -221,14 +221,16 @@ const Game = ({
       } else if (next.result === "repeat") {
         await alreadyGuessed();
       } else {
-        if (next.result === "one_away") say("One away…");
+        const oneAway = next.result === "one_away";
+        if (oneAway) say("One away…");
         await animate(
           "[data-selected]",
           { x: [0, -9, 9, -7, 7, -3, 3, 0] },
           { duration: 0.45 },
         );
         setMistakes(result.mistakes);
-        await clearMiss();
+        // One away keeps the four selected, so you can swap one out.
+        if (!oneAway || result.finished) await clearMiss();
       }
 
       if (result.finished) {
