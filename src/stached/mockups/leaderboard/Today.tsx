@@ -15,6 +15,7 @@ import {
   byTime,
   clock,
   duration,
+  marksOn,
   names,
   recapOf,
   type Sample,
@@ -22,10 +23,6 @@ import {
   todayOf,
   todays,
 } from "./stats";
-
-/** Today's square for each player, as the leaderboard marks it. */
-export const todayMarks = (sample: Sample) =>
-  new Map(sample.board.players.map((p) => [p.name, p.marks.at(-1) as Mark]));
 
 /** Whoever hasn't finished today's yet, each on a dashed square. */
 const StillToPlay = ({ sample }: { sample: Sample }) => {
@@ -141,7 +138,7 @@ const Finisher = ({
  * with their lives left, then who's still to play and how long is left.
  */
 export const Podium = ({ sample }: { sample: Sample }) => {
-  const marks = todayMarks(sample);
+  const marks = marksOn(sample);
   const games = placed(sample);
   const steps = [...Map.groupBy(games, (game) => game.place).values()].slice(
     0,
@@ -191,7 +188,7 @@ const gap = (minutes: number) =>
  */
 export const Timeline = ({ sample }: { sample: Sample }) => {
   const { session } = useStached();
-  const marks = todayMarks(sample);
+  const marks = marksOn(sample);
   const day = todayOf(sample);
   const leads = new Set(
     bulletinsOf(sample)

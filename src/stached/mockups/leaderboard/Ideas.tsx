@@ -4,10 +4,13 @@
 import { useState } from "react";
 import {
   type Day,
+  isPinned,
   leaderboardOf,
   type Mark,
+  ranked,
   WEEK,
 } from "../../../../stached-api/leaderboard";
+import { BONUS_LIFE_FROM } from "../../../../stached-api/rules";
 import { formatTime } from "../../api";
 import { FastestToday, PointKey, Square } from "../../Leaderboard";
 import { Mustache } from "../../Logo";
@@ -16,19 +19,22 @@ import admin from "../mockups.module.css";
 import { dayName } from "../rules";
 import x from "./leaderboard.module.css";
 import { Lives, Section, Squares, Streak, Table, WeekHead } from "./parts";
-import { Moved, periods } from "./Standings";
+import { Moved } from "./Standings";
 import type { Play } from "./sample";
 import {
   byTime,
   cardOf,
   finished,
+  isSolve,
+  isWin,
+  marksOn,
+  periods,
   type Sample,
   standingsOver,
   stillToPlay,
   todayOf,
   todays,
 } from "./stats";
-import { todayMarks } from "./Today";
 
 /** Settings, with the race pushes on a switch of their own. */
 export const PushSwitch = () => {
@@ -75,22 +81,15 @@ export const GhostRace = ({ sample }: { sample: Sample }) => {
     .sort((a, b) => fasterThan(a) - fasterThan(b));
   if (!ghost) return null;
   const day = sample.days.find((d) => d.id === ghost.puzzleId) as Day;
+  const marks = marksOn(sample, day);
   const games = counted
     .filter((g) => g.puzzleId === ghost.puzzleId)
     .sort((a, b) => byTime(a.stachedMs, b.stachedMs));
-  const fastest = games[0]?.stachedMs;
-  const mark = (game: Play): Mark =>
-    game.stachedMs === fastest
-      ? game.completed
-        ? "won"
-        : "won-missed"
-      : game.completed
-        ? "solved"
-        : "missed";
   const place = fasterThan(ghost);
+  // The top four, or down to the ghost if it's further down.
   const rows = [...games.slice(0, place), ghost, ...games.slice(place)].slice(
     0,
-    4,
+    Math.max(4, place + 1),
   );
   return (
     <Section
@@ -109,13 +108,14 @@ export const GhostRace = ({ sample }: { sample: Sample }) => {
             }`}
           >
             <span className="opacity-50">{i + 1}</span>
-            {game === ghost ? (
-              <Square mark="open" />
-            ) : (
-              <Square mark={mark(game)} />
-            )}
+            <Square
+              mark={game === ghost ? "open" : (marks.get(game.name) ?? "none")}
+            />
             <span className="truncate">{game.name}</span>
-            <Lives mistakes={game.mistakes} bonus={game.stachedMs !== null} />
+            <Lives
+              mistakes={game.mistakes}
+              bonus={game.stachedMs !== null && day.date >= BONUS_LIFE_FROM}
+            />
             <span className={`${styles.stacheText} text-right`}>
               {formatTime(game.stachedMs)}
             </span>
@@ -180,7 +180,7 @@ const FIVES = [3, 2, 1, 0];
 /** Today's fastest staches, each with Gerald to tap: a stache-five. */
 export const StacheFive = ({ sample }: { sample: Sample }) => {
   const [mine, setMine] = useState<Set<string>>(new Set());
-  const marks = todayMarks(sample);
+  const marks = marksOn(sample);
   const games = todays(sample)
     .filter((g) => g.stachedMs !== null)
     .sort((a, b) => byTime(a.stachedMs, b.stachedMs))
@@ -313,9 +313,7 @@ export const Arrows = ({ sample }: { sample: Sample }) => (
 );
 
 /** A day's points: one for a solve, one for the fastest stache. */
-const pointsOf = (mark: Mark) =>
-  Number(mark === "won" || mark === "solved") +
-  Number(mark === "won" || mark === "won-missed");
+const pointsOf = (mark: Mark) => Number(isSolve(mark)) + Number(isWin(mark));
 
 /** The days a week counts: each player's best five of seven. */
 const COUNTED = 5;
@@ -327,7 +325,7 @@ const COUNTED = 5;
 export const BestFive = ({ sample }: { sample: Sample }) => {
   const days = periods(sample.days).week.before;
   const scored = leaderboardOf(days, sample.plays)
-    .players.map((player) => {
+    .players.map(({ rank, ...player }) => {
       const dropped = new Set(
         player.marks
           .map((_, i) => i)
@@ -341,9 +339,8 @@ export const BestFive = ({ sample }: { sample: Sample }) => {
       return { ...player, dropped, was: player.points, points };
     })
     .sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
-  const rows = scored.map((row) => ({
+  const rows = ranked(scored).map((row) => ({
     ...row,
-    rank: scored.findIndex((r) => r.points === row.points) + 1,
     sub: row.was !== row.points && (
       <span className={styles.label}>Was {row.was}</span>
     ),
@@ -386,7 +383,7 @@ export const Freeze = ({ sample }: { sample: Sample }) => {
   let run = 0;
   for (const { id, mark } of days.toReversed()) {
     if (mark === "open") continue;
-    if (mark === "won" || mark === "solved") run++;
+    if (isSolve(mark)) run++;
     else if (frozen === null) frozen = id;
     else break;
   }
@@ -461,32 +458,23 @@ export const BoardRace = ({ sample }: { sample: Sample }) => {
 export const CleanBonus = ({ sample }: { sample: Sample }) => {
   const games = finished(sample.plays);
   const scored = sample.board.players
-    .map((player) => {
+    .map(({ rank, ...player }) => {
       const clean = games.filter(
         (g) => g.name === player.name && g.completed && g.mistakes === 0,
       ).length;
-      return {
-        ...player,
-        clean,
-        was: player.rank,
-        points: player.points + clean,
-      };
+      return { ...player, clean, was: rank, points: player.points + clean };
     })
     .sort(
       (a, b) =>
-        Number(b.name === "Cat") - Number(a.name === "Cat") ||
+        Number(isPinned(b)) - Number(isPinned(a)) ||
         b.points - a.points ||
         a.name.localeCompare(b.name),
     );
-  const rows = scored.map((row) => {
-    const rank = scored.findIndex((r) => r.points === row.points) + 1;
-    return {
-      ...row,
-      rank,
-      tag: <Moved by={row.was - rank} />,
-      sub: <span className={styles.label}>+{row.clean} clean</span>,
-    };
-  });
+  const rows = ranked(scored).map((row) => ({
+    ...row,
+    tag: <Moved by={row.was - row.rank} />,
+    sub: <span className={styles.label}>+{row.clean} clean</span>,
+  }));
   return (
     <Section
       title="Standings"

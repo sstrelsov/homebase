@@ -1,17 +1,15 @@
 import { getRouteApi, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import Dialog from "../../Dialog";
-import { StachedContext } from "../../session";
 import styles from "../../stached.module.css";
 import admin from "../mockups.module.css";
 import x from "./leaderboard.module.css";
+import { SignedIn } from "./parts";
 import { parseLeaderboardSearch, STEPS } from "./search";
 import { sampleOf } from "./stats";
 import { SECTIONS, STEP } from "./steps";
 
 const route = getRouteApi("/stached/leaderboard-mockups/tour");
-
-const noop = () => {};
 
 /** A swipe this far across, and mostly sideways, turns the page. */
 const SWIPE = 60;
@@ -60,8 +58,10 @@ const Tour = () => {
       data-look={search.look}
       className={`${styles.stached} flex flex-col`}
       onTouchStart={(e) => {
+        // One finger only: a pinch to zoom never turns the page.
         const { clientX, clientY } = e.touches[0];
-        touch.current = { x: clientX, y: clientY };
+        touch.current =
+          e.touches.length === 1 ? { x: clientX, y: clientY } : null;
       }}
       onTouchEnd={(e) => {
         const start = touch.current;
@@ -111,15 +111,9 @@ const Tour = () => {
           {step.risk && <span className={x.risk}>Risk: {step.risk}</span>}
         </p>
         <div key={id} className={x.visual}>
-          <StachedContext
-            value={{
-              session: { token: "mockup", name: you },
-              signOut: noop,
-              openRules: noop,
-            }}
-          >
+          <SignedIn name={you}>
             <step.Visual sample={sample} />
-          </StachedContext>
+          </SignedIn>
         </div>
       </main>
       <nav className={x.tourNav}>

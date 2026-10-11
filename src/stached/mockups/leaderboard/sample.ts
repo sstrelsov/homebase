@@ -3,6 +3,7 @@
 // names, times or results: this repo is public. Cat's is the one real name,
 // since the leaderboard keeps her at #1; her games here are made up too.
 import type { Day, Game } from "../../../../stached-api/leaderboard";
+import { BONUS_LIFE_FROM, MAX_MISTAKES } from "../../../../stached-api/rules";
 import { addDays } from "../rules";
 import { seeded } from "../sample";
 
@@ -106,11 +107,11 @@ function drawn(habit: Habit, day: Day, random: () => number): Play {
   const found = completed || random() < 0.5;
   // In tenths, as the game shows them, so a tie can happen.
   const stache = Math.round(habit.stache * (0.6 + random() * 0.9) * 10) / 10;
+  // Finding the stache group earns a bonus life, on puzzles that had one.
+  const lives = MAX_MISTAKES + Number(found && day.date >= BONUS_LIFE_FROM);
   const mistakes = completed
-    ? Math.min(4, Math.floor(random() * (habit.slips * 2 + 1)))
-    : found
-      ? 5
-      : 4;
+    ? Math.min(lives - 1, Math.floor(random() * (habit.slips * 2 + 1)))
+    : lives;
   const solve = Math.max(stache, habit.stache * (1.6 + random() * 1.4));
   const finishedAt = Math.round(
     Math.min(

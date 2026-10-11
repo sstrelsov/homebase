@@ -11,6 +11,7 @@ import {
 } from "../../../../stached-api/leaderboard";
 import { plural } from "../../Admin";
 import { formatTime } from "../../api";
+import { addDays } from "../rules";
 import {
   DAYS,
   NOW,
@@ -42,8 +43,8 @@ export function sampleOf(today: TodayState, me: string): Sample {
   };
 }
 
-const isWin = (mark: Mark) => mark === "won" || mark === "won-missed";
-const isSolve = (mark: Mark) => mark === "won" || mark === "solved";
+export const isWin = (mark: Mark) => mark === "won" || mark === "won-missed";
+export const isSolve = (mark: Mark) => mark === "won" || mark === "solved";
 
 type Finished = Play & { completed: boolean; finishedAt: number };
 
@@ -61,6 +62,15 @@ export const todays = (sample: Sample) =>
   finished(sample.plays)
     .filter((play) => play.puzzleId === todayOf(sample).id)
     .sort((a, b) => a.finishedAt - b.finishedAt);
+
+/** Each player's square on a day (today's unless given), as the leaderboard marks it. */
+export const marksOn = (sample: Sample, day = todayOf(sample)) =>
+  new Map(
+    leaderboardOf(
+      sample.days.filter((d) => d.id <= day.id),
+      sample.plays,
+    ).players.map((p) => [p.name, p.marks.at(-1) as Mark]),
+  );
 
 /** Who started today's and hasn't finished it, and who hasn't started. */
 export function stillToPlay(sample: Sample) {
@@ -102,6 +112,37 @@ export function standingsOver(sample: Sample, days: Day[]) {
     const was = before.find((p) => p.name === player.name)?.rank;
     return { ...player, moved: was === undefined ? null : was - player.rank };
   });
+}
+
+/** Monday of the week a date is in. */
+function mondayOf(date: string) {
+  const day = new Date(`${date}T12:00:00Z`).getUTCDay();
+  return addDays(date, -((day + 6) % 7));
+}
+
+export type Period = "week" | "month" | "all";
+
+/** The days each Season tab counts, and the days of the one before, for its champ. */
+export function periods(
+  days: Day[],
+): Record<Period, { now: Day[]; before: Day[] }> {
+  const today = (days.at(-1) as Day).date;
+  const monday = mondayOf(today);
+  const month = today.slice(0, 7);
+  const lastMonth = addDays(`${month}-01`, -1).slice(0, 7);
+  return {
+    week: {
+      now: days.filter((d) => d.date >= monday),
+      before: days.filter(
+        (d) => d.date >= addDays(monday, -7) && d.date < monday,
+      ),
+    },
+    month: {
+      now: days.filter((d) => d.date.startsWith(month)),
+      before: days.filter((d) => d.date.startsWith(lastMonth)),
+    },
+    all: { now: days, before: [] },
+  };
 }
 
 /** Faster first; no time last. */

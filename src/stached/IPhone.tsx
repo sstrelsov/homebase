@@ -111,9 +111,7 @@ export const LockScreen = ({
   time = `${PUSH_TIME} AM`,
   day = tomorrow(),
   line = QUOTES[0],
-}: {
-  number?: number;
-  title?: string;
+}: ({ number: number; title?: string } | { number?: never; title: string }) & {
   /** "9:12 AM": the lock screen's clock, and the push's own time. */
   time?: string;
   /** "Monday, October 5" */

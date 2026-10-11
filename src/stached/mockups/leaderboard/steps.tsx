@@ -20,10 +20,10 @@ import {
   StacheFive,
 } from "./Ideas";
 import { Rivals } from "./Rivals";
-import { PlayerCard, periods, Season, Titles } from "./Standings";
+import { PlayerCard, Season, Titles } from "./Standings";
 import type { TodayState } from "./sample";
 import type { StepId } from "./search";
-import { type Sample, todayOf } from "./stats";
+import { periods, type Sample, todayOf } from "./stats";
 import { Bulletins, Podium, Timeline } from "./Today";
 
 /** The brainstorm's order: the strongest three, then by kind. */
@@ -55,13 +55,13 @@ interface Step {
   Visual: (props: { sample: Sample }) => ReactNode;
 }
 
-/** "Thursday, October 8", a day from today. */
+/** "Thursday, October 8". */
+const longDate = (date: string) =>
+  formatDate(date, { weekday: "long", month: "long", day: "numeric" });
+
+/** A day from today, as the lock screen shows it. */
 const dayFrom = (sample: Sample, days = 0) =>
-  formatDate(addDays(todayOf(sample).date, days), {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
+  longDate(addDays(todayOf(sample).date, days));
 
 /** Juniper's card, open, as a tap on the name shows it. */
 const CardVisual = ({ sample }: { sample: Sample }) => (
@@ -174,11 +174,7 @@ export const STEP: Record<StepId, Step> = {
       <LockScreen
         title="Week 40: Juniper wins"
         time="9:00 PM"
-        day={formatDate(periods(sample.days).week.before.at(-1)?.date ?? "", {
-          weekday: "long",
-          month: "long",
-          day: "numeric",
-        })}
+        day={longDate(periods(sample.days).week.before.at(-1)?.date ?? "")}
         line="8 points. You tied for #4, with 4."
       />
     ),
@@ -187,9 +183,11 @@ export const STEP: Record<StepId, Step> = {
     title: "Streak saver",
     section: "Push",
     what: "Three hours before a puzzle stops counting, a push to anyone it would cost a streak of 3 or more.",
-    example: "Theo has 3 in a row and #21 still to play at 6:12am.",
+    example:
+      "Theo has 3 in a row and pauses #21 mid-game. If it's still open at 6:12am, Theo gets this.",
     cost: ["API", "Migration", "Push"],
     risk: "Can nag: long streaks only",
+    today: "some",
     you: "Theo",
     Visual: ({ sample }) => (
       <LockScreen

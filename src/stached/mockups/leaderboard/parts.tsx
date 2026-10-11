@@ -5,12 +5,31 @@ import { type Mark, weekday } from "../../api";
 import { Square } from "../../Leaderboard";
 import { Mustache } from "../../Logo";
 import Screen from "../../Screen";
-import { useStached } from "../../session";
+import { StachedContext, useStached } from "../../session";
 import styles from "../../stached.module.css";
 import { addDays, dayName } from "../rules";
 import x from "./leaderboard.module.css";
 
 const noop = () => {};
+
+/** A pretend session, signed in as one of the made-up players. */
+export const SignedIn = ({
+  name,
+  children,
+}: {
+  name: string;
+  children: ReactNode;
+}) => (
+  <StachedContext
+    value={{
+      session: { token: "mockup", name },
+      signOut: noop,
+      openRules: noop,
+    }}
+  >
+    {children}
+  </StachedContext>
+);
 
 /** The leaderboard's screen, as every design starts. */
 export const Board = ({

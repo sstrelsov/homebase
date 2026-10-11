@@ -8,7 +8,7 @@ export const MAX_MISTAKES = 4;
  * The first puzzle with a bonus life. Earlier puzzles keep the rules they were
  * played under, even when played late.
  */
-const BONUS_LIFE_FROM = "2026-10-02";
+export const BONUS_LIFE_FROM = "2026-10-02";
 
 /** Solving the stache group earns a bonus life: one more mistake. */
 export function hasBonusLife({ date, groups }: DayPuzzle, solved: number[]) {

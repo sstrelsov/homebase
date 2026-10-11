@@ -1,5 +1,5 @@
 // Rivals: the players either side of you, and your record against everyone.
-import type { Standing } from "../../../../stached-api/leaderboard";
+import { isPinned, type Standing } from "../../../../stached-api/leaderboard";
 import styles from "../../stached.module.css";
 import x from "./leaderboard.module.css";
 import { Board, Section } from "./parts";
@@ -29,14 +29,16 @@ const Rival = ({
 );
 
 /**
- * Your rivals, the players either side of you in the standings, then your
- * record against everyone you've shared a puzzle with: a solve beats a miss,
- * then the faster stache. Whoever has beaten you most is your nemesis.
+ * Your rivals, the players either side of you by points, then your record
+ * against everyone you've shared a puzzle with: a solve beats a miss, then the
+ * faster stache. Whoever leads you by the most is your nemesis.
  */
 export const Rivals = ({ sample }: { sample: Sample }) => {
   const { players } = sample.board;
-  const at = players.findIndex((p) => p.name === sample.me);
-  const me = players[at];
+  // Cat's pinned at #1 whatever the points, so Cat is nobody's neighbor.
+  const field = players.filter((p) => !isPinned(p));
+  const at = field.findIndex((p) => p.name === sample.me);
+  const me = field[at];
   const versus = players
     .filter((p) => p.name !== sample.me)
     .map((p) => ({ ...p, ...headToHead(sample, sample.me, p.name) }));
@@ -46,7 +48,7 @@ export const Rivals = ({ sample }: { sample: Sample }) => {
   const nemesis = records
     .filter((p) => p.lost > p.won)
     .sort((a, b) => b.lost - b.won - (a.lost - a.won))[0];
-  const either = [players[at - 1], players[at + 1]].flatMap(
+  const either = [field[at - 1], field[at + 1]].flatMap(
     (player) => versus.find((p) => p.name === player?.name) ?? [],
   );
   return (

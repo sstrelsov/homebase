@@ -1,8 +1,8 @@
 import { getRouteApi, Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { StachedContext } from "../../session";
 import styles from "../../stached.module.css";
 import x from "../mockups.module.css";
+import { SignedIn } from "./parts";
 import { Rivals } from "./Rivals";
 import { Cards, Now, Season, Titles } from "./Standings";
 import { DESIGNS, type DesignId, type LeaderboardSearch, YOU } from "./search";
@@ -10,8 +10,6 @@ import { type Sample, sampleOf } from "./stats";
 import { Bulletins, Podium, Timeline } from "./Today";
 
 const route = getRouteApi("/stached/leaderboard-mockups");
-
-const noop = () => {};
 
 // Each design: its name in the switcher, what it shows, and what it would
 // take to build.
@@ -166,15 +164,9 @@ const LeaderboardMockups = () => {
       <div aria-hidden="true" className={styles.crt} />
       <div className="mx-auto w-full max-w-md px-4 pt-4 pb-6">
         <Controls search={search} />
-        <StachedContext
-          value={{
-            session: { token: "mockup", name: search.you },
-            signOut: noop,
-            openRules: noop,
-          }}
-        >
+        <SignedIn name={search.you}>
           <Design sample={sample} />
-        </StachedContext>
+        </SignedIn>
       </div>
     </div>
   );

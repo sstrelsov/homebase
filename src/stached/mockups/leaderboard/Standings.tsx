@@ -13,7 +13,6 @@ import {
 import { Mustache } from "../../Logo";
 import styles from "../../stached.module.css";
 import admin from "../mockups.module.css";
-import { addDays } from "../rules";
 import x from "./leaderboard.module.css";
 import { Board, Section, Squares, Streak, Table, WeekHead } from "./parts";
 import {
@@ -23,6 +22,8 @@ import {
   finished,
   headToHead,
   names,
+  type Period,
+  periods,
   type Sample,
   standingsOver,
   titlesOf,
@@ -39,37 +40,6 @@ const short = (date: string) =>
   formatDate(date, { month: "short", day: "numeric" });
 
 const monthName = (date: string) => formatDate(date, { month: "long" });
-
-/** Monday of the week a date is in. */
-function mondayOf(date: string) {
-  const day = new Date(`${date}T12:00:00Z`).getUTCDay();
-  return addDays(date, -((day + 6) % 7));
-}
-
-type Period = "week" | "month" | "all";
-
-/** The days each tab counts, and the days of the one before, for its champ. */
-export function periods(
-  days: Day[],
-): Record<Period, { now: Day[]; before: Day[] }> {
-  const today = (days.at(-1) as Day).date;
-  const monday = mondayOf(today);
-  const month = today.slice(0, 7);
-  const lastMonth = addDays(`${month}-01`, -1).slice(0, 7);
-  return {
-    week: {
-      now: days.filter((d) => d.date >= monday),
-      before: days.filter(
-        (d) => d.date >= addDays(monday, -7) && d.date < monday,
-      ),
-    },
-    month: {
-      now: days.filter((d) => d.date.startsWith(month)),
-      before: days.filter((d) => d.date.startsWith(lastMonth)),
-    },
-    all: { now: days, before: [] },
-  };
-}
 
 /** Places since yesterday: ▲2, ▼1, or New. */
 export const Moved = ({ by }: { by: number | null }) =>
