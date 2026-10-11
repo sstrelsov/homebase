@@ -15,7 +15,13 @@ import {
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { sql } from "bun";
-import { ANNOUNCE_AT, announceDue, newYorkTime } from "./push";
+import {
+  ANNOUNCE_AT,
+  announce,
+  announceDue,
+  newYorkTime,
+  vapidKeys as pushKeys,
+} from "./push";
 import {
   byDate,
   type DayPuzzle,
@@ -102,7 +108,7 @@ export function timing(date: string, kind: Change["kind"], now = new Date()) {
   if (date > current)
     return `It goes live at midnight New York time on ${day(date)}, with its push at ${pushTime}.`;
   return announceDue(date, now)
-    ? "It goes live right away, with its push within a minute."
+    ? "It goes live and pushes right away."
     : `It goes live right away, with its push at ${pushTime}.`;
 }
 
@@ -370,8 +376,8 @@ async function preview(date: string | undefined) {
 /**
  * The tester only: makes a puzzle from stdin today's, in place of the
  * tester's own. Its games go with it if the words changed, as on any edit:
- * they're all made up. If the tester hasn't pushed today, it does within a
- * minute, so the notification shows too.
+ * they're all made up. It pushes right away, even if today's push went out
+ * already, so each staging shows its notification too.
  */
 async function play() {
   if (!TESTER) throw new Stop("play is for the tester: stage sends it there.");
@@ -383,14 +389,10 @@ async function play() {
   ].sort(byDate);
   writePrivate(puzzlesFile(), puzzles);
   await syncPuzzles(puzzles);
-  const [pushed] = await sql`select 1 from announcements where date = ${date}`;
   const site = process.env.ALLOWED_ORIGINS?.split(",")[0];
   console.log(`It's today's puzzle on the tester: ${site}/stached/`);
-  console.log(
-    pushed
-      ? "Its push went out earlier today; `stached --tester push-again` sends it again."
-      : "Its push goes out within a minute.",
-  );
+  await sql`delete from announcements where date = ${date}`;
+  await pushNow(puzzles, date);
 }
 
 async function confirm(deleteGames: boolean) {
@@ -411,6 +413,19 @@ async function confirm(deleteGames: boolean) {
         ? `#${number.get(date)} · ${day(date)} was already published.`
         : `Published #${number.get(date)} · ${day(date)}. ${timing(date, kind)}`,
     );
+  for (const { date } of planned) await pushNow(puzzles, date);
+}
+
+/**
+ * Sends a puzzle's push now if it's due, instead of at the API's check a
+ * minute later, and prints how it went. The API claims a push the same way
+ * (announce), so it still goes out once. Without push keys, push is off.
+ */
+async function pushNow(puzzles: DayPuzzle[], date: string) {
+  const keys = pushKeys();
+  const puzzle = puzzles.find((p) => p.date === date);
+  if (!keys || !puzzle) return;
+  await announce({ ...puzzle, number: numbers(puzzles).get(date) ?? 0 }, keys);
 }
 
 async function remove(date: string | undefined, deleteGames: boolean) {
@@ -424,9 +439,8 @@ async function remove(date: string | undefined, deleteGames: boolean) {
 }
 
 /**
- * The tester only: forgets that today's push went out, so the tester's API
- * sends it again within a minute, to try a tap as often as you like. Never on
- * the live game.
+ * The tester only: sends today's push again, right away, to try a tap as
+ * often as you like. Never on the live game.
  */
 async function pushAgain() {
   if (!TESTER)
@@ -434,12 +448,13 @@ async function pushAgain() {
       "push-again is for the tester only: scripts/stached --tester push-again",
     );
   const date = today();
-  if (!(await readPuzzles(puzzlesFile())).some((p) => p.date === date))
+  const puzzles = await readPuzzles(puzzlesFile());
+  if (!puzzles.some((p) => p.date === date))
     throw new Stop(
-      `No puzzle for today (${date}) on the tester: stage and confirm one first.`,
+      `No puzzle for today (${date}) on the tester: stage one first.`,
     );
   await sql`delete from announcements where date = ${date}`;
-  console.log("Today's push goes out again within a minute.");
+  await pushNow(puzzles, date);
 }
 
 async function vapidKeys() {

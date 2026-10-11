@@ -115,7 +115,7 @@ describe("timing", () => {
       "It goes live right away, with its push at 9:12am.",
     );
     expect(timing("2026-10-01", "new", night)).toBe(
-      "It goes live right away, with its push within a minute.",
+      "It goes live and pushes right away.",
     );
   });
 

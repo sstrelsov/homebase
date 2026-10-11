@@ -42,10 +42,10 @@ puzzle file along. With no command it prints its help.
 | `list` | Every puzzle: number, date, status (out, today, upcoming, staged), games played, and its push (sent, none, or when) |
 | `stage <file>` | Checks the puzzles in the file (one, or a list), stages them, replacing what was staged, and makes the first one today's puzzle on the tester. `-` reads stdin |
 | `preview <date>` | Makes another staged puzzle today's on the tester |
-| `confirm` | Publishes everything staged. The API picks it up without a restart |
+| `confirm` | Publishes everything staged, and sends a push that's due right away. The API picks it up without a restart |
 | `remove <date>` | Takes a published puzzle down |
 | `vapid-keys` | Prints a new pair of push keys for `api.env` |
-| `push-again` | The tester only: sends today's push again within a minute |
+| `push-again` | The tester only: sends today's push again, right away |
 
 Put `--tester` first (`scripts/stached --tester list`) to drive the tester, the always-on test copy on the Studio (`make tester`), instead of the live game: its own puzzles, database and push, to try a change on a phone. Nothing done there reaches real players.
 
@@ -82,13 +82,15 @@ a line of text.
    ```
    Fix whatever it reports and stage again. It prints each puzzle's number,
    titles, push line, and when it goes live and pushes, then puts the first
-   one on the tester as today's puzzle and prints its address.
+   one on the tester as today's puzzle, sends its push there, and prints the
+   tester's address and `Announced #N: 1 sent`.
 3. Tell Spencer it's on the tester: he opens the tester's home-screen app and
-   plays it (Tailscale on). If the tester hasn't pushed yet that day, its
-   notification arrives within a minute too. Nothing played there reaches the
-   live game. Restaging replaces it there.
+   plays it (Tailscale on). Its notification, push line and all, has already
+   gone out, on every staging. No need to poll `list`. Nothing played there
+   reaches the live game. Restaging replaces it there and pushes again.
 4. **Confirm only when Spencer says to:** `scripts/stached confirm`. It publishes
-   to real players and sends a real push. Read him the line it prints.
+   to real players and sends a real push. If the push is due, it sends it on
+   the spot and prints `Announced #N: … sent`. Read him those lines.
 5. `scripts/stached list` to show where things stand.
 
 ## When the push goes out
@@ -98,15 +100,16 @@ Each puzzle sends one push, on its date, at **9:12am New York time**:
 - Confirmed the night before (or any day before): its push goes out at 9:12am
   on its date.
 - Confirmed on its date after 9:12am (Spencer often finishes the day's puzzle
-  during the day): it goes live right away, with its push within a minute.
+  during the day): it goes live and pushes right away, as `confirm` sends it.
+  That includes just before midnight.
 - Dated before today: no push.
 
 A puzzle counts on the leaderboard for 24 hours after its push, even once the
 next day's is out. So a puzzle pushed at 11pm still gives everyone a full day,
 and publishing the next one on time doesn't cut it short.
 
-The API checks every minute and records each date in `announcements` before
-sending, so a puzzle never pushes twice, even across restarts or if it's edited
+The API checks every minute, `confirm` sends a due push itself, and both
+record the date in `announcements` before sending, so a puzzle never pushes twice, even across restarts or if it's edited
 or published again. The notification says "Puzzle #12 is up", then the
 puzzle's `push` line if it has one, or else a random one of the quotes on
 home. When Spencer wants custom copy, put it in `push` and stage again: a
