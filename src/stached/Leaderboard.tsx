@@ -89,19 +89,19 @@ const PointKey = () => (
   </p>
 );
 
-/** The week: a row per player, a square per day, and their points. */
-const Week = ({ board: { days, players } }: { board: Board }) => {
+/** The standings: a row per player, a square per day this week, and their points so far. */
+const Standings = ({ board: { days, players } }: { board: Board }) => {
   const { session } = useStached();
   return (
     <section className="flex flex-col gap-3">
       {/* The key goes under the title if it can't fit beside it. */}
       <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 whitespace-nowrap">
-        <h2 className={`${styles.display} text-[15px]`}>This week</h2>
+        <h2 className={`${styles.display} text-[15px]`}>Standings</h2>
         <PointKey />
       </div>
       {players.length === 0 ? (
         <p className="text-[19px]">
-          No one has finished a puzzle this week. Be the first!
+          No one has finished a puzzle yet. Be the first!
         </p>
       ) : (
         <div>
@@ -163,8 +163,8 @@ const Week = ({ board: { days, players } }: { board: Board }) => {
 };
 
 /**
- * Today's fastest stache, then the last week's puzzles: a point for each solve
- * and each fastest stache.
+ * Today's fastest stache, then the standings: a point for each solve and each
+ * fastest stache on every puzzle so far, with squares for the last week's.
  */
 const Leaderboard = () => {
   const { data: board, error, load } = useLoad(api.leaderboard);
@@ -173,7 +173,7 @@ const Leaderboard = () => {
       {board && (
         <div className="flex flex-col gap-6">
           <FastestToday board={board} />
-          <Week board={board} />
+          <Standings board={board} />
         </div>
       )}
     </Screen>

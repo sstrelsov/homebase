@@ -899,7 +899,7 @@
   fill: currentColor;
 }
 
-/* The score's key, beside "This week": a small green square +1, Gerald +1 */
+/* The score's key, beside "Standings": a small green square +1, Gerald +1 */
 .pointKey {
   composes: display;
   display: inline-flex;

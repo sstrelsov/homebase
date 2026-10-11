@@ -1,9 +1,13 @@
 // The leaderboard's rules, kept apart from server.ts so tests can load them:
-// the last WEEK puzzles out, a square per player per day, and a point for each
-// solve and each fastest stache. Late games never count.
+// a point for each solve and each fastest stache on every puzzle so far, and a
+// square per player for each of the last WEEK puzzles out. Late games never
+// count.
 
-/** How many puzzles the leaderboard covers, today's last. */
+/** How many puzzles the leaderboard shows squares for, today's last. */
 export const WEEK = 7;
+
+/** Always #1, whatever her points. Matched without case. */
+const PINNED = "cat";
 
 /** A puzzle out so far (dated today or earlier). */
 export interface Day {
@@ -38,14 +42,18 @@ export type Mark = "won" | "won-missed" | "solved" | "missed" | "none" | "open";
 
 export interface Standing {
   name: string;
-  /** Ties share a place: 1, 2, 2, 4. */
+  /**
+   * Cat is always 1. Below her, ties share a place (1, 2, 2, 4), and a tie
+   * with her for the most points shares 1.
+   */
   rank: number;
-  /** One per day, oldest first; the last is today. */
+  /** One per day of the week, oldest first; the last is today. */
   marks: Mark[];
+  /** Puzzles solved, on any day so far. */
   solved: number;
-  /** Days with the fastest stache. */
+  /** Puzzles with the fastest stache, on any day so far. */
   fastest: number;
-  /** A point for each solve and each fastest stache. */
+  /** A point for each solve and each fastest stache, on any day so far. */
   points: number;
   /** Puzzles solved in a row, on any day so far, not just this week. */
   streak: number;
@@ -63,27 +71,23 @@ export interface Leaderboard {
   days: Pick<Day, "number" | "date">[];
   /** Everyone tied for today's fastest stache, by name. */
   fastestToday: Fastest[];
-  /** Everyone who finished a game this week, most points first. */
+  /** Everyone who has finished a game: Cat first, then most points first. */
   players: Standing[];
 }
 
 /**
- * Marks a game on its day. Each day's fastest stache is the lowest stache
+ * Marks a game on its day. Each puzzle's fastest stache is the lowest stache
  * time on a game finished while it counted, solved or not; ties share it.
  */
-function marker(week: Day[], counted: Game[]) {
+function marker(counted: Game[]) {
+  const finished = counted.filter(
+    (game): game is Finished =>
+      game.completed !== null && game.stachedMs !== null,
+  );
   const fastestMs = new Map(
-    week.map((day) => [
-      day.id,
-      Math.min(
-        ...counted.flatMap((game) =>
-          game.puzzleId === day.id &&
-          game.completed !== null &&
-          game.stachedMs !== null
-            ? [game.stachedMs]
-            : [],
-        ),
-      ),
+    [...Map.groupBy(finished, (game) => game.puzzleId)].map(([id, games]) => [
+      id,
+      Math.min(...games.map((game) => game.stachedMs)),
     ]),
   );
   const isFastest = (game: Game): game is Finished =>
@@ -99,19 +103,19 @@ function marker(week: Day[], counted: Game[]) {
 
 /**
  * The leaderboard from the puzzles out so far (oldest first) and everyone's
- * games. Only players with a finished game this week are listed, so not
- * playing never ties a loss.
+ * games. Only players with a finished game are listed, so not playing never
+ * ties a loss. Cat is listed first, at #1, whatever her points.
  */
 export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
   const counted = games.filter((game) => !game.late);
   const week = days.slice(-WEEK);
   const today = days.at(-1);
-  const { isFastest, mark } = marker(week, counted);
+  const { isFastest, mark } = marker(counted);
 
   const standings = [...Map.groupBy(counted, (game) => game.name)].flatMap(
     ([name, played]) => {
       const byDay = new Map(played.map((game) => [game.puzzleId, game]));
-      const marks = week.map((day) => mark(day, byDay.get(day.id)));
+      const marks = days.map((day) => mark(day, byDay.get(day.id)));
       if (marks.every((m) => m === "none" || m === "open")) return [];
       const solved = marks.filter((m) => m === "won" || m === "solved").length;
       const fastest = marks.filter(
@@ -120,7 +124,7 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
       return [
         {
           name,
-          marks,
+          marks: marks.slice(-WEEK),
           solved,
           fastest,
           points: solved + fastest,
@@ -129,7 +133,14 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
       ];
     },
   );
-  standings.sort((a, b) => b.points - a.points || a.name.localeCompare(b.name));
+  const isPinned = (standing: { name: string }) =>
+    standing.name.toLowerCase() === PINNED;
+  standings.sort(
+    (a, b) =>
+      Number(isPinned(b)) - Number(isPinned(a)) ||
+      b.points - a.points ||
+      a.name.localeCompare(b.name),
+  );
 
   return {
     days: week.map(({ number, date }) => ({ number, date })),
@@ -142,11 +153,17 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
         solved: completed,
       }))
       .sort((a, b) => a.name.localeCompare(b.name)),
-    players: standings.map((standing) => ({
-      rank: standings.findIndex((s) => s.points === standing.points) + 1,
-      ...standing,
-    })),
+    players: ranked(standings),
   };
+}
+
+/** Places in the order given; a tie with the player above shares their place. */
+function ranked<T extends { points: number }>(standings: T[]) {
+  let rank = 0;
+  return standings.map((standing, i) => {
+    if (i === 0 || standing.points !== standings[i - 1].points) rank = i + 1;
+    return { rank, ...standing };
+  });
 }
 
 /**
@@ -156,10 +173,7 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
  */
 export function weekOf(days: Day[], games: Game[], mine: Game[]) {
   const week = days.slice(-WEEK);
-  const { mark } = marker(
-    week,
-    games.filter((game) => !game.late),
-  );
+  const { mark } = marker(games.filter((game) => !game.late));
   const byDay = new Map(
     mine.filter((game) => !game.late).map((game) => [game.puzzleId, game]),
   );
