@@ -21,8 +21,8 @@ main() {
   local repo=https://github.com/sstrelsov/homebase.git
   local tree="$HOME/dev/homebase-tester"
   local data="$HOME/.config/stached-tester"
-  # Clear of the live API (3999) and Postgres (5432), and of
-  # `scripts/stached preview` (3998, 5499, 5190 and 8443).
+  # Clear of the live API (3999) and Postgres (5432), and of a `make phone`
+  # run there (3998 for its API, 5499, 5190 and 8443).
   local pg_port=5497 api_port=3997 web_port=5197 https_port=8444
   export PATH="/opt/homebrew/opt/postgresql@17/bin:/opt/homebrew/bin:$PATH"
 

@@ -13,7 +13,7 @@
 #
 # Each run makes its own push keys and writes the API's settings to
 # .phone/api.env, so the puzzle CLI can drive it (STACHED_ENV=.phone/api.env
-# scripts/stached …). `scripts/stached preview` runs this with one puzzle.
+# scripts/stached …).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PREVIEW=""
@@ -63,7 +63,7 @@ cleanup() {
   pg_ctl -D "$DATA/pg" stop -m fast >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
-# HUP too: closing its tmux session (a preview's) cleans up like Ctrl-C.
+# HUP too: closing its terminal cleans up like Ctrl-C.
 trap 'exit 130' INT TERM HUP
 
 # A fresh database every run, so everyone gets a new try at the puzzle.
@@ -119,7 +119,6 @@ tailscale serve --bg --https="$HTTPS_PORT" "http://127.0.0.1:$WEB_PORT" >/dev/nu
 url="$site/stached${PREVIEW:+/}"
 
 sleep 2
-echo "$url" >"$DATA/url"
 echo
 bunx qrcode --small "$url"
 echo "  $url"
