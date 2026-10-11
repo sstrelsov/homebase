@@ -2,12 +2,13 @@
 // (src/stached/push.ts), and each browser's subscription is kept, tied to
 // that player, until its push service says it's gone (the app was deleted,
 // say). There's no off switch in Stached; iOS Settings has one.
-// Each puzzle is announced once, on its day: at 9:12am New York time, or as
-// soon as it goes live after that. Its date goes into announcements first and
-// only the first claim sends, so no puzzle is announced twice, even across
-// restarts.
+// Each date's puzzles are announced once, together, on their day: at 9:12am
+// New York time, or as soon as they go live after that. The date goes into
+// announcements first and only the first claim sends, so no puzzle is
+// announced twice, even across restarts.
 import { sql } from "bun";
 import QUOTES from "../src/stached/quotes.json";
+import { numbered } from "./puzzles";
 import {
   base64url,
   type Subscription,
@@ -104,37 +105,55 @@ const SUBJECT = "https://spencerstrelsov.com";
 // A phone that's off for longer than this misses the news.
 const TTL = 12 * 3600;
 
-/**
- * The puzzle as the title (iOS adds "from Stached" under it, and fills in an
- * empty title with "Stached"), then the puzzle's own line, or a random one
- * of the quotes on home. Tapping it opens home, not the game, so the clock
- * waits for Play (public/stached/sw.js).
- */
-export const notification = (number: number, push?: string | null) => ({
-  title: `Puzzle #${number} is up`,
-  body: push ?? QUOTES[Math.floor(Math.random() * QUOTES.length)],
-});
+/** A puzzle as its push announces it. */
+export interface Announced {
+  number: number;
+  date: string;
+  push?: string | null;
+}
 
 /**
- * Announces a puzzle to every subscription, if its push is due and nobody has
- * claimed it yet. Drops the subscriptions whose push service says they're
- * gone. Returns whether this call announced it.
+ * The date's puzzles as the title ("Puzzle #12 is up", or "Puzzles #17 and
+ * #18 are up"; iOS adds "from Stached" under it, and fills in an empty title
+ * with "Stached"), then the first one's own line, or a random one of the
+ * quotes on home. Tapping it opens home, not the game, so the clock waits for
+ * Play (public/stached/sw.js).
+ */
+export function notification(puzzles: Announced[]) {
+  const numbers = numbered(puzzles.map((p) => p.number));
+  return {
+    title:
+      puzzles.length === 1
+        ? `Puzzle ${numbers} is up`
+        : `Puzzles ${numbers} are up`,
+    body:
+      puzzles.find((p) => p.push)?.push ??
+      QUOTES[Math.floor(Math.random() * QUOTES.length)],
+  };
+}
+
+/**
+ * Announces a date's puzzles (in play order) to every subscription, in one
+ * push, if it's due and nobody has claimed the date yet. Drops the
+ * subscriptions whose push service says they're gone. Returns whether this
+ * call announced them.
  */
 export async function announce(
-  puzzle: { number: number; date: string; push?: string | null },
+  puzzles: Announced[],
   keys: VapidKeys,
   now = new Date(),
 ) {
-  if (!announceDue(puzzle.date, now)) return false;
+  const date = puzzles[0]?.date;
+  if (!date || !announceDue(date, now)) return false;
   const [claimed] = await sql`
-    insert into announcements (date) values (${puzzle.date})
+    insert into announcements (date) values (${date})
     on conflict do nothing
     returning date`;
   if (!claimed) return false;
 
   const subscriptions: Subscription[] =
     await sql`select endpoint, p256dh, auth from push_subscriptions`;
-  const message = JSON.stringify(notification(puzzle.number, puzzle.push));
+  const message = JSON.stringify(notification(puzzles));
   const results = await Promise.all(
     subscriptions.map(async (subscription) => {
       const status = await sendPush(subscription, message, {
@@ -157,7 +176,7 @@ export async function announce(
       delete from push_subscriptions
       where endpoint in ${sql(gone.map((r) => r.endpoint))}`;
   console.log(
-    `Announced #${puzzle.number}: ${count("sent")} sent, ${count("gone")} gone, ${count("failed")} failed`,
+    `Announced ${numbered(puzzles.map((p) => p.number))}: ${count("sent")} sent, ${count("gone")} gone, ${count("failed")} failed`,
   );
   for (const { endpoint, status, outcome } of results)
     if (outcome === "failed")

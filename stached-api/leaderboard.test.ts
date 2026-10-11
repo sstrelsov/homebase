@@ -19,6 +19,7 @@ const DAYS: Day[] = DATES.map((date, i) => ({
   id: i + 1,
   number: i + 1,
   date,
+  part: 1,
   counts: i + 1 === TODAY,
 }));
 
@@ -97,8 +98,8 @@ describe("the ranking", () => {
       solved("Ev", TODAY, 42),
     );
     expect(fastestToday).toEqual([
-      { name: "Ev", stachedMs: 42_000, solved: true },
-      { name: "Flo", stachedMs: 42_000, solved: false },
+      { number: TODAY, name: "Ev", stachedMs: 42_000, solved: true },
+      { number: TODAY, name: "Flo", stachedMs: 42_000, solved: false },
     ]);
     expect(
       players.map(({ rank, name, marks }) => [rank, name, marks.at(-1)]),
@@ -182,7 +183,7 @@ describe("a game in progress", () => {
   test("is open today, and its stache time doesn't count yet", () => {
     const { fastestToday, players } = board(...games);
     expect(fastestToday).toEqual([
-      { name: "Ivy", stachedMs: 30_000, solved: true },
+      { number: TODAY, name: "Ivy", stachedMs: 30_000, solved: true },
     ]);
     expect(players.find((p) => p.name === "Jo")?.marks.slice(-2)).toEqual([
       "won",
@@ -223,6 +224,54 @@ describe("yesterday's puzzle, while it still counts", () => {
     const sal = player(before, "Sal");
     expect(sal?.marks.slice(-3)).toEqual(["won", "none", "won"]);
     expect(sal?.streak).toBe(1);
+  });
+});
+
+describe("a date with two puzzles", () => {
+  // Today doubles up after a missed day: #9 is a second puzzle on #8's date.
+  // Each is its own square and fastest stache; the week is the last seven
+  // puzzles, so it starts a day later.
+  const doubled: Day[] = [
+    ...DAYS,
+    { id: 9, number: 9, date: DATES[TODAY - 1], part: 2, counts: true },
+  ];
+  const games = [
+    solved("Ada", TODAY, 30),
+    solved("Bo", TODAY, 40),
+    solved("Bo", 9, 20),
+    missed("Ada", 9, 25),
+  ];
+
+  test("gives each puzzle its own column, fastest stache and points", () => {
+    const { days, fastestToday, players } = leaderboardOf(doubled, games);
+    expect(days.map((day) => day.number)).toEqual([3, 4, 5, 6, 7, 8, 9]);
+    expect(days.slice(-2).map((day) => day.date)).toEqual([
+      DATES[TODAY - 1],
+      DATES[TODAY - 1],
+    ]);
+    expect(fastestToday).toEqual([
+      { number: 8, name: "Ada", stachedMs: 30_000, solved: true },
+      { number: 9, name: "Bo", stachedMs: 20_000, solved: true },
+    ]);
+    expect(
+      players.map(({ name, marks, points, streak }) => [
+        name,
+        marks.slice(-2),
+        points,
+        streak,
+      ]),
+    ).toEqual([
+      ["Bo", ["solved", "won"], 3, 2],
+      ["Ada", ["won", "missed"], 2, 0],
+    ]);
+  });
+
+  test("leaves each open until it's played, on home too", () => {
+    const mine = [solved("Ada", TODAY, 30)];
+    expect(weekOf(doubled, mine, mine).slice(-2)).toEqual([
+      { number: 8, date: DATES[TODAY - 1], part: 1, mark: "won" },
+      { number: 9, date: DATES[TODAY - 1], part: 2, mark: "open" },
+    ]);
   });
 });
 

@@ -5,7 +5,7 @@ A daily Connections-style puzzle with a twist: one of the four groups is stache 
 | Page | Route |
 |---|---|
 | Home (logo, Leaderboard, Play, your week) | `/stached` |
-| A day's game | `/stached/2026-09-30` (Play opens today's) |
+| A puzzle's game | `/stached/2026-09-30` (Play opens today's), or `/stached/2026-10-11/2` for its date's second puzzle |
 | Past games | `/stached/past` |
 | Leaderboard | `/stached/leaderboard` |
 
@@ -34,7 +34,7 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 | Studio services | `stached-api/ops/install-daemons.sh` |
 | Backups to this Mac | `stached-api/ops/pull-backup.sh` |
 | Real puzzles, password and push keys | on the Studio only, in `~/.config/stached/` (never in this public repo) |
-| Sample puzzles for local testing | `stached-api/puzzles.example.json` (made up: one from before the bonus life, one from its first day) |
+| Sample puzzles for local testing | `stached-api/puzzles.example.json` (made up: one from before the bonus life, and two on its first day) |
 
 ## How the game works
 
@@ -42,13 +42,14 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 - **One try per puzzle.** The server holds the answers, checks every guess, and saves the game, so reloading or switching phones picks up where you left off.
 - **Four mistakes** end the game. Solving the stache group earns a **bonus life**, a fifth mustache in the lives row. Puzzles before 2026-10-02 have none, even played late (`BONUS_LIFE_FROM` in `stached-api/rules.ts`). Three right words out of four gets a "one away" hint.
 - **Stache time** counts only while the board is on screen and the tab is in front. The game checks in every 5 seconds and sends a beacon when it hides; if a phone sleeps before it can say so, the gap counts for at most 15 seconds. The server keeps the real clock.
-- **The leaderboard** counts every puzzle so far. On top, in a gold box, is **today's fastest stache**: the lowest stache time on a game finished today, solved or not, shared by everyone tied for it. Below it, **standings** give each player a square for each of the last seven puzzles: green for solved, red for missed, Gerald on that day's fastest stache, a dot for a day not finished while it counted, and a dashed square for a puzzle that still counts until it's finished. Players rank by points, one for each solve and one for each fastest stache, on every puzzle so far (the key beside "Standings" reads "green square +1, Gerald +1"), and ties share a place. So the points can be more than a row's squares show. Cat is always listed first, at #1, whatever her points. Everyone else ranks below her by points, and anyone tied with her for the most points shares #1. Only players with a finished game are listed, so not playing never ties a loss. Two or more puzzles solved in a row show under a name as a streak, which a puzzle that still counts doesn't break until you finish (or miss) it. The rules are `leaderboard.ts`, with tests; it reads only the puzzles out so far, by number and date, never their words.
-- **Your week** sits under Play on home: your last seven puzzles in the leaderboard's squares, each under its weekday, in a strip that ends at today's and opens there. A dashed one still counts, so while yesterday's does, it's dashed beside today's. Swipe left for the days before, and past them "View all" opens Past games and the sliders open settings; once today's is out of view, a "Today →" chip slides back. Tap a day to open it.
+- **The leaderboard** counts every puzzle so far. On top, in a gold box, is **today's fastest stache**: the lowest stache time on a game finished today, solved or not, shared by everyone tied for it (a box for each of today's puzzles on a doubled date). Below it, **standings** give each player a square for each of the last seven puzzles (two under one weekday for a doubled date): green for solved, red for missed, Gerald on that day's fastest stache, a dot for a day not finished while it counted, and a dashed square for a puzzle that still counts until it's finished. Players rank by points, one for each solve and one for each fastest stache, on every puzzle so far (the key beside "Standings" reads "green square +1, Gerald +1"), and ties share a place. So the points can be more than a row's squares show. Cat is always listed first, at #1, whatever her points. Everyone else ranks below her by points, and anyone tied with her for the most points shares #1. Only players with a finished game are listed, so not playing never ties a loss. Two or more puzzles solved in a row show under a name as a streak, which a puzzle that still counts doesn't break until you finish (or miss) it. The rules are `leaderboard.ts`, with tests; it reads only the puzzles out so far, by number and date, never their words.
+- **Your week** sits under Play on home: your last seven puzzles in the leaderboard's squares, each under its weekday (so a doubled date has two), in a strip that ends at today's and opens there. A dashed one still counts, so while yesterday's does, it's dashed beside today's. Swipe left for the days before, and past them "View all" opens Past games and the sliders open settings; once today's is out of view, a "Today →" chip slides back. Tap a day to open it.
 - **Quotes** fill the rest of home, one at a time, rolling up on their own every 4 seconds (none with reduced motion on). A swipe either way moves them sooner, and the wait starts over. Each visit starts on a random one, and a push without its own line borrows one (`src/stached/quotes.json`).
 - **Settings**: the sliders at the start of your week, left of "View all" (and Rules in a game), open how to play, a **Dark mode** switch (The look, below) and "Not Cat? Switch player".
 - **The daily puzzle** is the newest one dated on or before today in New York; a day without a puzzle of its own keeps the last one. Puzzles are numbered by date (#1 is the first). A puzzle **counts** while it's the daily puzzle and for 24 hours after its push, even once the next one is out: one pushed at 11pm counts until 11pm the next day, so a late push still gives everyone a full day (`released()` in `server.ts`).
+- **Doubling up:** a date can have two puzzles or more, to catch up after a missed day. They're parts 1, 2, … of their date, numbered in turn (#17 and #18), and all of them are today's. Play opens the first one you haven't finished (it says "Play 1 of 2"), the game says "Puzzle 1 of 2", and once it's over, Next (on the board, and "Next puzzle" in the results) opens the second. Each has its own address (`/stached/2026-10-11`, then `/stached/2026-10-11/2`, so a single day's address never changes), scoreboard, square and fastest stache, and they share one push and the 24 hours after it. A part 2 added after its date's push goes out gets no push of its own.
 - **Notifications:** in the home-screen app, home asks to turn on a push for each new puzzle (Push notifications, below). In a browser tab, it asks you to add Stached to the home screen first (Home screen, below).
-- **Past games** shows a tile per day so far. A finished day opens your board, the answers, and that day's scoreboard: solvers first, then misses, each by stache time. A missed day can be played any time after, and an unfinished one finished, but that game is marked **late** (started or guessed once its puzzle stops counting): it shows in your history and on that day's scoreboard (tagged late), and it never counts on the leaderboard (solves, fastest staches or streaks).
+- **Past games** shows a tile per puzzle so far, newest date first, with a doubled date's side by side ("Today · 1 of 2"). A finished day opens your board, the answers, and that day's scoreboard: solvers first, then misses, each by stache time. A missed day can be played any time after, and an unfinished one finished, but that game is marked **late** (started or guessed once its puzzle stops counting): it shows in your history and on that day's scoreboard (tagged late), and it never counts on the leaderboard (solves, fastest staches or streaks).
 
 ## The look
 
@@ -61,7 +62,7 @@ A 1984 TV-station ident: heavy italic caps, the four broadcast colors, Gerald, a
 
 ## Link previews
 
-Pasting `https://spencerstrelsov.com/stached` shows a card: Gerald, the title, today's puzzle number and date (`#12 · WED, SEP 30`), and a glowing border in one of the logo's four colors (gold, orange, red, blue), the next one on every fetch.
+Pasting `https://spencerstrelsov.com/stached` shows a card: Gerald, the title, today's puzzle number and date (`#12 · WED, SEP 30`, or `#17 AND #18 · SUN, OCT 11` on a doubled date), and a glowing border in one of the logo's four colors (gold, orange, red, blue), the next one on every fetch.
 
 - The site's static preview tags (written at build time, in `vite.config.mts`) point `og:image` at the API's `GET /card.png`. GitHub Pages can't vary a page by day, so the API draws the card, once a day in each color.
 - `/card.png` is public, because chat apps fetch it signed out, and never cached, so every fetch is today's and takes the next color (a HEAD, which gets no picture, doesn't). It reads only today's puzzle number and date: never the words, and never a puzzle still to come.
@@ -83,10 +84,10 @@ Stached saves to a phone's home screen as its own app: in Safari, Share (under �
 
 ## Push notifications
 
-Each puzzle sends one push to the home-screen apps that asked for it: "Puzzle #12 is up" as the title, then the puzzle's own `push` line (Puzzles, below) or, without one, a random one of the quotes on home. Tapping it opens home, not the game, so the stache clock waits for Play.
+Each date's puzzles send one push to the home-screen apps that asked for it: "Puzzle #12 is up" as the title ("Puzzles #17 and #18 are up" on a doubled date), then the puzzle's own `push` line (Puzzles, below; on a doubled date, the first that has one) or, without one, a random one of the quotes on home. Tapping it opens home, not the game, so the stache clock waits for Play.
 
 - **Turning them on:** in the home-screen app, home asks in a dialog, "Notifications: please turn on notifications for new games!", over a drawing of the push on a lock screen (`src/stached/NotificationsDialog.tsx`). On an iPhone only the home-screen app can get pushes (iOS 16.4 and later), and iOS asks permission only right after a tap, so its Turn on notifications button is that tap. Not now (or closing it) waits until the next day to ask again, kept on the device only; the app has no bell, so that's the next chance. Once they're on, or after a "Don't Allow", it never shows again, since only Settings can undo that. In a browser tab, home shows a bell to the left of Leaderboard instead, until notifications are on in that browser: desktop Chrome and Android can get pushes there, and iPhone Safari can't, so it never shows the bell. Stached has no off switch; iOS Settings → Notifications has one.
-- **When:** at 9:12am New York time on the puzzle's date (`ANNOUNCE_AT`). A puzzle published on its date after that pushes right away (`confirm` sends it), and one dated before today never does. The API checks every minute, for a puzzle published before its day. A puzzle counts for 24 hours after its push, so a late one isn't cut short by the next day's (The daily puzzle, above).
+- **When:** at 9:12am New York time on the puzzle's date (`ANNOUNCE_AT`), naming every puzzle that date has by then. A puzzle published on its date after that pushes right away (`confirm` sends it), unless its date's push already went out, and one dated before today never does. The API checks every minute, for a puzzle published before its day. A puzzle counts for 24 hours after its push, so a late one isn't cut short by the next day's (The daily puzzle, above).
 - **Never twice:** the API (or `confirm`) records the date in `announcements` before sending, and only the first claim sends. A restart, a second API, or editing and republishing a puzzle can't repeat it.
 - **Subscriptions** (`push_subscriptions`): one per browser, tied to the player who turned them on there. Home sends it again on every visit, so it survives a database reset and renews itself if the keys change. When a push service answers 404 or 410 (the app was deleted, say), it's dropped. The API only takes subscriptions from Apple's, Google's, Mozilla's and Microsoft's push services, so nobody can point it at another address.
 - **Who it brings in:** the admin page counts a game as after the push when it started within 15 minutes of its puzzle's push (`announcements.sent_at`), by a player who had notifications on when it went out (a subscription from before `sent_at`). It's worked out from data the API already keeps, so it covers every game, past ones too. It can't tell a tap: iOS doesn't tell a home-screen app that its notification was tapped (on an iPhone, the service worker's `notificationclick` never ran, whether the app was open, in the background or closed), so someone who'd have played then anyway counts too.
@@ -129,9 +130,9 @@ Puzzles live in `~/.config/stached/puzzles.json` on the Studio (mode 600), becau
 ]
 ```
 
-- One puzzle per date, a title and four words per group, no word twice (ignoring case), no title twice, exactly one `"stache": true` group, at most five groups. The server refuses to start otherwise, and the CLI won't stage it.
+- One puzzle per date and part. A date's first puzzle needs no `part`; a second on the same date (Doubling up, above) takes `"part": 2`, a third `"part": 3`, with none skipped. A title and four words per group, no word twice (ignoring case), no title twice, exactly one `"stache": true` group, at most five groups. The server refuses to start otherwise, and the CLI won't stage it.
 - Non-stache groups are colored in file order (yellow, orange, red, blue), so list them easiest first.
-- `push` is optional: the line under "Puzzle #12 is up" in its notification. Without it, the line is a random quote from home. It only matters until the push goes out, and changing it never touches anyone's games.
+- `push` is optional: the line under "Puzzle #12 is up" in its notification (on a doubled date, the first puzzle's that has one). Without it, the line is a random quote from home. It only matters until the push goes out, and changing it never touches anyone's games.
 - Add upcoming days ahead of time; each goes live on its date.
 - **Editing or removing a puzzle that people have played deletes their games for it.** Scores against old words wouldn't mean anything. The CLI refuses to unless you add `--delete-games`.
 
@@ -147,12 +148,14 @@ scripts/stached list               # every puzzle: status, games, push
 
 | Command | What it does |
 |---|---|
-| `stage <file>` | Checks one puzzle, or a list, with the server's rules, and stages it in `staged.json` next to `puzzles.json`, replacing what was staged. Says each puzzle's number, its push line, and when it goes live and pushes. Then makes the first one today's puzzle on the tester (The tester, below), to play in its home-screen app before anyone else, and says the address. It sends the tester's push right away, push line and all, even if one went out earlier that day |
-| `preview [date]` | Puts a staged puzzle (the first, or that date's) on the tester, as today's |
+| `stage <file>` | Checks one puzzle, or a list, with the server's rules, and stages it in `staged.json` next to `puzzles.json`, replacing what was staged. Says each puzzle's number, its push line, and when it goes live and pushes. Then makes the first date's puzzles (as they'll be once published, so a part 2 brings its part 1) today's on the tester (The tester, below), to play in its home-screen app before anyone else, and says the address. It sends the tester's push right away, push line and all, even if one went out earlier that day |
+| `preview [date]` | Puts a staged date's puzzles (the first date's, or that one's) on the tester, as today's |
 | `confirm` | Publishes what's staged: writes `puzzles.json` (keeping the old one as `puzzles.json.bak-…`) and syncs Postgres as the API does when it starts. The API serves it without a restart. A push that's due goes out right away, from the CLI, rather than at the API's next check |
-| `remove <date>` | Takes a published puzzle down |
-| `list` | Every puzzle with its number, status (out, today, upcoming, staged), games, and push (sent, none, or when) |
+| `remove <date>` | Takes a published puzzle down: `2026-10-11` is its date's first, `2026-10-11/2` its second |
+| `list` | Every puzzle with its number, date (with `/2` after a date's second), status (out, today, upcoming, staged), games, and push (sent, none, or when) |
 | `vapid-keys` | Prints a new push key pair (Push keys, above) |
+
+To double up a date, stage its puzzles together with `"part": 2` on the second, or stage just a `"part": 2` beside its published first: staging a puzzle replaces the published one with its date and part, if there is one. A part 2 needs its part 1, so `stage` refuses one without it, and `remove` won't take a part 1 down while its part 2 is there.
 
 `confirm` and `remove` won't change or remove a puzzle anyone has played: they name it and its games, and stop. Add `--delete-games` to go ahead. A puzzle nobody has played can change freely. With `STACHED_ENV=.phone/api.env`, the CLI drives a `make phone` run instead of the live game, and with `--tester` first (`scripts/stached --tester list`), the tester (The tester, below).
 
@@ -209,7 +212,7 @@ Publishing a puzzle is not a deploy: the CLI writes the file and Postgres, and t
 
 ## Database and migrations
 
-Five tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the puzzles file, push lines too), `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result, whether it was played late, and how it started: home-screen app or website, dark or light mode, from the push or not), `push_subscriptions` (one per browser that turned them on), and `announcements` (each date whose push has gone out).
+Five tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the puzzles file, push lines too, each one a part of its date), `plays` (one per player per puzzle: guesses, groups solved, mistakes, the clock, stache time, result, whether it was played late, and how it started: home-screen app or website, dark or light mode, from the push or not), `push_subscriptions` (one per browser that turned them on), and `announcements` (each date whose push has gone out).
 
 | Migration | What it did |
 |---|---|
@@ -218,6 +221,7 @@ Five tables: `users` (one per name, case-insensitive), `puzzles` (mirrors the pu
 | `0003_push.sql` | `push_subscriptions` and `announcements`, for push notifications |
 | `0004_puzzle_push.sql` | `puzzles.push`, a puzzle's own line for its push |
 | `0005_plays_started.sql` | `plays.home_screen` and `plays.dark`, how each game started |
+| `0006_puzzle_parts.sql` | `puzzles.part`, so a date can have more than one puzzle |
 
 `schema_migrations` records which migrations ran. To change the schema, add the next numbered file:
 

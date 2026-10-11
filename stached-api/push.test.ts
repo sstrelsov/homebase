@@ -32,17 +32,35 @@ describe("a puzzle's push", () => {
     expect(announceDue("2026-10-01", FRI_912)).toBe(false);
   });
 
+  const date = "2026-10-02";
+
   test("names the puzzle, then one of home's quotes", () => {
-    expect(notification(12).title).toBe("Puzzle #12 is up");
-    expect(QUOTES).toContain(notification(12).body);
-    expect(QUOTES).toContain(notification(12, null).body);
+    expect(notification([{ number: 12, date }]).title).toBe("Puzzle #12 is up");
+    expect(QUOTES).toContain(notification([{ number: 12, date }]).body);
+    expect(QUOTES).toContain(
+      notification([{ number: 12, date, push: null }]).body,
+    );
   });
 
   test("says the puzzle's own line, if it has one", () => {
-    expect(notification(12, "Read all about it")).toEqual({
-      title: "Puzzle #12 is up",
-      body: "Read all about it",
-    });
+    expect(
+      notification([{ number: 12, date, push: "Read all about it" }]),
+    ).toEqual({ title: "Puzzle #12 is up", body: "Read all about it" });
+  });
+
+  test("names both puzzles on a doubled date, with the first's own line", () => {
+    expect(
+      notification([
+        { number: 17, date },
+        { number: 18, date, push: "Two for one" },
+      ]),
+    ).toEqual({ title: "Puzzles #17 and #18 are up", body: "Two for one" });
+    expect(
+      notification([
+        { number: 17, date, push: "First" },
+        { number: 18, date, push: "Second" },
+      ]).body,
+    ).toBe("First");
   });
 });
 
@@ -86,7 +104,7 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
   const dir = mkdtempSync(join(tmpdir(), "stached-test-"));
   const bin = (tool: string) => join(initdb as string, "..", tool);
   const port = 50_000 + Math.floor(Math.random() * 10_000);
-  const puzzle = { number: 4, date: "2026-10-02" };
+  const puzzle = [{ number: 4, date: "2026-10-02" }];
   // A fake push service: /gone answers like a subscription that's been
   // dropped, /down like an outage.
   const received: { path: string; headers: Record<string, string> }[] = [];
@@ -153,7 +171,7 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
         insert into push_subscriptions (endpoint, user_id, p256dh, auth)
         values (${`${pushService.url}${path.slice(1)}`}, 1, ${p256dh}, ${auth})`;
 
-    const saturday = { number: 5, date: "2026-10-03" };
+    const saturday = [{ number: 5, date: "2026-10-03" }];
     expect(await announce(saturday, keys, minutes(FRI_912, 24 * 60))).toBe(
       true,
     );
@@ -175,6 +193,22 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
     ).toEqual(["/down", "/ok"]);
   });
 
+  test("announces a doubled date once, for both its puzzles", async () => {
+    const keys = await generateVapidKeys();
+    const sunday = "2026-10-04";
+    const both = [
+      { number: 6, date: sunday },
+      { number: 7, date: sunday },
+    ];
+    const at = minutes(FRI_912, 2 * 24 * 60);
+    // A part 2 added after the push doesn't push again.
+    expect(await announce(both.slice(0, 1), keys, at)).toBe(true);
+    expect(await announce(both, keys, minutes(at, 60))).toBe(false);
+    expect(await announce([], keys, at)).toBe(false);
+    const rows = await sql`select 1 from announcements where date = ${sunday}`;
+    expect(rows).toHaveLength(1);
+  });
+
   test("changing a puzzle's push line keeps its games", async () => {
     const sample = examples[0] as DayPuzzle;
     const pushOf = async () =>
@@ -193,5 +227,25 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
     edited.groups[0].words[0] = "Crumpet";
     await syncPuzzles([edited]);
     expect(await games()).toBe(0);
+  });
+
+  test("keeps a date's parts apart, and drops just the one taken down", async () => {
+    const sample = examples[0] as DayPuzzle;
+    const second = {
+      ...(examples[1] as DayPuzzle),
+      date: sample.date,
+      part: 2,
+    };
+    const parts = async () =>
+      (
+        await sql`select part from puzzles where date = ${sample.date} order by part`
+      ).map((row: { part: number }) => row.part);
+    await syncPuzzles([sample, second]);
+    expect(await parts()).toEqual([1, 2]);
+    await sql`insert into plays (user_id, puzzle_id)
+      select 1, id from puzzles where part = 1`;
+    await syncPuzzles([sample]);
+    expect(await parts()).toEqual([1]);
+    expect(await sql`select * from plays`).toHaveLength(1);
   });
 });

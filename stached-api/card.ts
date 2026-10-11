@@ -1,9 +1,10 @@
 // The link-preview card for Stached: the art in card/ (a browser draws it,
-// see card/art.html) with today's puzzle number and date set in, a border in
+// see card/art.html) with today's puzzle numbers and date set in, a border in
 // one of the logo's colors, and an old TV's phosphor columns over it all. A
-// card only ever knows a puzzle's number and date: never its words.
+// card only ever knows puzzles' numbers and date: never their words.
 import GLYPHS from "./card/glyphs.json";
 import { decodePng, encodePng, type Picture } from "./png";
+import { numbered } from "./puzzles";
 
 /**
  * The border colors, in turn: the logo's four bands, --c1 to --c4 at the top
@@ -20,9 +21,9 @@ export type CardColor = keyof typeof CARD_COLORS;
 
 const COLOR_NAMES = Object.keys(CARD_COLORS) as CardColor[];
 
-/** What a card may know about a puzzle. */
-export interface CardPuzzle {
-  number: number;
+/** What a card may know about a day: its puzzles' numbers, and its date. */
+export interface CardDay {
+  numbers: number[];
   date: string;
 }
 
@@ -42,9 +43,12 @@ const DAY = new Intl.DateTimeFormat("en-US", {
   timeZone: "UTC",
 });
 
-/** The card's line of text, as the game labels a puzzle: "#12 · WED, SEP 30". */
-export const dayLine = ({ number, date }: CardPuzzle) =>
-  `#${number} · ${DAY.format(new Date(date))}`.toUpperCase();
+/**
+ * The card's line of text, as the game labels a puzzle: "#12 · WED, SEP 30",
+ * or "#17 AND #18 · SUN, OCT 11" on a day with two.
+ */
+export const dayLine = ({ numbers, date }: CardDay) =>
+  `${numbered(numbers)} · ${DAY.format(new Date(date))}`.toUpperCase();
 
 let turn = 0;
 /** The border colors in turn, so each fetch of a card gets the next one. */
@@ -132,9 +136,9 @@ function crt({ data, width, height }: Picture) {
 // drawing.
 let drawn = { line: "", cards: new Map<CardColor, Uint8Array<ArrayBuffer>>() };
 
-/** A puzzle's card, as a PNG. */
-export function renderCard(puzzle: CardPuzzle, color: CardColor) {
-  const line = dayLine(puzzle);
+/** A day's card, as a PNG. */
+export function renderCard(day: CardDay, color: CardColor) {
+  const line = dayLine(day);
   if (drawn.line !== line) drawn = { line, cards: new Map() };
   let png = drawn.cards.get(color);
   if (!png) {

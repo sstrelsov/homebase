@@ -9,7 +9,7 @@
 // so) counts for at most CLOCK_GRACE_MS.
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
-import { type CardPuzzle, nextColor, renderCard } from "./card";
+import { nextColor, renderCard } from "./card";
 import {
   type Day,
   type Game,
@@ -19,6 +19,7 @@ import {
 } from "./leaderboard";
 import { migrate } from "./migrate";
 import {
+  type Announced,
   announce,
   parseSubscription,
   saveSubscription,
@@ -47,10 +48,14 @@ const isAdmin = (name: string) => name.toLowerCase() === ADMIN_NAME;
 
 interface Puzzle {
   id: number;
-  /** #1 is the first puzzle, by date. */
+  /** #1 is the first puzzle, by date and part. */
   number: number;
   date: string;
-  /** Whether it's the daily puzzle: the newest one out. */
+  /** Which of its date's puzzles it is, played in order: 1, 2, … */
+  part: number;
+  /** How many puzzles its date has: 2 or more on a doubled date. */
+  parts: number;
+  /** Whether it's a daily puzzle: one of the newest date's. */
   today: boolean;
   /** Its games count: it's today's, or pushed in the last day. */
   counts: boolean;
@@ -134,15 +139,17 @@ const fail = (status: number, error: string) =>
   Response.json({ error }, { status });
 
 /**
- * The puzzles out so far (dated today or earlier, New York time), numbered by
- * date from #1. The newest is today's: a day without a puzzle of its own
- * keeps the last one. A puzzle counts while it's today's and for 24 hours
- * after its push, so one pushed late at night still has a full day once the
- * next one is out. Games started or guessed after that are late.
+ * The puzzles out so far (dated today or earlier, New York time), numbered
+ * from #1 by date and part. The newest date's are today's (two or more on a
+ * doubled date): a day without a puzzle of its own keeps the last date's. A
+ * puzzle counts while it's today's and for 24 hours after its date's push,
+ * so one pushed late at night still has a full day once the next one is out.
+ * Games started or guessed after that are late.
  */
 const released = () => sql`(
-  select z.id, to_char(z.date, 'YYYY-MM-DD') as date, z.groups, z.push,
-         row_number() over (order by z.date)::int as number,
+  select z.id, to_char(z.date, 'YYYY-MM-DD') as date, z.part, z.groups, z.push,
+         row_number() over (order by z.date, z.part)::int as number,
+         count(*) over (partition by z.date)::int as parts,
          z.date = max(z.date) over () as today,
          z.date = max(z.date) over ()
            or coalesce(a.sent_at > now() - interval '24 hours', false) as counts
@@ -150,8 +157,8 @@ const released = () => sql`(
   where z.date <= (now() at time zone 'America/New_York')::date
 ) released`;
 
-/** The released puzzle that matches: by default, today's. */
-async function findPuzzle(where = sql`today`): Promise<Puzzle | undefined> {
+/** The released puzzle that matches. */
+async function findPuzzle(where: unknown): Promise<Puzzle | undefined> {
   const [puzzle] = await sql`select * from ${released()} where ${where}`;
   return puzzle;
 }
@@ -160,24 +167,53 @@ const puzzleById = async (id: unknown) =>
   Number.isInteger(id) ? findPuzzle(sql`id = ${id}`) : undefined;
 
 // Compared as text, so a date that doesn't exist is just no puzzle.
-const puzzleByDate = async (date: unknown) =>
-  typeof date === "string" ? findPuzzle(sql`date = ${date}`) : undefined;
+const puzzleByDate = async (date: unknown, part: unknown) =>
+  typeof date === "string" && Number.isInteger(part)
+    ? findPuzzle(sql`date = ${date} and part = ${part}`)
+    : undefined;
 
-/** Every puzzle so far, newest first, with how this player did on each. */
+/**
+ * Today's puzzle for this player: the first of today's they haven't
+ * finished, or the last once they've finished them all.
+ */
+async function nextToday(userId: number): Promise<Puzzle | undefined> {
+  const today: (Puzzle & { finished: boolean })[] = await sql`
+    select released.*, p.finished_at is not null as finished
+    from ${released()}
+    left join plays p on p.puzzle_id = released.id and p.user_id = ${userId}
+    where today
+    order by part`;
+  return today.find((puzzle) => !puzzle.finished) ?? today.at(-1);
+}
+
+/** Today's puzzles, in play order, as their push and card know them. */
+const todays = (): Promise<Announced[]> =>
+  sql`select number, date, push from ${released()} where today order by part`;
+
+/**
+ * Every puzzle so far, newest date first (a doubled date's in play order),
+ * with how this player did on each.
+ */
 async function pastGames(userId: number) {
   const rows = await sql`
-    select released.date, released.number, released.today, p.id as play,
+    select released.date, released.part, released.parts, released.number,
+           released.today, p.id as play,
            p.finished_at is not null as finished, p.completed,
            p.stached_ms as "stachedMs", p.late
     from ${released()}
     left join plays p on p.puzzle_id = released.id and p.user_id = ${userId}
-    order by released.date desc`;
+    order by released.date desc, released.part`;
   return rows.map(
-    ({ date, number, today, play, ...game }: Record<string, unknown>) => ({
-      date,
-      number,
-      today,
-      play: play === null ? null : game,
+    ({
+      play,
+      finished,
+      completed,
+      stachedMs,
+      late,
+      ...puzzle
+    }: Record<string, unknown>) => ({
+      ...puzzle,
+      play: play === null ? null : { finished, completed, stachedMs, late },
     }),
   );
 }
@@ -187,7 +223,7 @@ async function pastGames(userId: number) {
  * date and whether it still counts, never the words or a puzzle still to come.
  */
 const boardDays = (): Promise<Day[]> =>
-  sql`select id, number, date, counts from ${released()} order by date`;
+  sql`select id, number, date, part, counts from ${released()} order by number`;
 
 /** Games as the leaderboard reads them: by default, all but the admin's. */
 const boardGames = (
@@ -279,6 +315,8 @@ async function snapshot(userId: number, puzzle: Puzzle) {
       id: puzzle.id,
       number: puzzle.number,
       date: puzzle.date,
+      part: puzzle.part,
+      parts: puzzle.parts,
       today: puzzle.today,
       // Sorted so the order gives nothing away; the game shuffles them.
       words: puzzle.groups.flatMap((g) => g.words).sort(),
@@ -332,13 +370,16 @@ function redeem({ code }: Record<string, unknown>) {
   return session(user);
 }
 
-/** Starts a game (by date, or by id for older pages), or picks it back up. */
+/**
+ * Starts a game (by date and part, the first by default, or by id for older
+ * pages), or picks it back up.
+ */
 async function start(
   userId: number,
-  { puzzleId, date, homeScreen, dark }: Record<string, unknown>,
+  { puzzleId, date, part = 1, homeScreen, dark }: Record<string, unknown>,
 ) {
   const puzzle = await (date !== undefined
-    ? puzzleByDate(date)
+    ? puzzleByDate(date, part)
     : puzzleById(puzzleId));
   if (!puzzle) return fail(404, "No puzzle for that day");
   // A game started once its puzzle stops counting is late: it's yours, but
@@ -478,7 +519,7 @@ async function adminStats() {
     }[],
     { players: number; notifications: number }[],
   ] = await Promise.all([
-    sql`select * from ${released()} order by date desc`,
+    sql`select * from ${released()} order by number desc`,
     sql`
       select p.puzzle_id, u.name, p.guesses, p.completed, p.mistakes,
              p.stached_ms, p.late, p.finished_at is not null as finished,
@@ -546,17 +587,17 @@ async function adminStats() {
 /**
  * Today's link-preview card (card.ts), which the site's preview tags point at.
  * It's public, since chat apps fetch it signed out, and never cached, so each
- * fetch shows today's puzzle and takes the next border color. It reads only
- * the puzzle's number and date, and never a puzzle still to come.
+ * fetch shows today's puzzles and takes the next border color. It reads only
+ * their numbers and date, and never a puzzle still to come.
  */
 async function card(req: Request) {
-  const [puzzle]: CardPuzzle[] =
-    await sql`select number, date from ${released()} where today`;
-  if (!puzzle) return fail(404, "No puzzle yet");
+  const today = await todays();
+  if (!today.length) return fail(404, "No puzzle yet");
   // A HEAD gets no picture, so it doesn't take a turn: an unfurler that checks
   // the card before fetching it still sees every color.
   const color = req.method === "HEAD" ? "gold" : nextColor();
-  return new Response(renderCard(puzzle, color), {
+  const day = { numbers: today.map((p) => p.number), date: today[0].date };
+  return new Response(renderCard(day, color), {
     headers: { "content-type": "image/png" },
   });
 }
@@ -577,7 +618,7 @@ async function route(req: Request): Promise<Response> {
   const userId = user.id;
   switch (path) {
     case "GET /today": {
-      const puzzle = await findPuzzle();
+      const puzzle = await nextToday(userId);
       if (!puzzle) return fail(404, "No puzzle yet");
       const [day, squares] = await Promise.all([
         snapshot(userId, puzzle),
@@ -656,12 +697,13 @@ function cors(req: Request): Record<string, string> {
 await migrate();
 await syncPuzzles(puzzles);
 
-// Today's puzzle announces itself once its push is due (push.ts). Checking
-// every minute catches a puzzle published after 9:12am, or a restart then.
+// Today's puzzles announce themselves once their push is due (push.ts).
+// Checking every minute catches a puzzle published after 9:12am, or a
+// restart then.
 if (VAPID) {
   const announceToday = () =>
-    findPuzzle()
-      .then((puzzle) => puzzle && announce(puzzle, VAPID))
+    todays()
+      .then((today) => announce(today, VAPID))
       .catch(console.error);
   announceToday();
   setInterval(announceToday, 60_000);

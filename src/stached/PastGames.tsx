@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { api, formatDate, formatTime, type PastGame } from "./api";
+import { api, formatDate, formatTime, gameLink, type PastGame } from "./api";
 import { Mustache } from "./Logo";
 import Screen from "./Screen";
 import { useLoad } from "./session";
@@ -21,23 +21,24 @@ function daysAgo(date: string) {
   return Math.round((Date.parse(today) - Date.parse(date)) / 86_400_000);
 }
 
-/** "Today", "Yesterday", then the weekday; the date sits right under it. */
+/**
+ * "Today", "Yesterday", then the weekday, and which of the date's puzzles it
+ * is when it has more than one; the date sits right under it.
+ */
 function dayName(game: PastGame) {
-  if (game.today) return "Today";
-  if (daysAgo(game.date) === 1) return "Yesterday";
-  return formatDate(game.date, { weekday: "long" });
+  const name = game.today
+    ? "Today"
+    : daysAgo(game.date) === 1
+      ? "Yesterday"
+      : formatDate(game.date, { weekday: "long" });
+  return game.parts > 1 ? `${name} · ${game.part} of ${game.parts}` : name;
 }
 
 const Tile = ({ game }: { game: PastGame }) => {
   const { play } = game;
   const state = stateOf(game);
   return (
-    <Link
-      to="/stached/$date"
-      params={{ date: game.date }}
-      className={styles.dayTile}
-      data-state={state}
-    >
+    <Link {...gameLink(game)} className={styles.dayTile} data-state={state}>
       <span className={styles.label}>{dayName(game)}</span>
       <span className={`${styles.display} text-[17px]`}>
         {formatDate(game.date, { month: "short", day: "numeric" })}
@@ -66,7 +67,7 @@ const PastGames = () => {
       {games && (
         <ul className="grid grid-cols-2 gap-3">
           {games.map((game) => (
-            <li key={game.date}>
+            <li key={game.number}>
               <Tile game={game} />
             </li>
           ))}

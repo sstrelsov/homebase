@@ -12,7 +12,7 @@ import examples from "./puzzles.example.json";
 
 const COLORS = Object.keys(CARD_COLORS) as CardColor[];
 // The made-up sample puzzle, as its card sees it: #1, Thu, Jan 1.
-const PUZZLE = { number: 1, date: examples[0].date };
+const PUZZLE = { numbers: [1], date: examples[0].date };
 
 /** A box of a card's pixels, as one string to compare. */
 function box(card: Picture, x0: number, y0: number, x1: number, y1: number) {
@@ -60,7 +60,7 @@ describe("a card", () => {
 
   test("sets the puzzle's number and date, and only there", () => {
     const next = decodePng(
-      renderCard({ number: 2, date: "2026-01-02" }, "gold"),
+      renderCard({ numbers: [2], date: "2026-01-02" }, "gold"),
     );
     const line = (card: Picture) => box(card, 300, 440, 900, 530);
     expect(line(next)).not.toBe(line(cards.gold));
@@ -79,7 +79,7 @@ describe("a card", () => {
       day += 864e5
     )
       for (const char of dayLine({
-        number: 1234567890,
+        numbers: [1234567890, 1234567891, 1234567892],
         date: new Date(day).toISOString().slice(0, 10),
       }))
         needed.add(char);
@@ -89,7 +89,23 @@ describe("a card", () => {
 
 test("the day's line reads like the game's labels", () => {
   expect(dayLine(PUZZLE)).toBe("#1 · THU, JAN 1");
-  expect(dayLine({ number: 12, date: "2026-09-30" })).toBe("#12 · WED, SEP 30");
+  expect(dayLine({ numbers: [12], date: "2026-09-30" })).toBe(
+    "#12 · WED, SEP 30",
+  );
+});
+
+test("a day with two puzzles shows both", () => {
+  expect(dayLine({ numbers: [17, 18], date: "2026-10-11" })).toBe(
+    "#17 AND #18 · SUN, OCT 11",
+  );
+  const line = (card: Picture) => box(card, 0, 440, 1200, 530);
+  const doubled = decodePng(
+    renderCard({ numbers: [17, 18], date: "2026-10-11" }, "blue"),
+  );
+  const single = decodePng(
+    renderCard({ numbers: [17], date: "2026-10-11" }, "blue"),
+  );
+  expect(line(doubled)).not.toBe(line(single));
 });
 
 test("the border takes the colors in turn, never the same twice running", () => {

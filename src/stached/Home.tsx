@@ -5,6 +5,7 @@ import {
   type Day,
   formatDate,
   formatTime,
+  gameLink,
   type Today,
   weekday,
 } from "./api";
@@ -33,11 +34,15 @@ let introShown = false;
 
 type WeekDay = Today["week"][number];
 
-/** A day under its weekday, in the leaderboard's square. */
-const DaySquare = ({ date, mark, today }: WeekDay & { today: boolean }) => (
+/** A puzzle under its weekday, in the leaderboard's square. */
+const DaySquare = ({
+  date,
+  part,
+  mark,
+  today,
+}: WeekDay & { today: boolean }) => (
   <Link
-    to="/stached/$date"
-    params={{ date }}
+    {...gameLink({ date, part })}
     className={styles.homeDay}
     data-today={today || undefined}
   >
@@ -50,8 +55,9 @@ const DaySquare = ({ date, mark, today }: WeekDay & { today: boolean }) => (
 
 /**
  * Your week under Play: the leaderboard's squares in a strip to swipe, ending
- * at today's, where it opens. A dashed square is still to play. Past the days
- * before are every game so far, then settings. Tap a day to open it.
+ * at today's (two on a doubled date), where it opens. A dashed square is
+ * still to play. Past the days before are every game so far, then settings.
+ * Tap a day to open it.
  */
 const Week = ({
   week,
@@ -74,7 +80,10 @@ const Week = ({
   }, [last]);
 
   const onScroll = () => {
-    const today = strip.current?.querySelector<HTMLElement>("a[data-today]");
+    // The last of today's, at the very end.
+    const today = strip.current?.querySelector<HTMLElement>(
+      "a[data-today]:last-of-type",
+    );
     if (!strip.current || !today) return;
     const { scrollLeft, clientWidth } = strip.current;
     setAway(
@@ -106,8 +115,8 @@ const Week = ({
           <span className={styles.weekday}>&nbsp;</span>
           <span className={styles.homeTile}>View all</span>
         </Link>
-        {week.map((day, i) => (
-          <DaySquare key={day.date} {...day} today={i === week.length - 1} />
+        {week.map((day) => (
+          <DaySquare key={day.number} {...day} today={day.date === last} />
         ))}
       </nav>
       {away && (
@@ -175,16 +184,12 @@ const Home = () => {
     introShown = true;
   }, []);
 
-  // Asks again, in case the day has turned since this screen loaded.
+  // Asks again, in case the day has turned (or you've finished one of a
+  // doubled date's) since this screen loaded.
   const play = () =>
-    api.today(session.token).then(
-      (next) =>
-        navigate({
-          to: "/stached/$date",
-          params: { date: next.puzzle.date },
-        }),
-      fail,
-    );
+    api
+      .today(session.token)
+      .then((next) => navigate(gameLink(next.puzzle)), fail);
 
   const rise = intro ? styles.rise : "";
   const note = today ? status(today) : "Loading…";
@@ -228,7 +233,9 @@ const Home = () => {
           disabled={!today}
           className={`${styles.button} ${styles.primary} flex-1`}
         >
-          Play
+          {today && today.puzzle.parts > 1
+            ? `Play ${today.puzzle.part} of ${today.puzzle.parts}`
+            : "Play"}
         </button>
       </div>
       <div className={rise} style={{ animationDelay: "1.4s" }}>
@@ -256,7 +263,10 @@ const Home = () => {
         today && (
           <NotificationsDialog
             {...notifications}
-            number={today.puzzle.number + 1}
+            // The one after today's last
+            number={
+              today.puzzle.number + today.puzzle.parts - today.puzzle.part + 1
+            }
           />
         )
       ) : (

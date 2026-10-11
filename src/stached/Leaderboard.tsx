@@ -37,23 +37,31 @@ export const Square = ({ mark }: { mark: Mark }) => (
   </span>
 );
 
-/** Today's fastest stache, in a gold box. Ties share it. */
-const FastestToday = ({ board }: { board: Board }) => {
+/**
+ * Today's fastest stache, in a gold box: one for each of today's puzzles (a
+ * doubled date has two). Ties share it.
+ */
+const FastestToday = ({
+  board,
+  day,
+}: {
+  board: Board;
+  day: Board["days"][number];
+}) => {
   const { session } = useStached();
-  const today = board.days.at(-1);
-  if (!today) return null;
+  const tied = board.fastestToday.filter((f) => f.number === day.number);
   return (
     <div className={`${styles.stacheBox} flex flex-col gap-1 p-3`}>
       <p className={styles.label}>
-        Fastest stache today · #{today.number} ·{" "}
-        {formatDate(today.date, {
+        Fastest stache today · #{day.number} ·{" "}
+        {formatDate(day.date, {
           weekday: "short",
           month: "short",
           day: "numeric",
         })}
       </p>
-      {board.fastestToday.length > 0 ? (
-        board.fastestToday.map((fastest) => (
+      {tied.length > 0 ? (
+        tied.map((fastest) => (
           <p
             key={fastest.name}
             className={`flex items-center gap-3 text-[22px] leading-tight ${
@@ -109,11 +117,11 @@ const Standings = ({ board: { days, players } }: { board: Board }) => {
             <span />
             <span />
             <span className={styles.week}>
-              {days.map((day, i) => (
+              {days.map((day) => (
                 <span
-                  key={day.date}
+                  key={day.number}
                   className={styles.weekday}
-                  data-today={i === days.length - 1 || undefined}
+                  data-today={day.date === days.at(-1)?.date || undefined}
                 >
                   {weekday(day.date)}
                 </span>
@@ -144,7 +152,7 @@ const Standings = ({ board: { days, players } }: { board: Board }) => {
                 </span>
                 <span className={styles.week}>
                   {player.marks.map((mark, i) => (
-                    <Square key={days[i].date} mark={mark} />
+                    <Square key={days[i].number} mark={mark} />
                   ))}
                 </span>
                 <span
@@ -172,7 +180,11 @@ const Leaderboard = () => {
     <Screen title="Leaderboard" error={error} onRetry={load}>
       {board && (
         <div className="flex flex-col gap-6">
-          <FastestToday board={board} />
+          {board.days
+            .filter((day) => day.date === board.days.at(-1)?.date)
+            .map((day) => (
+              <FastestToday key={day.number} board={board} day={day} />
+            ))}
           <Standings board={board} />
         </div>
       )}

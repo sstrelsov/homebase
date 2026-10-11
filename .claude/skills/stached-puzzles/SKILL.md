@@ -38,11 +38,11 @@ puzzle file along. With no command it prints its help.
 
 | Command | What it does |
 |---|---|
-| `list` | Every puzzle: number, date, status (out, today, upcoming, staged), games played, and its push (sent, none, or when) |
-| `stage <file>` | Checks the puzzles in the file (one, or a list), stages them, replacing what was staged, and makes the first one today's puzzle on the tester. `-` reads stdin |
-| `preview [date]` | Makes a staged puzzle (the first, or that date's) today's on the tester |
+| `list` | Every puzzle: number, date (`2026-10-11/2` for a date's second), status (out, today, upcoming, staged), games played, and its push (sent, none, or when) |
+| `stage <file>` | Checks the puzzles in the file (one, or a list), stages them, replacing what was staged, and makes the first date's puzzles today's on the tester. `-` reads stdin |
+| `preview [date]` | Makes a staged date's puzzles (the first date's, or that one's) today's on the tester |
 | `confirm` | Publishes everything staged, and sends a push that's due right away. The API picks it up without a restart |
-| `remove <date>` | Takes a published puzzle down |
+| `remove <date>` | Takes a published puzzle down (`<date>/2` for its date's second) |
 | `vapid-keys` | Prints a new pair of push keys for `api.env` |
 | `push-again` | The tester only: sends today's push again, right away |
 
@@ -63,11 +63,42 @@ Put `--tester` first (`scripts/stached --tester list`) to drive the tester, the 
 }
 ```
 
-The server's rules, which `stage` checks: a real date, one puzzle per date,
+The server's rules, which `stage` checks: a real date, one puzzle per date
+and part (Two puzzles on one date, below),
 every group titled with four words, no word twice (ignoring case), no title
 twice, exactly one `"stache": true` group, and at most five groups. Non-stache
 groups are colored in order, so list them easiest first. `push`, if given, is
 a line of text.
+
+## Two puzzles on one date
+
+When Spencer misses a day, he can double up the next: two (or more) puzzles on
+one date, played back to back. Each is a part of its date, numbered in turn
+(#17 and #18): the first needs no `part`, the second takes `"part": 2`, a third
+`"part": 3`. Players see "Play 1 of 2" on home, "Puzzle 1 of 2" in the game, and
+a Next button once the first is over. The second lives at
+`/stached/2026-10-11/2`; the first keeps `/stached/2026-10-11`.
+
+- **Both at once:** stage a list, the second with `"part": 2`:
+  ```bash
+  scripts/stached stage - <<'EOF'
+  [
+    { "date": "2026-10-11", "groups": [ … ] },
+    { "date": "2026-10-11", "part": 2, "groups": [ … ] }
+  ]
+  EOF
+  ```
+- **Adding one to a date that's published:** stage just the new one, with
+  `"part": 2`. A staged puzzle takes the place of the published one with its
+  date and part, so a puzzle without `part` would replace the first. The
+  tester gets the whole date, first puzzle and all.
+- A part 2 needs its part 1: `stage` refuses one without it, and `remove`
+  won't take down a part 1 while its part 2 is there (remove `<date>/2` first).
+- One push covers the date ("Puzzles #17 and #18 are up", with the first push
+  line any of them has). A part 2 confirmed after the date's push went out
+  gets no push of its own; `stage` and `confirm` say so.
+- Numbers are by date and part, so adding a puzzle to today moves any later,
+  upcoming puzzles up one.
 
 ## Helping Spencer publish a puzzle
 
@@ -81,7 +112,7 @@ a line of text.
    ```
    Fix whatever it reports and stage again. It prints each puzzle's number,
    titles, push line, and when it goes live and pushes, then puts the first
-   one on the tester as today's puzzle, sends its push there, and prints the
+   date's puzzles on the tester as today's, sends its push there, and prints the
    tester's address and `Announced #N: 1 sent`.
 3. Tell Spencer it's on the tester: he opens the tester's home-screen app and
    plays it (Tailscale on). Its notification, push line and all, has already
@@ -94,7 +125,8 @@ a line of text.
 
 ## When the push goes out
 
-Each puzzle sends one push, on its date, at **9:12am New York time**:
+Each date's puzzles send one push, together, on their date, at **9:12am New
+York time**:
 
 - Confirmed the night before (or any day before): its push goes out at 9:12am
   on its date.
@@ -109,7 +141,7 @@ and publishing the next one on time doesn't cut it short.
 
 The API checks every minute, `confirm` sends a due push itself, and both
 record the date in `announcements` before sending, so a puzzle never pushes
-twice, even across restarts or if it's edited or published again. The notification says "Puzzle #12 is up", then the
+twice, even across restarts or if it's edited or published again. The notification says "Puzzle #12 is up" ("Puzzles #17 and #18 are up" on a doubled date), then the
 puzzle's `push` line if it has one, or else a random one of the quotes on
 home. When Spencer wants custom copy, put it in `push` and stage again: a
 change to the line alone keeps everyone's games. It only counts before the

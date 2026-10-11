@@ -41,7 +41,8 @@ export interface Score {
 }
 
 /** A puzzle so far, with how you did on it. */
-export interface PastGame extends Pick<Day["puzzle"], "date" | "today"> {
+export interface PastGame
+  extends Pick<Day["puzzle"], "number" | "date" | "part" | "parts" | "today"> {
   play: Pick<Play, "finished" | "completed" | "stachedMs"> | null;
 }
 
@@ -49,10 +50,14 @@ export interface PastGame extends Pick<Day["puzzle"], "date" | "today"> {
 export interface Day {
   puzzle: {
     id: number;
-    /** #1 is the first puzzle, by date. */
+    /** #1 is the first puzzle, by date and part. */
     number: number;
     date: string;
-    /** Today's puzzle: the newest one out. */
+    /** Which of its date's puzzles it is, played in order: 1, 2, … */
+    part: number;
+    /** How many puzzles its date has: 2 or more on a doubled date. */
+    parts: number;
+    /** One of today's puzzles: the newest date's. */
     today: boolean;
     words: string[];
     groupCount: number;
@@ -63,9 +68,12 @@ export interface Day {
   board: Score[];
 }
 
-/** Today's game, and your squares for the week, as on the leaderboard. */
+/**
+ * Today's game (the first of today's you haven't finished, or the last), and
+ * your squares for the week, as on the leaderboard.
+ */
 export interface Today extends Day {
-  week: { date: string; mark: Mark }[];
+  week: { number: number; date: string; part: number; mark: Mark }[];
 }
 
 // The leaderboard's shape comes with its rules, so the two can't drift apart.
@@ -169,9 +177,9 @@ export const api = {
   today: (token: string) => request<Today>("/today", { token }),
   leaderboard: (token: string) =>
     request<Leaderboard>("/leaderboard", { token }),
-  /** Starts that day's game, or picks it back up. */
-  start: (token: string, date: string, how: HowStarted) =>
-    request<Day>("/start", { token, body: { date, ...how } }),
+  /** Starts that puzzle's game, or picks it back up. */
+  start: (token: string, date: string, part: number, how: HowStarted) =>
+    request<Day>("/start", { token, body: { date, part, ...how } }),
   pastGames: (token: string) => request<PastGame[]>("/puzzles", { token }),
   /** Tells the server the board is on screen, so the clock keeps running. */
   clock: (token: string, puzzleId: number) =>
@@ -271,6 +279,19 @@ export function formatDate(
   const [year, month, day] = date.split("-").map(Number);
   return new Date(year, month - 1, day).toLocaleDateString("en-US", options);
 }
+
+/**
+ * A puzzle's game, for a link: /stached/2026-10-11, with /2 after it for its
+ * date's second puzzle.
+ */
+export const gameLink = ({
+  date,
+  part,
+}: Pick<Day["puzzle"], "date" | "part">) =>
+  ({
+    to: "/stached/$date/{-$part}",
+    params: { date, part: part > 1 ? String(part) : undefined },
+  }) as const;
 
 /** "2026-10-05" → "Mo", as the leaderboard and home head each day. */
 export const weekday = (date: string) =>

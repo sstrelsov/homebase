@@ -1,5 +1,12 @@
-import { expect, test } from "bun:test";
-import { type DayPuzzle, puzzleProblems } from "./puzzles";
+import { describe, expect, test } from "bun:test";
+import {
+  type DayPuzzle,
+  inOrder,
+  missingParts,
+  numbered,
+  puzzlePath,
+  puzzleProblems,
+} from "./puzzles";
 import examples from "./puzzles.example.json";
 
 // The made-up sample, and one change to it at a time.
@@ -20,8 +27,61 @@ test("a puzzle needs a real date, and its own", () => {
   ]);
   expect(problems((p) => (p.date = "Oct 2"))).toHaveLength(1);
   expect(puzzleProblems([SAMPLE, SAMPLE])).toEqual([
-    "2026-01-01: two puzzles share this date",
+    "2026-01-01: two puzzles are part 1 of this date",
   ]);
+});
+
+describe("a date with more than one puzzle", () => {
+  const part = (n: number): DayPuzzle => ({ ...SAMPLE, part: n });
+
+  test("numbers the next ones part 2 and up", () => {
+    expect(puzzleProblems([SAMPLE, part(2), part(3)])).toEqual([]);
+    expect(puzzleProblems([part(1), part(2)])).toEqual([]);
+    expect(puzzleProblems([part(2), part(2)])).toEqual([
+      "2026-01-01/2: two puzzles are part 2 of this date",
+    ]);
+  });
+
+  test("takes only a whole number from 1 as a part", () => {
+    for (const bad of [0, 1.5, "2", null])
+      expect(problems((p) => Object.assign(p, { part: bad }))).toEqual([
+        "Puzzle 1: part needs to be a whole number from 1",
+      ]);
+  });
+
+  test("needs every part before the last", () => {
+    expect(missingParts([SAMPLE, part(2)])).toEqual([]);
+    expect(missingParts([part(2)])).toEqual([
+      "2026-01-01: has a part 2 but no part 1",
+    ]);
+    expect(
+      missingParts([part(3), SAMPLE, { ...part(2), date: "2026-01-02" }]),
+    ).toEqual([
+      "2026-01-01: has a part 3 but no part 2",
+      "2026-01-02: has a part 2 but no part 1",
+    ]);
+  });
+
+  test("plays them in order, by date and then part", () => {
+    const later = { ...SAMPLE, date: "2026-01-02" };
+    expect([later, part(2), SAMPLE].sort(inOrder)).toEqual([
+      SAMPLE,
+      part(2),
+      later,
+    ]);
+  });
+
+  test("gives each its own address", () => {
+    expect(puzzlePath(SAMPLE)).toBe("2026-01-01");
+    expect(puzzlePath(part(1))).toBe("2026-01-01");
+    expect(puzzlePath(part(2))).toBe("2026-01-01/2");
+  });
+
+  test("names them together", () => {
+    expect(numbered([12])).toBe("#12");
+    expect(numbered([17, 18])).toBe("#17 and #18");
+    expect(numbered([17, 18, 19])).toBe("#17, #18, and #19");
+  });
 });
 
 test("every group needs a title and four words", () => {

@@ -3,7 +3,10 @@
 // square per player for each of the last WEEK puzzles out. Late games never
 // count.
 
-/** How many puzzles the leaderboard shows squares for, today's last. */
+/**
+ * How many puzzles the leaderboard shows squares for, today's last: a date
+ * with two puzzles has two squares.
+ */
 export const WEEK = 7;
 
 /** Always #1, whatever her points. Matched without case. */
@@ -12,9 +15,11 @@ const PINNED = "cat";
 /** A puzzle out so far (dated today or earlier). */
 export interface Day {
   id: number;
-  /** #1 is the first puzzle, by date. */
+  /** #1 is the first puzzle, by date and part. */
   number: number;
   date: string;
+  /** Which of its date's puzzles it is: 1, or 2 and up on a doubled date. */
+  part: number;
   /** Today's, or pushed in the last day: its games still count. */
   counts: boolean;
 }
@@ -61,15 +66,17 @@ export interface Standing {
 
 /** Today's fastest stache, on a finished game. */
 export interface Fastest {
+  /** Which of today's puzzles it's on: a doubled date has two. */
+  number: number;
   name: string;
   stachedMs: number;
   solved: boolean;
 }
 
 export interface Leaderboard {
-  /** The last WEEK puzzles out, oldest first; the last is today's. */
+  /** The last WEEK puzzles out, oldest first; the last date's are today's. */
   days: Pick<Day, "number" | "date">[];
-  /** Everyone tied for today's fastest stache, by name. */
+  /** Everyone tied for each of today's puzzles' fastest stache, by name. */
   fastestToday: Fastest[];
   /** Everyone who has finished a game: Cat first, then most points first. */
   players: Standing[];
@@ -109,7 +116,11 @@ function marker(counted: Game[]) {
 export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
   const counted = games.filter((game) => !game.late);
   const week = days.slice(-WEEK);
-  const today = days.at(-1);
+  const today = new Map(
+    days
+      .filter((day) => day.date === days.at(-1)?.date)
+      .map((day) => [day.id, day.number]),
+  );
   const { isFastest, mark } = marker(counted);
 
   const standings = [...Map.groupBy(counted, (game) => game.name)].flatMap(
@@ -145,14 +156,15 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
   return {
     days: week.map(({ number, date }) => ({ number, date })),
     fastestToday: counted
-      .filter((game) => game.puzzleId === today?.id)
+      .filter((game) => today.has(game.puzzleId))
       .filter(isFastest)
-      .map(({ name, stachedMs, completed }) => ({
+      .map(({ puzzleId, name, stachedMs, completed }) => ({
+        number: today.get(puzzleId) as number,
         name,
         stachedMs,
         solved: completed,
       }))
-      .sort((a, b) => a.name.localeCompare(b.name)),
+      .sort((a, b) => a.number - b.number || a.name.localeCompare(b.name)),
     players: ranked(standings),
   };
 }
@@ -178,7 +190,9 @@ export function weekOf(days: Day[], games: Game[], mine: Game[]) {
     mine.filter((game) => !game.late).map((game) => [game.puzzleId, game]),
   );
   return week.map((day) => ({
+    number: day.number,
     date: day.date,
+    part: day.part,
     mark: mark(day, byDay.get(day.id)),
   }));
 }
