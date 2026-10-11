@@ -37,3 +37,51 @@ export const parseLeaderboardSearch = (
   you: pick(search.you, YOU),
   look: pick<Look>(search.look, ["light", "dark"]),
 });
+
+/** The tour's steps, an idea each, in the order it walks them (steps.tsx). */
+export const STEPS = [
+  "seasons",
+  "cards",
+  "dethroned",
+  "podium",
+  "timeline",
+  "rivals",
+  "titles",
+  "bulletins",
+  "switch",
+  "weekly",
+  "streak",
+  "passed",
+  "morning",
+  "digest",
+  "your-move",
+  "ghost",
+  "rematch",
+  "stache-five",
+  "leagues",
+  "here-now",
+  "arrows",
+  "best-five",
+  "freeze",
+  "board",
+  "clean",
+] as const;
+
+export type StepId = (typeof STEPS)[number];
+
+/** /tour?step=3&look=dark: steps count from 1. */
+export interface TourSearch {
+  step: number;
+  look: Look;
+}
+
+export const parseTourSearch = (
+  search: Record<string, unknown>,
+): TourSearch => {
+  const step = Number(search.step);
+  return {
+    step:
+      Number.isInteger(step) && step >= 1 && step <= STEPS.length ? step : 1,
+    look: pick<Look>(search.look, ["light", "dark"]),
+  };
+};

@@ -24,7 +24,7 @@ import {
 } from "./stats";
 
 /** Today's square for each player, as the leaderboard marks it. */
-const todayMarks = (sample: Sample) =>
+export const todayMarks = (sample: Sample) =>
   new Map(sample.board.players.map((p) => [p.name, p.marks.at(-1) as Mark]));
 
 /** Whoever hasn't finished today's yet, each on a dashed square. */

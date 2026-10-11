@@ -63,13 +63,18 @@ export const Streak = ({ streak }: { streak: number }) =>
     </span>
   );
 
-/** Weekday heads, today's in gold, then any days of the week still to come. */
+/**
+ * Weekday heads, today's in gold (unless it's a past week), then any days of
+ * the week still to come.
+ */
 export const WeekHead = ({
   days,
   later = 0,
+  past = false,
 }: {
   days: Pick<Day, "date">[];
   later?: number;
+  past?: boolean;
 }) => {
   const last = days.at(-1)?.date ?? "";
   const ahead = Array.from({ length: later }, (_, i) => addDays(last, i + 1));
@@ -79,7 +84,7 @@ export const WeekHead = ({
         <span
           key={day.date}
           className={styles.weekday}
-          data-today={i === days.length - 1 || undefined}
+          data-today={(!past && i === days.length - 1) || undefined}
         >
           {weekday(day.date)}
         </span>

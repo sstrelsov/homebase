@@ -119,6 +119,13 @@ const Controls = ({ search }: { search: LeaderboardSearch }) => {
         {go({ design: step(1) }, "›", false, x.stepper)}
       </div>
       <p className={x.controlsNote}>{NOTES[search.design][1]}</p>
+      <Link
+        to="/stached/leaderboard-mockups/tour"
+        search={{ step: 1, look: search.look }}
+        className={`${styles.label} underline underline-offset-4`}
+      >
+        The tour: every idea, one at a time
+      </Link>
       <details>
         <summary className={styles.label}>Every design</summary>
         <div className="mt-2 flex flex-wrap gap-x-1 gap-y-1">

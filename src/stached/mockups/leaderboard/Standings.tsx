@@ -49,7 +49,9 @@ function mondayOf(date: string) {
 type Period = "week" | "month" | "all";
 
 /** The days each tab counts, and the days of the one before, for its champ. */
-function periods(days: Day[]): Record<Period, { now: Day[]; before: Day[] }> {
+export function periods(
+  days: Day[],
+): Record<Period, { now: Day[]; before: Day[] }> {
   const today = (days.at(-1) as Day).date;
   const monday = mondayOf(today);
   const month = today.slice(0, 7);
@@ -70,7 +72,7 @@ function periods(days: Day[]): Record<Period, { now: Day[]; before: Day[] }> {
 }
 
 /** Places since yesterday: ▲2, ▼1, or New. */
-const Moved = ({ by }: { by: number | null }) =>
+export const Moved = ({ by }: { by: number | null }) =>
   by === null ? (
     <span className={x.moved}>New</span>
   ) : by !== 0 ? (
@@ -261,7 +263,13 @@ export const Score = ({ won, lost }: { won: number; lost: number }) => (
  * A player's card: two weeks of squares, their numbers, and their record
  * against you.
  */
-const PlayerCard = ({ sample, name }: { sample: Sample; name: string }) => {
+export const PlayerCard = ({
+  sample,
+  name,
+}: {
+  sample: Sample;
+  name: string;
+}) => {
   const card = cardOf(sample, name);
   const versus = headToHead(sample, sample.me, name);
   const stats: [string, string, string?][] = [
