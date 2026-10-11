@@ -8,7 +8,6 @@ import {
 } from "@tanstack/react-router";
 import App from "./App";
 import ProjectsTable from "./components/table/ProjectsTable";
-import { parseMockupSearch } from "./stached/mockups/search";
 
 export { HeadContent };
 
@@ -124,7 +123,8 @@ const stachedLeaderboardRoute = createRoute({
   head: () => ({ meta: [{ title: "Leaderboard | Stached" }] }),
 });
 
-// Players and turnout, for the admin only. Unlinked except on the admin's home.
+// Players and turnout, and staging and publishing puzzles, for the admin
+// only. Unlinked except on the admin's home.
 const stachedAdminRoute = createRoute({
   getParentRoute: () => stachedRoute,
   path: "admin",
@@ -148,28 +148,6 @@ const stachedDayRoute = createRoute({
   head: ({ params }) => ({ meta: [{ title: `Stached · ${params.date}` }] }),
 });
 
-// Dev only: the admin's past runs and puzzle staging, on made-up data
-// (src/stached/mockups/). Made inside the check, so a production build leaves
-// them out entirely.
-const devRoutes = import.meta.env.DEV
-  ? [
-      createRoute({
-        getParentRoute: () => rootRoute,
-        path: "/stached/admin-mockups",
-        component: lazyRouteComponent(
-          () => import("./stached/mockups/AdminMockups"),
-        ),
-        validateSearch: parseMockupSearch,
-        head: () => ({
-          meta: [
-            { title: "Admin mockups | Stached" },
-            { name: "robots", content: "noindex, nofollow" },
-          ],
-        }),
-      }),
-    ]
-  : [];
-
 const routeTree = rootRoute.addChildren([
   homeRoute,
   aboutRoute,
@@ -181,7 +159,6 @@ const routeTree = rootRoute.addChildren([
     stachedPastRoute,
     stachedDayRoute,
   ]),
-  ...devRoutes,
 ]);
 
 export const router = createRouter({

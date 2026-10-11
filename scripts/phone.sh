@@ -90,7 +90,8 @@ else
 fi
 
 # The API's settings, which the puzzle CLI reads too. Fresh push keys every
-# run, so a browser's old subscription renews itself on the next visit.
+# run, so a browser's old subscription renews itself on the next visit. No
+# tester: staging here never reaches the Studio's.
 (umask 077 && cat >"$DATA/api.env") <<ENV
 DATABASE_URL=postgres://postgres@localhost:$PG_PORT/stached
 STACHE_PASSWORD=$PASSWORD
@@ -102,6 +103,7 @@ ALLOWED_ORIGINS=http://localhost:$WEB_PORT
 HOST=127.0.0.1
 PORT=$STACHED_API_PORT
 ANNOUNCE_AT=00:00
+TESTER_ENV=
 $(bun stached-api/cli.ts vapid-keys)
 ENV
 # Sourced, not --env-file, so these win over anything set in your shell.

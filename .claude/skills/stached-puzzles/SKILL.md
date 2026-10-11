@@ -17,13 +17,21 @@ description: >-
 A puzzle goes live in two steps: **stage** it (checked, not live, and made
 today's puzzle on the tester, so Spencer plays it in the tester's home-screen
 app before anyone else), then **confirm** it (published, with one push
-notification). The CLI does all of it; never edit `puzzles.json` by hand.
+notification). Each step is for one puzzle: staging one keeps what's staged
+on other dates, and confirm publishes one date's. The CLI does all of it;
+never edit `puzzles.json` by hand.
+
+Spencer can do the same from his phone, on the Stage tab of `/stached/admin`
+(paste, Organize with Claude Haiku, fix the rows, Stage, Publish). It runs the
+same code as the CLI, so a puzzle staged on the page shows up in `list` and
+can be confirmed here, and the other way around.
 
 ## Where the data lives
 
 - **The real puzzles live only on the Studio**, in `~/.config/stached/`:
-  `puzzles.json` (published), `staged.json` (staged), and `api.env` (the
-  password, the VAPID push keys, and the API's other settings). All mode 600.
+  `puzzles.json` (published), `staged.json` (staged, from the CLI or the
+  admin page), and `api.env` (the password, the VAPID push keys, the
+  Anthropic key, and the API's other settings). All mode 600.
 - **This repo is public.** Real puzzles, the password and the keys never go in
   a commit, a PR, a test, an issue, or the repo's files, not even briefly. A
   puzzle you're drafting goes in a temp file outside the repo, or straight to
@@ -39,9 +47,10 @@ puzzle file along. With no command it prints its help.
 | Command | What it does |
 |---|---|
 | `list` | Every puzzle: number, date, status (out, today, upcoming, staged), games played, and its push (sent, none, or when) |
-| `stage <file>` | Checks the puzzles in the file (one, or a list), stages them, replacing what was staged, and makes the first one today's puzzle on the tester. `-` reads stdin |
+| `stage <file>` | Checks the puzzles in the file (one, or a list), stages each in place of any puzzle staged on its date (others stay), and makes the first one today's puzzle on the tester. `-` reads stdin |
 | `preview [date]` | Makes a staged puzzle (the first, or that date's) today's on the tester |
-| `confirm` | Publishes everything staged, and sends a push that's due right away. The API picks it up without a restart |
+| `confirm [date]` | Publishes the puzzle staged on that date (or the only one staged; with more, it asks which), and sends a push that's due right away. The API picks it up without a restart |
+| `unstage <date>` | Drops the puzzle staged on that date |
 | `remove <date>` | Takes a published puzzle down |
 | `vapid-keys` | Prints a new pair of push keys for `api.env` |
 | `push-again` | The tester only: sends today's push again, right away |
@@ -87,8 +96,8 @@ a line of text.
    plays it (Tailscale on). Its notification, push line and all, has already
    gone out, on every staging. No need to poll `list`. Nothing played there
    reaches the live game. Restaging replaces it there and pushes again.
-4. **Confirm only when Spencer says to:** `scripts/stached confirm`. It publishes
-   to real players and sends a real push. If the push is due, it sends it on
+4. **Confirm only when Spencer says to:** `scripts/stached confirm 2026-10-02`.
+   It publishes that puzzle to real players and sends a real push. If the push is due, it sends it on
    the spot and prints `Announced #N: … sent`. Read him those lines.
 5. `scripts/stached list` to show where things stand.
 
@@ -123,11 +132,13 @@ notifications on then. iOS doesn't tell the app a notification was tapped, so th
 
 Changing or removing a puzzle that people have played deletes their games for
 it. `confirm` and `remove` refuse, and say how many games are at stake, unless
-you add `--delete-games`. Never add it on your own: tell Spencer the number and
-let him decide. Changing a puzzle nobody has played yet is fine.
+you add `--delete-games` (on the admin page, a "Delete N games" tick). Never
+add it on your own: tell Spencer the number and let him decide. Changing a
+puzzle nobody has played yet is fine.
 
 To move a puzzle to another date: stage it on the new date, confirm, then
-`remove` the old date (which refuses if anyone has played it).
+`remove` the old date (which refuses if anyone has played it). To drop a
+staged puzzle that won't run: `unstage <date>`.
 
 ## Trying it without touching the live game
 
@@ -144,5 +155,6 @@ asks, then stage and confirm a made-up puzzle dated today.
 |---|---|
 | `list` says `any minute` for long | Is the API up (`https://api.spencerstrelsov.com/health`)? Without VAPID keys in `api.env` it logs "Push notifications are off" at start |
 | `sent`, but a phone got nothing | The API log's `Announced #N: … sent, … gone, … failed` line. "gone" means that subscription was dropped (the app was deleted, say); its owner turns them on again. Notifications only reach the home-screen app, and only once they're turned on there and allowed |
-| `stage` couldn't put it on the tester | It's staged anyway. The tester is down, usually after the Studio restarted: `make tester` brings it back, then `scripts/stached preview` |
+| `stage` couldn't put it on the tester, or the admin page says "Staged, not on the tester" | It's staged anyway. The tester is down, usually after the Studio restarted: `make tester` brings it back, then `scripts/stached preview <date>` |
+| Organize is off on the admin page | No `ANTHROPIC_API_KEY` in the Studio's `api.env`. Spencer adds it himself, then `make deploy-stached`; never read or print it |
 | `stage` complains | It lists every problem at once; fix them all and stage again |

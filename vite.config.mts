@@ -109,6 +109,10 @@ export default defineConfig({
       "/stached-api": {
         target: `http://localhost:${process.env.STACHED_API_PORT ?? 3999}`,
         rewrite: (path) => path.replace(/^\/stached-api/, ""),
+        // The admin page imports the API's own rules (stached-api/puzzles.ts),
+        // which the dev server serves from the same path.
+        bypass: (req) =>
+          req.url?.split("?")[0].endsWith(".ts") ? req.url : undefined,
       },
     },
   },

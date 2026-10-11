@@ -6,32 +6,18 @@ import { join } from "node:path";
 import { sql } from "bun";
 import QUOTES from "../src/stached/quotes.json";
 import { migrate } from "./migrate";
-import { announce, announceDue, notification, parseSubscription } from "./push";
-import { type DayPuzzle, syncPuzzles } from "./puzzles";
+import { announce, notification, parseSubscription } from "./push";
+import type { DayPuzzle } from "./puzzles";
 import examples from "./puzzles.example.json";
+import { syncPuzzles } from "./schedule";
 import { base64url, generateVapidKeys } from "./webpush";
 
-// 9:12am in New York on Friday, October 2 (daylight time), and on Monday,
-// November 2 (standard time).
+// 9:12am in New York on Friday, October 2.
 const FRI_912 = new Date("2026-10-02T13:12:00Z");
-const MON_912 = new Date("2026-11-02T14:12:00Z");
 const minutes = (date: Date, n: number) =>
   new Date(date.getTime() + n * 60_000);
 
 describe("a puzzle's push", () => {
-  test("is due from 9:12am New York time on its date", () => {
-    expect(announceDue("2026-10-02", minutes(FRI_912, -1))).toBe(false);
-    expect(announceDue("2026-10-02", FRI_912)).toBe(true);
-    expect(announceDue("2026-10-02", minutes(FRI_912, 14 * 60))).toBe(true);
-    expect(announceDue("2026-11-02", minutes(MON_912, -1))).toBe(false);
-    expect(announceDue("2026-11-02", MON_912)).toBe(true);
-  });
-
-  test("isn't due on any other day", () => {
-    expect(announceDue("2026-10-03", FRI_912)).toBe(false);
-    expect(announceDue("2026-10-01", FRI_912)).toBe(false);
-  });
-
   test("names the puzzle, then one of home's quotes", () => {
     expect(notification(12).title).toBe("Puzzle #12 is up");
     expect(QUOTES).toContain(notification(12).body);

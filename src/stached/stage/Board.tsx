@@ -1,50 +1,44 @@
 import { motion } from "motion/react";
 import {
   type CSSProperties,
+  type Dispatch,
   type KeyboardEvent,
   type ReactNode,
+  type SetStateAction,
   useEffect,
   useState,
 } from "react";
+import { dayName, type Kind, timing } from "../../../stached-api/puzzles";
+import { plural } from "../Admin";
+import { api, type Schedule } from "../api";
 import Dialog from "../Dialog";
 import { Cased, FitWord, shuffle } from "../Game";
 import { Mustache } from "../Logo";
+import { useRequest } from "../session";
 import styles from "../stached.module.css";
-import x from "./mockups.module.css";
-import Push from "./Push";
-import {
-  type Draft,
-  type DraftGroup,
-  dayName,
-  group,
-  type Kind,
-  kindOf,
-  numberOf,
-  problems,
-  type Spot,
-  timing,
-} from "./rules";
-import { STATS } from "./sample";
 import {
   type Board,
+  type Draft,
+  type DraftGroup,
   gamesLost,
-  type Mock,
+  group,
+  inOrder,
+  isStaged,
+  kindFor,
   nextOpen,
-  otherDrafts,
+  numberOf,
+  problems,
   publishedOn,
-  type Update,
-} from "./state";
+  type Stage,
+  stagedOn,
+  toPuzzle,
+} from "./draft";
+import Push from "./Push";
+import x from "./stage.module.css";
 
 /** Puts the keyboard up on a field, by its data-field. */
 export const focusField = (field: string) =>
   document.querySelector<HTMLElement>(`[data-field="${field}"]`)?.focus();
-
-/** "9:41pm" */
-const clock = () =>
-  new Date()
-    .toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
-    .replace(" ", "")
-    .toLowerCase();
 
 /** Return moves on, as a form's Next does, instead of submitting. */
 const onReturn = (go: () => void) => (e: KeyboardEvent) => {
@@ -53,34 +47,19 @@ const onReturn = (go: () => void) => (e: KeyboardEvent) => {
   go();
 };
 
-/** The stache group last, after the rest in their order: easiest first. */
-const inOrder = (groups: DraftGroup[]) => [
-  ...groups.filter((g) => !g.stache),
-  ...groups.filter((g) => g.stache),
-];
-
 interface DatePickProps {
   label: string;
   date: string;
   number: number;
   onChange: (date: string) => void;
-  problem?: boolean;
 }
 
 /** The puzzle's number and day, and the phone's own date picker to change it. */
-export const DatePick = ({
-  label,
-  date,
-  number,
-  onChange,
-  problem,
-}: DatePickProps) => (
+export const DatePick = ({ label, date, number, onChange }: DatePickProps) => (
   <div className="flex items-end justify-between gap-3">
     <div className="flex flex-col gap-1.5">
       <span className={styles.label}>{label}</span>
-      <span
-        className={`${styles.display} text-[22px] leading-none ${problem ? styles.alert : ""}`}
-      >
+      <span className={`${styles.display} text-[22px] leading-none`}>
         #{number} · {dayName(date)}
       </span>
     </div>
@@ -113,7 +92,7 @@ interface RowProps {
   color: string;
   first: boolean;
   last: boolean;
-  marked: Set<Spot>;
+  marked: Set<string>;
   focus: string | null;
   removable: boolean;
   onChange: (group: DraftGroup) => void;
@@ -144,7 +123,7 @@ const Row = ({
   onRemove,
   onReturn: next,
 }: RowProps) => {
-  const title = `t:${g.id}` as const;
+  const title = `t:${g.id}`;
   return (
     <motion.section
       layout="position"
@@ -222,7 +201,7 @@ const Row = ({
       </div>
       <div className={x.tiles}>
         {g.words.map((word, i) => {
-          const field = `w:${g.id}:${i}` as const;
+          const field = `w:${g.id}:${i}`;
           return (
             <div
               // biome-ignore lint/suspicious/noArrayIndexKey: a tile is its place in the row
@@ -295,10 +274,11 @@ const Shuffled = ({ draft }: { draft: Draft }) => {
 
 interface PublishProps {
   onClose: () => void;
-  onPublish: () => void;
+  onPublish: (deleteGames: boolean) => void;
   draft: Draft;
   number: number;
   kind: Kind;
+  announceAt: string;
   /** Games publishing deletes: the CLI's --delete-games. */
   lost: number;
 }
@@ -313,6 +293,7 @@ const PublishDialog = ({
   draft,
   number,
   kind,
+  announceAt,
   lost,
 }: PublishProps) => {
   const [agreed, setAgreed] = useState(false);
@@ -325,7 +306,7 @@ const PublishDialog = ({
       <div className="flex flex-col gap-4">
         <p className={`${styles.label} -mt-3`}>{dayName(draft.date)}</p>
         <ul className="flex flex-col gap-2">
-          {inOrder(draft.groups).map((g, i) => (
+          {draft.groups.map((g, i) => (
             <li key={g.id} className="flex items-center gap-2.5">
               <span
                 className={styles.swatch}
@@ -337,12 +318,14 @@ const PublishDialog = ({
             </li>
           ))}
         </ul>
-        <p className="text-[19px] leading-snug">{timing(draft.date, kind)}</p>
+        <p className="text-[19px] leading-snug">
+          {timing(draft.date, kind, announceAt)}
+        </p>
         {lost > 0 ? (
           <div className={x.danger}>
             <p className="text-[17px] leading-snug">
-              People have played it. Publishing deletes their {lost} games, and
-              their scores with them.
+              People have played it. Publishing deletes their{" "}
+              {plural(lost, "game")}, and their scores with them.
             </p>
             <label className="flex items-center gap-3 text-[17px]">
               <input
@@ -351,7 +334,7 @@ const PublishDialog = ({
                 onChange={(e) => setAgreed(e.target.checked)}
                 className={x.check}
               />
-              Delete {lost} games
+              Delete {plural(lost, "game")}
             </label>
           </div>
         ) : (
@@ -367,7 +350,7 @@ const PublishDialog = ({
           </button>
           <button
             type="button"
-            onClick={onPublish}
+            onClick={() => onPublish(lost > 0 && agreed)}
             disabled={lost > 0 && !agreed}
             className={`${styles.button} ${lost > 0 ? x.destroy : styles.primary}`}
           >
@@ -389,26 +372,39 @@ const Note = ({
 }) => <div className={danger ? x.danger : x.note}>{children}</div>;
 
 interface BoardProps {
-  mock: Mock;
+  schedule: Schedule;
+  setSchedule: (schedule: Schedule) => void;
+  /** Loads the schedule again, after a refusal that may mean it changed. */
+  reload: () => void;
   board: Board;
-  update: Update;
+  setStage: Dispatch<SetStateAction<Stage>>;
 }
 
 /**
  * The puzzle as rows to check and fix: its date, a bar per group, the
- * notification, and what the server would refuse. Save draft stages it;
- * Publish confirms it.
+ * notification, and what the API would refuse. Stage puts it on the tester
+ * to play; Publish sends what's staged to players.
  */
-const BoardScreen = ({ mock, board, update }: BoardProps) => {
-  const { schedule, focus } = mock;
+const BoardScreen = ({
+  schedule,
+  setSchedule,
+  reload,
+  board,
+  setStage,
+}: BoardProps) => {
   const { draft } = board;
+  const { busy, error, run } = useRequest();
+  const [focus, setFocus] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
   const published = publishedOn(schedule, draft.date);
-  const kind = kindOf(draft, published);
+  const kind = kindFor(schedule, draft);
   const lost = gamesLost(schedule, draft);
-  const issues = problems(draft, otherDrafts(schedule, board));
-  const marked = new Set(issues.flatMap((p) => p.spots));
-  const number = numberOf(draft.date, schedule);
-  const rows = inOrder(draft.groups);
+  const issues = problems(draft);
+  const marked = new Set(issues.flatMap((p) => p.fields));
+  const number = numberOf(schedule, draft.date);
+  const staged = isStaged(schedule, draft);
+  const rows = draft.groups;
   const colored = rows.filter((g) => !g.stache).length;
   const fields = rows.flatMap((g) => [
     `t:${g.id}`,
@@ -416,32 +412,38 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
   ]);
 
   const patch = (next: Partial<Board>) =>
-    update((m) => ({ ...m, stage: { ...board, ...next } }));
+    setStage((s) => (s.step === "board" ? { ...s, ...next } : s));
+  const setDraft = (next: (draft: Draft) => Partial<Draft>) =>
+    setStage((s) =>
+      s.step === "board"
+        ? { ...s, draft: { ...s.draft, ...next(s.draft) } }
+        : s,
+    );
   const edit = (change: (groups: DraftGroup[]) => DraftGroup[]) =>
-    update((m) => ({
-      ...m,
-      stage: {
-        ...board,
-        draft: { ...draft, groups: change(draft.groups) },
-        savedAt: null,
-      },
-    }));
-  const setDraft = (next: Partial<Draft>) =>
-    patch({ draft: { ...draft, ...next }, savedAt: null });
+    setDraft((d) => ({ groups: change(d.groups) }));
+
+  // The field with the keyboard up, if any: its tile shows as selected, and
+  // Stage and Publish make way for the keyboard.
+  useEffect(() => {
+    const field = (target: EventTarget | null) =>
+      target instanceof HTMLElement ? target.dataset.field : undefined;
+    const focusIn = (e: FocusEvent) => setFocus(field(e.target) ?? null);
+    const focusOut = (e: FocusEvent) => {
+      if (!field(e.relatedTarget)) setFocus(null);
+    };
+    document.addEventListener("focusin", focusIn);
+    document.addEventListener("focusout", focusOut);
+    return () => {
+      document.removeEventListener("focusin", focusIn);
+      document.removeEventListener("focusout", focusOut);
+    };
+  }, []);
 
   useEffect(() => {
-    if (!board.toast) return;
-    const timer = setTimeout(
-      () =>
-        update((m) =>
-          m.stage.step === "board"
-            ? { ...m, stage: { ...m.stage, toast: null } }
-            : m,
-        ),
-      2200,
-    );
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 2200);
     return () => clearTimeout(timer);
-  }, [board.toast, update]);
+  }, [toast]);
 
   const move = (id: string, by: number) =>
     edit((groups) => {
@@ -472,62 +474,52 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
   };
 
   const toList = (date = nextOpen(schedule)) =>
-    update((m) => ({ ...m, stage: { step: "paste", date, text: "" } }));
+    setStage({ step: "paste", date, text: "" });
 
-  const withoutOwnDraft = (entries: typeof schedule) =>
-    entries.filter((p) => !(p.status === "draft" && p.date === board.draftOf));
+  const stage = async () => {
+    const res = await run("stage", (token) =>
+      api.stage(token, toPuzzle(draft)),
+    );
+    if (!res) return;
+    let next = res.schedule;
+    // Moved to another date: staged there now, and not where it was.
+    const from = board.staged;
+    if (from && from !== draft.date && stagedOn(next, from))
+      next = (await run("stage", (token) => api.unstage(token, from))) ?? next;
+    setSchedule(next);
+    patch({ staged: draft.date });
+    setToast(
+      res.tester.ok ? "Staged, and on the tester" : "Staged, not on the tester",
+    );
+  };
 
-  const save = () =>
-    update((m) => ({
-      ...m,
-      schedule: [
-        ...withoutOwnDraft(m.schedule),
-        { ...draft, status: "draft", games: 0 },
-      ],
-      stage: {
-        ...board,
-        draftOf: draft.date,
-        savedAt: clock(),
-        toast: "Draft saved",
-      },
-    }));
+  const unstage = async (date: string) => {
+    const next = await run("unstage", (token) => api.unstage(token, date));
+    if (!next) return;
+    setSchedule(next);
+    setStage({ step: "paste", date: nextOpen(next), text: "" });
+  };
 
-  const publish = () =>
-    update((m) => ({
-      ...m,
-      schedule: [
-        ...withoutOwnDraft(m.schedule).filter((p) => p !== published),
-        {
-          ...draft,
-          status: "published",
-          games: lost ? 0 : (published?.games ?? 0),
-        },
-      ],
-      stage: { step: "published", draft, kind },
-    }));
-
-  const remove = () =>
-    update((m) => {
-      const rest = withoutOwnDraft(m.schedule);
-      return {
-        ...m,
-        schedule: rest,
-        stage: { step: "paste", date: nextOpen(rest), text: "" },
-      };
-    });
+  const publish = async (deleteGames: boolean) => {
+    setPublishing(false);
+    const next = await run("publish", (token) =>
+      api.publish(token, draft.date, deleteGames),
+    );
+    if (!next) return reload();
+    setSchedule(next);
+    setStage({ step: "published", draft, kind, number });
+  };
 
   const played = published?.games ?? 0;
   const status = issues.length
     ? null
-    : board.savedAt
-      ? `Draft saved at ${board.savedAt}`
-      : published
-        ? kind === "same"
-          ? "Published, no changes"
-          : "Changes not published yet"
-        : board.draftOf
-          ? "Draft"
-          : "Not saved yet";
+    : kind === "same"
+      ? "Published, no changes"
+      : staged
+        ? "Staged"
+        : board.staged === draft.date
+          ? "Changes not staged"
+          : "Not staged yet";
 
   return (
     <div className="flex flex-col gap-5">
@@ -537,9 +529,21 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
         </button>
         <span
           className={x.pill}
-          data-kind={published ? (played ? "live" : "ready") : "draft"}
+          data-kind={
+            published
+              ? draft.date === schedule.today
+                ? "live"
+                : "ready"
+              : "draft"
+          }
         >
-          {published ? (played ? "Live" : "Published") : "Draft"}
+          {published
+            ? draft.date === schedule.today
+              ? "Live"
+              : "Published"
+            : staged
+              ? "Staged"
+              : "New"}
         </span>
       </div>
 
@@ -548,20 +552,27 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
           label="Puzzle"
           date={draft.date}
           number={number}
-          onChange={(date) => setDraft({ date })}
-          problem={marked.has("date")}
+          onChange={(date) => setDraft(() => ({ date }))}
         />
         <p className="text-[16px] leading-snug opacity-80">
-          {timing(draft.date, kind)}
+          {timing(draft.date, kind, schedule.announceAt)}
         </p>
+        {stagedOn(schedule, draft.date) && board.staged !== draft.date && (
+          <p className={`${styles.label} ${styles.alert}`}>
+            Staging replaces the one staged for {dayName(draft.date)}
+          </p>
+        )}
       </div>
 
       {played > 0 && (
         <Note danger>
           <p className="text-[16px] leading-snug">
-            <strong>{played} people have played it.</strong> Changing a word or
-            a title deletes their games. Its notification line is safe to
-            change.
+            <strong>
+              {played === 1 ? "1 person has" : `${played} people have`} played
+              it.
+            </strong>{" "}
+            Changing a word or a title deletes their games. Its push line is
+            safe to change.
           </p>
         </Note>
       )}
@@ -570,7 +581,7 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
         <Note>
           <p className="text-[16px] leading-snug">
             <span className={`${styles.label} mr-1.5`}>Claude Haiku</span>
-            sorted your paste into rows, in your order.{" "}
+            sorted your paste into rows.{" "}
             {draft.groups.some((g) => g.stache)
               ? "It picked the stache group: check it."
               : "It couldn't tell which is the stache group."}
@@ -578,14 +589,11 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
           <button
             type="button"
             onClick={() =>
-              update((m) => ({
-                ...m,
-                stage: {
-                  step: "paste",
-                  date: draft.date,
-                  text: board.pasted ?? "",
-                },
-              }))
+              setStage({
+                step: "paste",
+                date: draft.date,
+                text: board.pasted ?? "",
+              })
             }
             className={`${x.link} self-start`}
           >
@@ -633,7 +641,9 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
               }
               onMove={(by) => move(g.id, by)}
               onStache={() => makeStache(g.id)}
-              onRemove={() => edit((groups) => groups.filter((h) => h !== g))}
+              onRemove={() =>
+                edit((groups) => groups.filter((h) => h.id !== g.id))
+              }
               onReturn={nextField}
             />
           ))}
@@ -659,19 +669,36 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
         number={number}
         date={draft.date}
         push={draft.push}
-        published={Boolean(published)}
-        reach={STATS.notifications}
-        onChange={(push) => setDraft({ push })}
+        none={
+          published?.pushed
+            ? "It went out already. A puzzle never pushes twice."
+            : draft.date < schedule.today
+              ? "It's dated before today, so it gets no push."
+              : null
+        }
+        reach={schedule.reach}
+        suggesting={busy === "suggest"}
+        onSuggest={
+          schedule.haiku
+            ? async () => {
+                const res = await run("suggest", (token) =>
+                  api.suggestPush(token, toPuzzle(draft).groups),
+                );
+                if (res) setDraft(() => ({ push: res.push }));
+              }
+            : undefined
+        }
+        onChange={(push) => setDraft(() => ({ push }))}
       />
 
       {issues.length > 0 && (
         <section id="problems" className={x.problems}>
           <h2 className={`${styles.label} ${styles.alert}`}>
-            Fix before publishing
+            Fix before staging
           </h2>
           <ul className="flex flex-col gap-2">
             {issues.map((issue) => {
-              const field = issue.spots.find((s) => /^[tw]:/.test(s));
+              const field = issue.fields.find((f) => /^[tw]:/.test(f));
               return (
                 <li key={issue.text}>
                   <button
@@ -680,9 +707,7 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
                       field
                         ? focusField(field)
                         : document
-                            .querySelector(
-                              `.${issue.spots[0] === "date" ? x.datePick : x.rowHead}`,
-                            )
+                            .querySelector(`.${x.rowHead}`)
                             ?.scrollIntoView({ block: "center" })
                     }
                     className="text-left text-[17px] leading-snug"
@@ -696,25 +721,28 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
         </section>
       )}
 
-      {board.draftOf && (
+      {board.staged && stagedOn(schedule, board.staged) && (
         <button
           type="button"
-          onClick={remove}
+          onClick={() => board.staged && unstage(board.staged)}
+          disabled={Boolean(busy)}
           className={`${x.link} ${styles.alert} self-center`}
         >
-          Delete this draft
+          {busy === "unstage" ? "Unstaging…" : "Unstage"}
         </button>
       )}
 
       {!focus && (
         <div className={x.actions}>
-          {board.toast && (
+          {toast && (
             <p role="status" className={`${styles.toast} ${x.actionToast}`}>
-              {board.toast}
+              {toast}
             </p>
           )}
-          <div className="flex min-h-4 justify-center">
-            {status ? (
+          <div className="flex min-h-4 justify-center text-center">
+            {error ? (
+              <p className={`${styles.label} ${styles.alert}`}>{error}</p>
+            ) : status ? (
               <p className={styles.label}>{status}</p>
             ) : (
               <button
@@ -726,38 +754,43 @@ const BoardScreen = ({ mock, board, update }: BoardProps) => {
                 }
                 className={`${styles.label} ${styles.alert}`}
               >
-                {issues.length} to fix before publishing ↓
+                {issues.length} to fix before staging ↓
               </button>
             )}
           </div>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={save}
-              disabled={marked.has("date")}
-              className={styles.button}
+              onClick={stage}
+              disabled={Boolean(busy) || issues.length > 0 || kind === "same"}
+              className={`${styles.button} ${staged ? "" : styles.primary}`}
             >
-              Save draft
+              {busy === "stage" ? "Staging…" : "Stage"}
             </button>
             <button
               type="button"
-              onClick={() => patch({ publishing: true })}
-              disabled={issues.length > 0 || kind === "same"}
-              className={`${styles.button} ${styles.primary}`}
+              onClick={() => setPublishing(true)}
+              disabled={Boolean(busy) || !staged || kind === "same"}
+              className={`${styles.button} ${staged ? styles.primary : ""}`}
             >
-              {kind === "new" ? "Publish" : "Publish changes"}
+              {busy === "publish"
+                ? "Publishing…"
+                : kind === "new"
+                  ? "Publish"
+                  : "Publish changes"}
             </button>
           </div>
         </div>
       )}
 
-      {board.publishing && (
+      {publishing && (
         <PublishDialog
-          onClose={() => patch({ publishing: false })}
+          onClose={() => setPublishing(false)}
           onPublish={publish}
           draft={draft}
           number={number}
           kind={kind}
+          announceAt={schedule.announceAt}
           lost={lost}
         />
       )}

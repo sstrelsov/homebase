@@ -50,3 +50,32 @@ export function useLoad<T>(fetch: (token: string) => Promise<T>) {
 
   return { data, setData, error, load, fail };
 }
+
+/**
+ * Runs a screen's requests with the player's token: which one is running (by
+ * name), and what went wrong. A 401 signs the player out. Each resolves with
+ * its answer, or undefined if it failed.
+ */
+export function useRequest() {
+  const { session, signOut } = useStached();
+  const [busy, setBusy] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const run = useCallback(
+    async <T>(name: string, request: (token: string) => Promise<T>) => {
+      setBusy(name);
+      setError(null);
+      try {
+        return await request(session.token);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 401) signOut();
+        else setError(err instanceof Error ? err.message : "Something broke");
+      } finally {
+        setBusy(null);
+      }
+    },
+    [session.token, signOut],
+  );
+
+  return { busy, error, run };
+}
