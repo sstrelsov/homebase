@@ -1,6 +1,11 @@
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
-import { clockTime, dayName, timing } from "../../../stached-api/puzzles";
-import { plural } from "../Admin";
+import {
+  clockTime,
+  dayName,
+  ENOUGH_WORDS,
+  plural,
+  timing,
+} from "../../../stached-api/puzzles";
 import { ApiError, api, type Schedule } from "../api";
 import Logo from "../Logo";
 import { Retry } from "../Screen";
@@ -23,9 +28,6 @@ import {
 import x from "./stage.module.css";
 
 type Step<S extends Stage["step"]> = Extract<Stage, { step: S }>;
-
-/** Organize waits for this many words, as the API does (haiku.ts). */
-const ENOUGH_WORDS = 4;
 
 const board = (more: Omit<Board, "step" | "view">): Board => ({
   step: "board",
@@ -129,18 +131,44 @@ interface StepProps<S extends Stage["step"]> {
  * sort, and the days ahead, from today to the last puzzle, gaps and all.
  */
 const Paste = ({ schedule, stage, setStage }: StepProps<"paste">) => {
+  const { session, signOut } = useStached();
   const set = (next: Partial<Step<"paste">>) =>
     setStage({ ...stage, note: undefined, ...next });
   const taken = stagedOn(schedule, stage.date)
     ? "a staged puzzle"
     : publishedOn(schedule, stage.date) && "a published puzzle";
   const dates = [...schedule.published, ...schedule.staged].map((p) => p.date);
-  const first = [schedule.today, ...dates].sort()[0];
   const last = [addDays(schedule.today, 6), ...dates].sort().at(-1) as string;
   const days: string[] = [];
-  for (let d = first; d <= last; d = addDays(d, 1)) days.push(d);
+  for (let d = schedule.today; d <= last; d = addDays(d, 1)) days.push(d);
   const enough = stage.text.split(/\s+/).filter(Boolean).length >= ENOUGH_WORDS;
   const canPaste = Boolean(navigator.clipboard?.readText);
+
+  // Haiku's answer lands only if it's still sorting this paste: Cancel, or
+  // another Organize, leaves it behind.
+  const organize = () => {
+    const { date, text } = stage;
+    const sorting: Step<"organizing"> = { step: "organizing", date, text };
+    setStage(sorting);
+    const land = (next: Stage) => setStage((s) => (s === sorting ? next : s));
+    const back = (note: string) => land({ step: "paste", date, text, note });
+    api.organize(session.token, text).then(
+      (answer) =>
+        "notEnough" in answer
+          ? back(answer.notEnough)
+          : land(
+              board({
+                draft: toDraft({ date, ...answer }),
+                pasted: text,
+                staged: null,
+              }),
+            ),
+      (err) =>
+        err instanceof ApiError && err.status === 401
+          ? signOut()
+          : back(err.message),
+    );
+  };
 
   return (
     <div className="flex flex-col gap-9">
@@ -187,7 +215,7 @@ const Paste = ({ schedule, stage, setStage }: StepProps<"paste">) => {
           )}
           <button
             type="button"
-            onClick={() => setStage({ ...stage, step: "organizing" })}
+            onClick={organize}
             disabled={!enough || !schedule.haiku}
             className={`${styles.button} ${styles.primary}`}
           >
@@ -235,62 +263,31 @@ const Paste = ({ schedule, stage, setStage }: StepProps<"paste">) => {
 };
 
 /** Haiku at work: the paste, and the rows tuning in. */
-const Organizing = ({ stage, setStage }: StepProps<"organizing">) => {
-  const { session, signOut } = useStached();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: one call per paste
-  useEffect(() => {
-    let cancelled = false;
-    const back = (note: string) => setStage({ ...stage, step: "paste", note });
-    api.organize(session.token, stage.text).then(
-      (answer) => {
-        if (cancelled) return;
-        if ("notEnough" in answer) return back(answer.notEnough);
-        setStage(
-          board({
-            draft: toDraft({ date: stage.date, ...answer }),
-            pasted: stage.text,
-            staged: null,
-          }),
-        );
-      },
-      (err) => {
-        if (cancelled) return;
-        if (err instanceof ApiError && err.status === 401) signOut();
-        else back(err.message);
-      },
-    );
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return (
-    <div className="flex flex-col gap-4">
-      <p className={x.pasted}>{stage.text}</p>
-      <p className={`${styles.display} ${styles.stacheText} ${x.tuning}`}>
-        Claude Haiku is sorting it…
-      </p>
-      <div className="flex flex-col gap-3">
-        {["1", "2", "3", "stache"].map((color, i) => (
-          <div
-            key={color}
-            data-color={color}
-            className={`${styles.bar} ${x.ghost}`}
-            style={{ animationDelay: `${i * 0.15}s` }}
-          />
-        ))}
-      </div>
-      <button
-        type="button"
-        onClick={() => setStage({ ...stage, step: "paste" })}
-        className={styles.button}
-      >
-        Cancel
-      </button>
+const Organizing = ({ stage, setStage }: StepProps<"organizing">) => (
+  <div className="flex flex-col gap-4">
+    <p className={x.pasted}>{stage.text}</p>
+    <p className={`${styles.display} ${styles.stacheText} ${x.tuning}`}>
+      Claude Haiku is sorting it…
+    </p>
+    <div className="flex flex-col gap-3">
+      {["1", "2", "3", "stache"].map((color, i) => (
+        <div
+          key={color}
+          data-color={color}
+          className={`${styles.bar} ${x.ghost}`}
+          style={{ animationDelay: `${i * 0.15}s` }}
+        />
+      ))}
     </div>
-  );
-};
+    <button
+      type="button"
+      onClick={() => setStage({ ...stage, step: "paste" })}
+      className={styles.button}
+    >
+      Cancel
+    </button>
+  </div>
+);
 
 /** The station ident, for a puzzle on its way. */
 const Published = ({ schedule, stage, setStage }: StepProps<"published">) => {

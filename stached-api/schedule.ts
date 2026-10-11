@@ -12,7 +12,6 @@ import { announce, vapidKeys } from "./push";
 import {
   byDate,
   type DayPuzzle,
-  kindOf,
   plain,
   publish,
   puzzleProblems,
@@ -151,19 +150,13 @@ export async function unstage(date: string) {
  * delete anyone's games without deleteGames.
  */
 export async function confirm(date: string, { deleteGames = false } = {}) {
-  const { staged, puzzle } = await stagedOn(date);
+  const { puzzle } = await stagedOn(date);
   const [published, games] = await Promise.all([readPuzzles(), gamesByDate()]);
-  const kind = kindOf(
-    puzzle,
-    published.find((p) => p.date === date),
-  );
-  const puzzles = publish(published, puzzle, games, { deleteGames });
-  if (kind !== "same") await savePuzzles(puzzles);
-  writePrivate(
-    stagedFile(),
-    staged.filter((p) => p !== puzzle),
-  );
-  await pushNow(puzzles, puzzle.date);
+  const { puzzles, kind } = publish(published, puzzle, games, { deleteGames });
+  // Even unchanged, so a confirm tried again mends a sync that failed.
+  await savePuzzles(puzzles);
+  await unstage(date);
+  await pushNow(puzzles, date);
   return { puzzle, kind, number: numbers(puzzles).get(date) ?? 0 };
 }
 

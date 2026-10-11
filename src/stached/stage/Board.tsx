@@ -8,8 +8,14 @@ import {
   useEffect,
   useState,
 } from "react";
-import { dayName, type Kind, timing } from "../../../stached-api/puzzles";
-import { plural } from "../Admin";
+import {
+  dayName,
+  type Kind,
+  MAX_GROUPS,
+  plain,
+  plural,
+  timing,
+} from "../../../stached-api/puzzles";
 import { api, type Schedule } from "../api";
 import Dialog from "../Dialog";
 import { Cased, FitWord, shuffle } from "../Game";
@@ -31,7 +37,6 @@ import {
   publishedOn,
   type Stage,
   stagedOn,
-  toPuzzle,
 } from "./draft";
 import Push from "./Push";
 import x from "./stage.module.css";
@@ -306,7 +311,7 @@ const PublishDialog = ({
       <div className="flex flex-col gap-4">
         <p className={`${styles.label} -mt-3`}>{dayName(draft.date)}</p>
         <ul className="flex flex-col gap-2">
-          {draft.groups.map((g, i) => (
+          {inOrder(draft.groups).map((g, i) => (
             <li key={g.id} className="flex items-center gap-2.5">
               <span
                 className={styles.swatch}
@@ -404,7 +409,7 @@ const BoardScreen = ({
   const marked = new Set(issues.flatMap((p) => p.fields));
   const number = numberOf(schedule, draft.date);
   const staged = isStaged(schedule, draft);
-  const rows = draft.groups;
+  const rows = inOrder(draft.groups);
   const colored = rows.filter((g) => !g.stache).length;
   const fields = rows.flatMap((g) => [
     `t:${g.id}`,
@@ -477,9 +482,7 @@ const BoardScreen = ({
     setStage({ step: "paste", date, text: "" });
 
   const stage = async () => {
-    const res = await run("stage", (token) =>
-      api.stage(token, toPuzzle(draft)),
-    );
+    const res = await run("stage", (token) => api.stage(token, plain(draft)));
     if (!res) return;
     let next = res.schedule;
     // Moved to another date: staged there now, and not where it was.
@@ -647,7 +650,7 @@ const BoardScreen = ({
               onReturn={nextField}
             />
           ))}
-          {rows.length < 5 && (
+          {rows.length < MAX_GROUPS && (
             <button
               type="button"
               onClick={() =>
@@ -682,7 +685,7 @@ const BoardScreen = ({
           schedule.haiku
             ? async () => {
                 const res = await run("suggest", (token) =>
-                  api.suggestPush(token, toPuzzle(draft).groups),
+                  api.suggestPush(token, plain(draft).groups),
                 );
                 if (res) setDraft(() => ({ push: res.push }));
               }

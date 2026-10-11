@@ -617,8 +617,11 @@ async function admin(path: string, data: Record<string, unknown>) {
       }
       case "POST /admin/stage": {
         const [puzzle] = await stage([data.puzzle]);
-        const tester = await toTester(puzzle);
-        return Response.json({ tester, schedule: await upcoming() });
+        const [tester, schedule] = await Promise.all([
+          toTester(puzzle),
+          upcoming(),
+        ]);
+        return Response.json({ tester, schedule });
       }
       case "POST /admin/unstage":
         await unstage(text(data.date));

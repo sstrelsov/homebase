@@ -1,11 +1,8 @@
-import { plural } from "../Admin";
+import { PUSH_ROOM, plural } from "../../../stached-api/puzzles";
 import { formatDate } from "../api";
 import { LockScreen } from "../IPhone";
 import styles from "../stached.module.css";
 import x from "./stage.module.css";
-
-// What the lock screen shows of it: about three lines.
-const ROOM = 110;
 
 interface PushProps {
   number: number;
@@ -91,9 +88,11 @@ const Push = ({
             )}
           </div>
           <span
-            className={`${styles.label} ${push.length > ROOM ? styles.alert : ""}`}
+            className={`${styles.label} ${push.length > PUSH_ROOM ? styles.alert : ""}`}
           >
-            {push.length > ROOM ? "iOS cuts it off" : `${push.length}/${ROOM}`}
+            {push.length > PUSH_ROOM
+              ? "iOS cuts it off"
+              : `${push.length}/${PUSH_ROOM}`}
           </span>
         </div>
         {!push && (

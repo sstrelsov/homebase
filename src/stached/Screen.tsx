@@ -23,8 +23,9 @@ interface ScreenProps {
   title: string;
   /** A line under the title. */
   subtitle?: ReactNode;
-  error: string | null;
-  onRetry: () => void;
+  /** A load that failed, and how to try it again; none if it loads its own. */
+  error?: string | null;
+  onRetry?: () => void;
   /** What's on the screen once it has loaded; null until then. */
   children: ReactNode;
 }
@@ -64,7 +65,7 @@ const Screen = ({ title, subtitle, error, onRetry, children }: ScreenProps) => (
       {subtitle}
     </div>
 
-    {error ? (
+    {error && onRetry ? (
       <Retry error={error} onRetry={onRetry} className="text-left" />
     ) : (
       (children ?? <p className={styles.label}>Loading…</p>)

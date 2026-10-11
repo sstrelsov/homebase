@@ -2,15 +2,9 @@
 // rows, and suggests a push line. The API stays dependency-free, so this
 // calls the Messages API with fetch, with structured output. The key is
 // ANTHROPIC_API_KEY in the API's settings; without it, both are off.
-import { type Group, Stop } from "./puzzles";
+import { ENOUGH_WORDS, type Group, PUSH_ROOM, Stop } from "./puzzles";
 
 const MODEL = "claude-haiku-5-5";
-
-/** Sorting waits for this many words, so a paste like "test" costs nothing. */
-export const ENOUGH_WORDS = 4;
-
-/** What the lock screen shows of a push line: about three lines. */
-const PUSH_ROOM = 110;
 
 /** Haiku's rows, or why there's no puzzle in the paste yet. */
 export type Organized =
@@ -152,6 +146,7 @@ const words = (text: string) => text.split(/\s+/).filter(Boolean);
  * for the admin to fill.
  */
 export async function organize(paste: string, how: Ask): Promise<Organized> {
+  // Sorting waits for enough words, so a paste like "test" costs nothing.
   if (words(paste).length < ENOUGH_WORDS)
     return { notEnough: "Paste a few more words first" };
   const answer = (await ask(how, ORGANIZE, paste, ORGANIZED)) as {

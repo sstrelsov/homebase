@@ -21,6 +21,15 @@ export interface DayPuzzle {
 // Each theme paints them its own way.
 export const COLORS = ["1", "2", "3", "4"];
 
+/** Those groups and the stache group. */
+export const MAX_GROUPS = COLORS.length + 1;
+
+/** What the lock screen shows of a push line: about three lines. */
+export const PUSH_ROOM = 110;
+
+/** Claude Haiku sorts a paste once it has this many words (haiku.ts). */
+export const ENOUGH_WORDS = 4;
+
 const isDate = (date: unknown): date is string =>
   typeof date === "string" &&
   /^\d{4}-\d{2}-\d{2}$/.test(date) &&
@@ -98,10 +107,10 @@ export function problemsOf(puzzle: unknown): Problem[] {
   }));
   for (const { text, spots } of repeats(titles))
     problem(`Two groups are called “${text}”`, ...spots);
-  if (groups.filter((g) => g?.stache === true).length !== 1)
+  if (groups.filter((g) => g?.stache).length !== 1)
     problem("It needs exactly one stache group", "stache");
-  if (groups.length > COLORS.length + 1)
-    problem(`Five groups at most, not ${groups.length}`, "groups");
+  if (groups.length > MAX_GROUPS)
+    problem(`${MAX_GROUPS} groups at most, not ${groups.length}`, "groups");
   return problems;
 }
 
@@ -126,21 +135,17 @@ export const byDate = (a: DayPuzzle, b: DayPuzzle) =>
 
 /**
  * A puzzle kept plain: its date, each group's title, words and stache flag,
- * and its push line.
+ * and its push line, trimmed.
  */
 export const plain = ({ date, groups, push }: DayPuzzle): DayPuzzle => ({
   date,
   groups: groups.map(({ title, words, stache }) => ({
-    title,
-    words,
+    title: title.trim(),
+    words: words.map((word) => word.trim()),
     ...(stache && { stache: true }),
   })),
-  ...(push && { push }),
+  ...(push?.trim() && { push: push.trim() }),
 });
-
-/** The same groups, give or take how their JSON is spelled. */
-const sameGroups = (a: DayPuzzle, b: DayPuzzle) =>
-  JSON.stringify(plain(a).groups) === JSON.stringify(plain(b).groups);
 
 /**
  * What publishing a puzzle does to the published one in its place: adds a
@@ -151,8 +156,10 @@ export type Kind = "new" | "edit" | "push" | "same";
 
 export function kindOf(puzzle: DayPuzzle, old: DayPuzzle | undefined): Kind {
   if (!old) return "new";
-  if (!sameGroups(old, puzzle)) return "edit";
-  return (old.push ?? null) !== (puzzle.push ?? null) ? "push" : "same";
+  // The same, give or take how their JSON is spelled.
+  const [was, now] = [plain(old), plain(puzzle)];
+  if (JSON.stringify(was.groups) !== JSON.stringify(now.groups)) return "edit";
+  return was.push === now.push ? "same" : "push";
 }
 
 /** A message for whoever asked (the CLI's user, the admin page), not a crash. */
@@ -170,7 +177,9 @@ export const dayName = (date: string) =>
     timeZone: "UTC",
   });
 
-const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+/** "1 game", "3 games" */
+export const plural = (n: number, word: string) =>
+  `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /** Refuses to delete anyone's games unless told to. */
 function guard(
@@ -186,9 +195,9 @@ function guard(
 }
 
 /**
- * The puzzles file once a puzzle is published: added, or in place of the
- * one in its place. Games on an edited puzzle are deleted, so it refuses
- * without deleteGames.
+ * The puzzles file once a puzzle is published (added, or in place of the
+ * one in its place), and what that does to it. Games on an edited puzzle are
+ * deleted, so it refuses without deleteGames.
  */
 export function publish(
   published: DayPuzzle[],
@@ -204,8 +213,11 @@ export function publish(
     "change a published puzzle",
     deleteGames,
   );
-  if (kind === "same") return published;
-  return [...published.filter((p) => p !== old), plain(puzzle)].sort(byDate);
+  const puzzles =
+    kind === "same"
+      ? published
+      : [...published.filter((p) => p !== old), plain(puzzle)].sort(byDate);
+  return { puzzles, kind };
 }
 
 /** The puzzles file without one puzzle. */

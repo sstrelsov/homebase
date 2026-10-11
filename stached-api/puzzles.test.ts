@@ -74,7 +74,7 @@ describe("a puzzle's rules", () => {
     });
     expect(problems((p) => p.groups.push(extra(1)))).toEqual([]);
     expect(problems((p) => p.groups.push(extra(1), extra(2)))).toEqual([
-      "2026-01-01: Five groups at most, not 6",
+      "2026-01-01: 5 groups at most, not 6",
     ]);
   });
 
@@ -126,7 +126,8 @@ const edited = (date: string) => {
 
 describe("publishing a puzzle", () => {
   test("adds a new day in date order", () => {
-    const puzzles = publish(PUBLISHED, on("2026-09-30"), new Map());
+    const { puzzles, kind } = publish(PUBLISHED, on("2026-09-30"), new Map());
+    expect(kind).toBe("new");
     expect(puzzles.map((p) => p.date)).toEqual([
       "2026-09-30",
       "2026-10-01",
@@ -135,22 +136,29 @@ describe("publishing a puzzle", () => {
   });
 
   test("leaves a puzzle published word for word as it was", () => {
-    // The same puzzle spelled differently: keys reordered, stache: false.
+    // The same puzzle spelled differently: keys reordered, stache: false,
+    // stray spaces.
     const respelled = {
       date: "2026-10-01",
       groups: SAMPLE.groups.map(({ title, words, stache }) => ({
         stache: stache ?? false,
-        words,
-        title,
+        words: words.map((word) => `${word} `),
+        title: ` ${title}`,
       })),
+      push: " ",
     };
     expect(kindOf(respelled, PUBLISHED[0])).toBe("same");
     const games = new Map([["2026-10-01", 5]]);
-    expect(publish(PUBLISHED, respelled, games)).toBe(PUBLISHED);
+    expect(publish(PUBLISHED, respelled, games).puzzles).toBe(PUBLISHED);
   });
 
   test("replaces a published puzzle nobody has played", () => {
-    const puzzles = publish(PUBLISHED, edited("2026-10-02"), new Map());
+    const { puzzles, kind } = publish(
+      PUBLISHED,
+      edited("2026-10-02"),
+      new Map(),
+    );
+    expect(kind).toBe("edit");
     expect(puzzles[1].groups[0].words[0]).toBe("Crumpet");
   });
 
@@ -158,7 +166,9 @@ describe("publishing a puzzle", () => {
     const games = new Map([["2026-10-01", 3]]);
     const pushed = { ...on("2026-10-01"), push: "Read all about it" };
     expect(kindOf(pushed, PUBLISHED[0])).toBe("push");
-    expect(publish(PUBLISHED, pushed, games)[0].push).toBe("Read all about it");
+    expect(publish(PUBLISHED, pushed, games).puzzles[0].push).toBe(
+      "Read all about it",
+    );
   });
 
   test("refuses to change a puzzle people have played", () => {
@@ -170,7 +180,7 @@ describe("publishing a puzzle", () => {
 
   test("changes it anyway, deleting games", () => {
     const games = new Map([["2026-10-01", 3]]);
-    const puzzles = publish(PUBLISHED, edited("2026-10-01"), games, {
+    const { puzzles } = publish(PUBLISHED, edited("2026-10-01"), games, {
       deleteGames: true,
     });
     expect(puzzles[0].groups[0].words[0]).toBe("Crumpet");

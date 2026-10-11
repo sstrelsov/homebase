@@ -1,4 +1,5 @@
 import { type ReactNode, useState } from "react";
+import { plural } from "../../stached-api/puzzles";
 import {
   type AdminGame,
   type AdminPuzzle,
@@ -16,9 +17,6 @@ import x from "./stage/stage.module.css";
 
 const puzzleTitle = ({ number, date }: AdminPuzzle) =>
   `#${number} · ${formatDate(date, { weekday: "short", month: "short", day: "numeric" })}`;
-
-export const plural = (n: number, word: string) =>
-  `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /** The parts that apply, between dots. */
 const dotted = (...parts: (string | false)[]) =>
@@ -256,13 +254,8 @@ const Admin = () => {
     }
   };
   return (
-    <Screen
-      title="Admin"
-      subtitle={<Tabs tab={tab} onTab={pick} />}
-      // Each tab loads, and retries, on its own.
-      error={null}
-      onRetry={() => {}}
-    >
+    // Each tab loads, and retries, on its own.
+    <Screen title="Admin" subtitle={<Tabs tab={tab} onTab={pick} />}>
       {tab === "runs" ? <Runs /> : <StageTab />}
     </Screen>
   );

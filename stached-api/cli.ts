@@ -12,10 +12,10 @@ import {
   clockTime,
   type DayPuzzle,
   dayName,
-  kindOf,
   newYorkDate,
   Played,
   plain,
+  plural,
   publish,
   Stop,
   timing,
@@ -66,8 +66,6 @@ const TESTER = Boolean(process.env.STACHED_TESTER);
 
 /** "Fri, Oct 2 (2026-10-02)" */
 const label = (date: string) => `${dayName(date)} (${date})`;
-
-const gameCount = (n: number) => `${n} game${n === 1 ? "" : "s"}`;
 
 async function list() {
   const [published, staged, games, announced] = await Promise.all([
@@ -135,13 +133,10 @@ async function stageFile(source: string | undefined) {
   const [published, games] = await Promise.all([readPuzzles(), gamesByDate()]);
   for (const puzzle of staged) {
     const { date, groups, push } = puzzle;
-    const kind = kindOf(
-      puzzle,
-      published.find((p) => p.date === date),
-    );
-    const number = numbers(
-      publish(published, puzzle, games, { deleteGames: true }),
-    ).get(date);
+    const { puzzles, kind } = publish(published, puzzle, games, {
+      deleteGames: true,
+    });
+    const number = numbers(puzzles).get(date);
     const titles = groups.map((g) => g.title + (g.stache ? " (stache)" : ""));
     console.log(`#${number} · ${label(date)}`);
     console.log(`  ${titles.join(" · ")}`);
@@ -154,7 +149,7 @@ async function stageFile(source: string | undefined) {
     if (kind === "edit")
       console.log(
         lost
-          ? `  Replaces the published puzzle, which has ${gameCount(lost)}: confirm deletes them only with --delete-games.`
+          ? `  Replaces the published puzzle, which has ${plural(lost, "game")}: confirm deletes them only with --delete-games.`
           : "  Replaces the published puzzle (no games on it yet).",
       );
     if (kind === "push")

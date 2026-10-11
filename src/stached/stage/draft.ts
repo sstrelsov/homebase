@@ -6,9 +6,10 @@ import {
   type DayPuzzle,
   type Kind,
   kindOf,
+  plain,
   problemsOf,
 } from "../../../stached-api/puzzles";
-import type { Published, Schedule } from "../api";
+import type { Schedule } from "../api";
 
 export interface DraftGroup {
   /** Its row's own, so a row keeps its keyboard while it moves. */
@@ -21,7 +22,10 @@ export interface DraftGroup {
 /** A puzzle being written: the file's shape, with ids for the editor. */
 export interface Draft {
   date: string;
-  /** In the order the board shows them: easiest first, the stache last. */
+  /**
+   * In the file's order, until a row moves: the board shows them easiest
+   * first, the stache last (inOrder), and reordering them is an edit.
+   */
   groups: DraftGroup[];
   /** The push's line; empty takes a random quote from home. */
   push: string;
@@ -52,21 +56,8 @@ export const blank = (date: string): Draft => ({
 
 export const toDraft = ({ date, groups, push }: DayPuzzle): Draft => ({
   date,
-  groups: inOrder(
-    groups.map((g) => group(g.title, [...g.words], Boolean(g.stache))),
-  ),
+  groups: groups.map((g) => group(g.title, [...g.words], Boolean(g.stache))),
   push: push ?? "",
-});
-
-/** The puzzle as the API takes it: trimmed, and no push line if it's empty. */
-export const toPuzzle = ({ date, groups, push }: Draft): DayPuzzle => ({
-  date,
-  groups: groups.map(({ title, words, stache }) => ({
-    title: title.trim(),
-    words: words.map((w) => w.trim()),
-    ...(stache && { stache: true }),
-  })),
-  ...(push.trim() && { push: push.trim() }),
 });
 
 /**
@@ -75,7 +66,7 @@ export const toPuzzle = ({ date, groups, push }: Draft): DayPuzzle => ({
  * the date, the push line, the stache picker or the rows as a whole.
  */
 export const problems = (draft: Draft) =>
-  problemsOf(toPuzzle(draft)).map(({ text, spots }) => ({
+  problemsOf(plain(draft)).map(({ text, spots }) => ({
     text,
     fields: spots.map((spot) => {
       const [kind, row, word] = spot.split(":");
@@ -152,16 +143,16 @@ export function nextOpen(schedule: Schedule) {
 
 /** What publishing the draft does to the published puzzle on its date. */
 export const kindFor = (schedule: Schedule, draft: Draft) =>
-  kindOf(toPuzzle(draft), publishedOn(schedule, draft.date));
+  kindOf(plain(draft), publishedOn(schedule, draft.date));
 
 /** Games that publishing the draft deletes. */
 export const gamesLost = (schedule: Schedule, draft: Draft) =>
   kindFor(schedule, draft) === "edit"
-    ? (publishedOn(schedule, draft.date) as Published).games
+    ? (publishedOn(schedule, draft.date)?.games ?? 0)
     : 0;
 
 /** The draft as it was staged, word for word. */
 export const isStaged = (schedule: Schedule, draft: Draft) => {
   const staged = stagedOn(schedule, draft.date);
-  return Boolean(staged) && kindOf(toPuzzle(draft), staged) === "same";
+  return Boolean(staged) && kindOf(plain(draft), staged) === "same";
 };
