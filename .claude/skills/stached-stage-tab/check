@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Drives the admin page's Stage tab end to end, headless, on throwaway stacks,
+# and stops them after, pass or fail. See SKILL.md.
+set -euo pipefail
+HERE=$(cd "$(dirname "$0")" && pwd)
+export STATE=${STATE:-${TMPDIR:-/tmp}/stached-stage-tab}
+cd "$HERE"
+[ -d node_modules/playwright-core ] || bun install --no-save >/dev/null
+# The headless browser that this playwright-core drives; quick if it's there.
+bun x playwright-core install --only-shell chromium >/dev/null
+trap '"$HERE/down.sh"' EXIT
+./up.sh
+rm -rf "$STATE/shots" && mkdir -p "$STATE/shots"
+bun flow.ts "$STATE/shots" "$STATE"
+echo "Screenshots: $STATE/shots"
