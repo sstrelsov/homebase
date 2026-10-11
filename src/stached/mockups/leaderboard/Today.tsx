@@ -1,7 +1,6 @@
 // The designs built on today's puzzle: a podium, a timeline of the day, and
 // bulletins.
-import { Fragment } from "react";
-import type { Day, Mark } from "../../../../stached-api/leaderboard";
+import type { Mark } from "../../../../stached-api/leaderboard";
 import { formatTime } from "../../api";
 import { Square } from "../../Leaderboard";
 import { Mustache } from "../../Logo";
@@ -20,10 +19,9 @@ import {
   recapOf,
   type Sample,
   stillToPlay,
+  todayOf,
   todays,
 } from "./stats";
-
-const todayOf = (sample: Sample) => sample.days.at(-1) as Day;
 
 /** Today's square for each player, as the leaderboard marks it. */
 const todayMarks = (sample: Sample) =>
@@ -219,23 +217,25 @@ export const Timeline = ({ sample }: { sample: Sample }) => {
               }}
             >
               <time className={x.stopTime}>{clock(stop.at)}</time>
-              {"game" in stop && stop.game ? (
+              {"game" in stop ? (
                 <>
-                  <Square mark={marks.get(stop.key) ?? "solved"} />
+                  <Square mark={marks.get(stop.game.name) ?? "solved"} />
                   <span
                     className={`flex min-w-0 items-baseline gap-2 text-[18px] leading-tight ${
-                      stop.key === session.name ? styles.me : ""
+                      stop.game.name === session.name ? styles.me : ""
                     }`}
                   >
-                    <span className="truncate">{stop.key}</span>
+                    <span className="truncate">{stop.game.name}</span>
                     <span
                       className={
-                        leads.has(stop.key) ? styles.stacheText : styles.label
+                        leads.has(stop.game.name)
+                          ? styles.stacheText
+                          : styles.label
                       }
                     >
                       {formatTime(stop.game.stachedMs)}
                     </span>
-                    {leads.has(stop.key) && (
+                    {leads.has(stop.game.name) && (
                       <span className={x.lead}>Fastest so far</span>
                     )}
                   </span>
@@ -283,8 +283,7 @@ function byGame(bulletins: Bulletin[]) {
  */
 export const Bulletins = ({ sample }: { sample: Sample }) => {
   const { session } = useStached();
-  const yesterday = sample.days.at(-2) as Day;
-  const recap = recapOf(sample, yesterday);
+  const recap = recapOf(sample);
   return (
     <Board subtitle={<TodayLine day={todayOf(sample)} />}>
       <div className="flex flex-col gap-6">
@@ -319,18 +318,18 @@ export const Bulletins = ({ sample }: { sample: Sample }) => {
               </li>
             ))}
         </ol>
-        <Section title="Yesterday" aside={`#${yesterday.number}`}>
+        <Section title="Yesterday" aside={`#${recap.number}`}>
           <p className="text-[19px] leading-snug">
             {recap.played} played, {recap.solved} solved.
             {recap.ms !== null && (
-              <Fragment>
+              <>
                 {" "}
                 Fastest stache: {names(recap.fastest)},{" "}
                 <span className={styles.stacheText}>
                   {formatTime(recap.ms)}
                 </span>
                 .
-              </Fragment>
+              </>
             )}
           </p>
         </Section>

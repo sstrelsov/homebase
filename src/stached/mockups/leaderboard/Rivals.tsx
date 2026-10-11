@@ -43,13 +43,9 @@ export const Rivals = ({ sample }: { sample: Sample }) => {
   const records = versus
     .filter((p) => p.shared > 0)
     .sort((a, b) => b.shared - a.shared || a.name.localeCompare(b.name));
-  const nemesis = records.reduce<(typeof records)[number] | null>(
-    (worst, p) =>
-      p.lost - p.won > 0 && (!worst || p.lost - p.won > worst.lost - worst.won)
-        ? p
-        : worst,
-    null,
-  );
+  const nemesis = records
+    .filter((p) => p.lost > p.won)
+    .sort((a, b) => b.lost - b.won - (a.lost - a.won))[0];
   const either = [players[at - 1], players[at + 1]].flatMap(
     (player) => versus.find((p) => p.name === player?.name) ?? [],
   );

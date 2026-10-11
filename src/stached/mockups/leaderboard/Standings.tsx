@@ -17,6 +17,7 @@ import { addDays } from "../rules";
 import x from "./leaderboard.module.css";
 import { Board, Section, Squares, Streak, Table, WeekHead } from "./parts";
 import {
+  byTime,
   cardOf,
   championsOver,
   finished,
@@ -116,9 +117,9 @@ const Champ = ({
 
 /** The best ever: fastest stache, longest streak, most solves. */
 const Records = ({ sample }: { sample: Sample }) => {
-  const fastest = finished(sample.plays)
-    .filter((g) => g.stachedMs !== null)
-    .reduce((a, b) => ((b.stachedMs ?? 0) < (a.stachedMs ?? 0) ? b : a));
+  const fastest = finished(sample.plays).reduce((a, b) =>
+    byTime(b.stachedMs, a.stachedMs) < 0 ? b : a,
+  );
   const cards = sample.board.players.map((p) => cardOf(sample, p.name));
   const top = (key: "best" | "solved") =>
     cards.reduce((a, b) => (b[key] > a[key] ? b : a));
@@ -260,70 +261,55 @@ export const Score = ({ won, lost }: { won: number; lost: number }) => (
  * A player's card: two weeks of squares, their numbers, and their record
  * against you.
  */
-const PlayerCard = ({
-  sample,
-  name,
-  onClose,
-}: {
-  sample: Sample;
-  name: string | null;
-  onClose: () => void;
-}) => {
-  const card = name ? cardOf(sample, name) : null;
-  const versus = name ? headToHead(sample, sample.me, name) : null;
-  const twoWeeks = sample.days.slice(-2 * WEEK);
-  const stats: [string, string, string?][] = card
-    ? [
-        [
-          "Solved",
-          `${card.solved}/${card.played}`,
-          `${Math.round((card.solved / Math.max(card.played, 1)) * 100)}%`,
-        ],
-        ["Streak", String(card.streak), `Best ${card.best}`],
-        ["Fastest", String(card.fastest), "Staches"],
-        [
-          "Best stache",
-          formatTime(card.bestMs),
-          `Avg ${formatTime(card.stacheMs)}`,
-        ],
-        ["Mistakes", (card.mistakes ?? 0).toFixed(1), "A game"],
-        ["Board time", formatTime(card.solveMs, false), "A solve"],
-      ]
-    : [];
+const PlayerCard = ({ sample, name }: { sample: Sample; name: string }) => {
+  const card = cardOf(sample, name);
+  const versus = headToHead(sample, sample.me, name);
+  const stats: [string, string, string?][] = [
+    [
+      "Solved",
+      `${card.solved}/${card.played}`,
+      `${Math.round((card.solved / Math.max(card.played, 1)) * 100)}%`,
+    ],
+    ["Streak", String(card.streak), `Best ${card.best}`],
+    ["Fastest", String(card.fastest), "Staches"],
+    [
+      "Best stache",
+      formatTime(card.bestMs),
+      `Avg ${formatTime(card.stacheMs)}`,
+    ],
+    ["Mistakes", (card.mistakes ?? 0).toFixed(1), "A game"],
+    ["Board time", formatTime(card.solveMs, false), "A solve"],
+  ];
   return (
-    <Dialog open={card !== null} onClose={onClose} title={name ?? ""}>
-      {card && versus && (
-        <>
-          <p className={`${styles.label} -mt-3`}>
-            #{card.rank} · {card.points} pts
-            {card.late > 0 && ` · ${card.late} played late`}
-          </p>
-          <div className="flex flex-col items-center gap-1">
-            <WeekHead days={twoWeeks.slice(-WEEK)} />
-            <Squares marks={card.marks.slice(-2 * WEEK, -WEEK)} />
-            <Squares marks={card.marks.slice(-WEEK)} />
+    <>
+      <p className={`${styles.label} -mt-3`}>
+        #{card.rank} · {card.points} pts
+        {card.late > 0 && ` · ${card.late} played late`}
+      </p>
+      <div className="flex flex-col items-center gap-1">
+        <WeekHead days={sample.board.days} />
+        <Squares marks={card.marks.slice(-2 * WEEK, -WEEK)} />
+        <Squares marks={card.marks.slice(-WEEK)} />
+      </div>
+      <div className={x.stats}>
+        {stats.map(([label, value, sub]) => (
+          <div key={label} className={x.stat}>
+            <p className={styles.label}>{label}</p>
+            <p className={x.statValue}>{value}</p>
+            {sub && <p className={x.note}>{sub}</p>}
           </div>
-          <div className={x.stats}>
-            {stats.map(([label, value, sub]) => (
-              <div key={label} className={x.stat}>
-                <p className={styles.label}>{label}</p>
-                <p className={x.statValue}>{value}</p>
-                {sub && <p className={x.note}>{sub}</p>}
-              </div>
-            ))}
+        ))}
+      </div>
+      {name !== sample.me && versus.shared > 0 && (
+        <section className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between">
+            <h3 className={styles.label}>You vs {name}</h3>
+            <Score won={versus.won} lost={versus.lost} />
           </div>
-          {name !== sample.me && versus.shared > 0 && (
-            <section className="flex flex-col gap-2">
-              <div className="flex items-baseline justify-between">
-                <h3 className={styles.label}>You vs {name}</h3>
-                <Score won={versus.won} lost={versus.lost} />
-              </div>
-              <Versus {...versus} />
-            </section>
-          )}
-        </>
+          <Versus {...versus} />
+        </section>
       )}
-    </Dialog>
+    </>
   );
 };
 
@@ -347,7 +333,13 @@ export const Cards = ({ sample }: { sample: Sample }) => {
           />
         </Section>
       </div>
-      <PlayerCard sample={sample} name={open} onClose={() => setOpen(null)} />
+      <Dialog
+        open={open !== null}
+        onClose={() => setOpen(null)}
+        title={open ?? ""}
+      >
+        {open && <PlayerCard sample={sample} name={open} />}
+      </Dialog>
     </Board>
   );
 };
@@ -371,7 +363,8 @@ export const Titles = ({ sample }: { sample: Sample }) => {
                 data-color={title.color}
               >
                 <span className={styles.barTitle}>
-                  {title.title} · {title.stat}
+                  {title.title}
+                  {title.holders.length > 0 && ` · ${title.stat}`}
                 </span>
                 <span className={styles.barWords}>
                   {title.holders.length > 0

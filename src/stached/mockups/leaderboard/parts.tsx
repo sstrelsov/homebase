@@ -1,12 +1,13 @@
 import type { ReactNode } from "react";
 import type { Day } from "../../../../stached-api/leaderboard";
-import { formatDate, type Mark, weekday } from "../../api";
+import { plural } from "../../Admin";
+import { type Mark, weekday } from "../../api";
 import { Square } from "../../Leaderboard";
 import { Mustache } from "../../Logo";
 import Screen from "../../Screen";
 import { useStached } from "../../session";
 import styles from "../../stached.module.css";
-import { addDays } from "../rules";
+import { addDays, dayName } from "../rules";
 import x from "./leaderboard.module.css";
 
 const noop = () => {};
@@ -27,8 +28,7 @@ export const Board = ({
 /** "Today · #21 · Thu, Oct 8", under the title. */
 export const TodayLine = ({ day }: { day: Day }) => (
   <p className={styles.label}>
-    Today · #{day.number} ·{" "}
-    {formatDate(day.date, { weekday: "short", month: "short", day: "numeric" })}
+    Today · #{day.number} · {dayName(day.date)}
   </p>
 );
 
@@ -114,7 +114,7 @@ export const Squares = ({
 );
 
 /** A row of the standings. */
-export interface Row {
+interface Row {
   name: string;
   rank: number;
   points: number;
@@ -203,11 +203,7 @@ export const Lives = ({
   mistakes: number;
   bonus: boolean;
 }) => (
-  <span
-    className={x.lives}
-    role="img"
-    aria-label={`${mistakes} ${mistakes === 1 ? "mistake" : "mistakes"}`}
-  >
+  <span className={x.lives} role="img" aria-label={plural(mistakes, "mistake")}>
     {Array.from({ length: 4 + Number(bonus) }, (_, i) => (
       <Mustache
         // biome-ignore lint/suspicious/noArrayIndexKey: lives never reorder

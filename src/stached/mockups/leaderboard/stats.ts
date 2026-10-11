@@ -9,6 +9,7 @@ import {
   type Mark,
   WEEK,
 } from "../../../../stached-api/leaderboard";
+import { plural } from "../../Admin";
 import { formatTime } from "../../api";
 import {
   DAYS,
@@ -52,12 +53,13 @@ export const finished = (plays: Play[]) =>
     (play): play is Finished => !play.late && play.completed !== null,
   );
 
-const today = (sample: Sample) => sample.days.at(-1) as Day;
+/** Today's puzzle: the last day out. */
+export const todayOf = (sample: Sample) => sample.days.at(-1) as Day;
 
 /** Today's finished games, first finished first. */
 export const todays = (sample: Sample) =>
   finished(sample.plays)
-    .filter((play) => play.puzzleId === today(sample).id)
+    .filter((play) => play.puzzleId === todayOf(sample).id)
     .sort((a, b) => a.finishedAt - b.finishedAt);
 
 /** Who started today's and hasn't finished it, and who hasn't started. */
@@ -68,7 +70,7 @@ export function stillToPlay(sample: Sample) {
     .map(({ name }) => ({
       name,
       playing: sample.plays.some(
-        (play) => play.name === name && play.puzzleId === today(sample).id,
+        (play) => play.name === name && play.puzzleId === todayOf(sample).id,
       ),
     }));
 }
@@ -143,7 +145,7 @@ export function cardOf(sample: Sample, name: string) {
   const marks = allMarks(sample).get(name) ?? [];
   const games = finished(sample.plays).filter((g) => g.name === name);
   const solves = games.filter((g) => g.completed);
-  const times = games.flatMap((g) => (g.stachedMs === null ? [] : g.stachedMs));
+  const times = games.flatMap((g) => g.stachedMs ?? []);
   // Solved in a row at any point: the longest run of solves.
   let best = 0;
   let run = 0;
@@ -160,8 +162,8 @@ export function cardOf(sample: Sample, name: string) {
     best,
     marks,
     played: games.length,
-    solved: solves.length,
-    fastest: marks.filter(isWin).length,
+    solved: standing?.solved ?? 0,
+    fastest: standing?.fastest ?? 0,
     mistakes: average(games.map((g) => g.mistakes)),
     bestMs: times.length ? Math.min(...times) : null,
     stacheMs: average(times),
@@ -250,7 +252,7 @@ export function titlesOf(sample: Sample): Title[] {
       ["Early bird", "Early"],
       "1",
       countBy(firstIn, (g) => g.name),
-      (n) => `First in ${n} ${n === 1 ? "day" : "days"}`,
+      (n) => `First in ${plural(n, "day")}`,
     ),
     title(
       ["Night owl", "Owl"],
@@ -277,7 +279,7 @@ export interface Bulletin {
  * first, starting at the push.
  */
 export function bulletinsOf(sample: Sample): Bulletin[] {
-  const day = today(sample);
+  const day = todayOf(sample);
   const out: Bulletin[] = [
     { at: PUSH_AT, name: null, text: `Puzzle #${day.number} is up` },
   ];
@@ -341,15 +343,22 @@ export function bulletinsOf(sample: Sample): Bulletin[] {
 export const championsOver = (sample: Sample, days: Day[]) =>
   leaderboardOf(days, sample.plays).players.filter((p) => p.rank === 1);
 
-/** A past day in brief: how many played and solved, and its fastest stache. */
-export function recapOf(sample: Sample, day: Day) {
-  const games = finished(sample.plays).filter((g) => g.puzzleId === day.id);
-  const ms = Math.min(...games.flatMap((g) => g.stachedMs ?? []));
+/** Yesterday in brief: how many played and solved, and its fastest stache. */
+export function recapOf(sample: Sample) {
+  const yesterday = sample.days.at(-2) as Day;
+  const games = finished(sample.plays).filter(
+    (g) => g.puzzleId === yesterday.id,
+  );
+  const { fastestToday } = leaderboardOf(
+    sample.days.slice(0, -1),
+    sample.plays,
+  );
   return {
+    number: yesterday.number,
     played: games.length,
     solved: games.filter((g) => g.completed).length,
-    fastest: games.filter((g) => g.stachedMs === ms).map((g) => g.name),
-    ms: Number.isFinite(ms) ? ms : null,
+    fastest: fastestToday.map((f) => f.name),
+    ms: fastestToday[0]?.stachedMs ?? null,
   };
 }
 

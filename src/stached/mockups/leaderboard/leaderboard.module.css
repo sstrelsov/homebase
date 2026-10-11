@@ -96,9 +96,8 @@
 }
 
 .stat {
+  composes: panel from "../../stached.module.css";
   padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
 }
 
 .statValue {
@@ -150,13 +149,12 @@
 
 /* Rivals: one card for the player ahead, one for the player behind */
 .rival {
+  composes: panel from "../../stached.module.css";
   display: flex;
   min-width: 0;
   flex-direction: column;
   gap: 6px;
   padding: 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
   background: var(--tile);
 }
 

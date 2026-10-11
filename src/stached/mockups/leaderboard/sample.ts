@@ -11,8 +11,6 @@ export interface Play extends Game {
   mistakes: number;
   /** Board time when it finished: the whole board, not just the stache. */
   solveMs: number | null;
-  /** Minutes after midnight in New York, on the puzzle's date. */
-  startedAt: number;
   /** Minutes after midnight in New York; null while still playing. */
   finishedAt: number | null;
 }
@@ -128,7 +126,6 @@ function drawn(habit: Habit, day: Day, random: () => number): Play {
     late: false,
     mistakes,
     solveMs: completed ? ms(solve) : null,
-    startedAt: finishedAt - Math.ceil(solve / 60) - 1,
     finishedAt,
   };
 }
@@ -151,7 +148,10 @@ function history(): Play[] {
   });
 }
 
-/** Today's game as everyone ends up playing it. */
+/**
+ * Today's game as everyone ends up playing it, and when they started it
+ * (minutes after midnight in New York), so it can be caught mid-game.
+ */
 const today = (
   name: string,
   [startedAt, finishedAt]: [number, number],
@@ -159,7 +159,7 @@ const today = (
   stache: number | null,
   mistakes: number,
   solve: number | null = null,
-): Play => ({
+): Play & { startedAt: number } => ({
   name,
   puzzleId: TODAY_ID,
   completed,
@@ -175,7 +175,7 @@ const today = (
 // stache at midday (Priya on a miss), Theo pauses mid-game, Marisol solves on
 // her last life, and Cat takes the fastest stache just before midnight.
 // biome-ignore format: a table, one game per row
-const TODAY_GAMES: Play[] = [
+const TODAY_GAMES = [
   today("Juniper",          [at(9, 15), at(9, 21)],   true,  52.3, 1, 245),
   today("Bea",              [at(9, 58), at(10, 5)],   true,  72.9, 0, 301),
   today("Priya",            [at(11, 40), at(11, 48)], false, 41.2, 5),
