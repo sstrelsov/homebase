@@ -179,20 +179,19 @@ describe.skipIf(!initdb)("the admin page's endpoints", () => {
     expect(await fileOf(files.live)).toEqual(LIVE);
   });
 
-  test("show the days ahead: published, staged, and how they're numbered", async () => {
+  test("show every puzzle, published and staged", async () => {
     const admin = await as("admin");
     const schedule = await (await admin("/admin/schedule")).json();
     expect(schedule).toMatchObject({
       today,
       announceAt: "09:12",
-      before: 1,
       staged: [],
       haiku: false,
       reach: 0,
     });
-    expect(schedule.published).toEqual([
-      { ...on(today), games: 0, pushed: false },
-    ]);
+    expect(schedule.published).toEqual(
+      LIVE.map((p) => ({ ...p, games: 0, pushed: false })),
+    );
   });
 
   test("stage a puzzle on the tester, as today's, and leave the game alone", async () => {
@@ -241,14 +240,11 @@ describe.skipIf(!initdb)("the admin page's endpoints", () => {
     expect(schedule.staged.map((p: DayPuzzle) => p.date)).toEqual([
       addDays(today, 2),
     ]);
-    expect(schedule.published.map((p: DayPuzzle) => p.date)).toEqual([
-      today,
-      tomorrow,
-    ]);
-    expect((await fileOf(files.live)).map((p: DayPuzzle) => p.date)).toEqual([
-      ...LIVE.map((p) => p.date),
-      tomorrow,
-    ]);
+    const dates = [...LIVE.map((p) => p.date), tomorrow];
+    expect(schedule.published.map((p: DayPuzzle) => p.date)).toEqual(dates);
+    expect((await fileOf(files.live)).map((p: DayPuzzle) => p.date)).toEqual(
+      dates,
+    );
     expect(await wordsOn(live, tomorrow)).toBe("Rolling pin");
     expect(await wordsOn(tester, tomorrow)).toBeUndefined();
     expect((await admin("/admin/publish", { date: tomorrow })).status).toBe(
@@ -262,7 +258,9 @@ describe.skipIf(!initdb)("the admin page's endpoints", () => {
     const admin = await as("admin");
     await admin("/admin/stage", { puzzle: edited(today, "Sieve") });
     const games = async () =>
-      (await (await admin("/admin/schedule")).json()).published[0].games;
+      (await (await admin("/admin/schedule")).json()).published.find(
+        (p: DayPuzzle) => p.date === today,
+      ).games;
     expect(await games()).toBe(1);
 
     const refused = await admin("/admin/publish", { date: today });

@@ -163,12 +163,21 @@ describe("publishing a puzzle", () => {
   });
 
   test("changes only the push line of a puzzle people have played", () => {
+    // Its groups stay spelled as the file has them (stray spaces, stache:
+    // false), so Postgres sees no edit and keeps its games.
+    const old = {
+      ...on("2026-10-01"),
+      groups: SAMPLE.groups.map((g) => ({
+        ...g,
+        title: `${g.title} `,
+        stache: g.stache ?? false,
+      })),
+    };
     const games = new Map([["2026-10-01", 3]]);
     const pushed = { ...on("2026-10-01"), push: "Read all about it" };
-    expect(kindOf(pushed, PUBLISHED[0])).toBe("push");
-    expect(publish(PUBLISHED, pushed, games).puzzles[0].push).toBe(
-      "Read all about it",
-    );
+    expect(kindOf(pushed, old)).toBe("push");
+    const [now] = publish([old, PUBLISHED[1]], pushed, games).puzzles;
+    expect(now).toEqual({ ...old, push: "Read all about it" });
   });
 
   test("refuses to change a puzzle people have played", () => {
@@ -265,6 +274,14 @@ describe("timing", () => {
       "It's out already, so the change is live right away. A puzzle never pushes twice.",
     );
     expect(timing("2026-10-02", "edit", at, night)).toContain("push at 9:12am");
+  });
+
+  test("changing today's puzzle before its push still pushes at 9:12", () => {
+    expect(
+      timing("2026-10-01", "edit", at, new Date("2026-10-01T12:00:00Z")),
+    ).toBe(
+      "It's out already, so the change is live right away. Its push goes out at 9:12am.",
+    );
   });
 
   test("a new push line for today goes out if its push hasn't", () => {

@@ -26,7 +26,6 @@ import {
   type Board,
   type Draft,
   type DraftGroup,
-  gamesLost,
   group,
   inOrder,
   isStaged,
@@ -404,11 +403,16 @@ const BoardScreen = ({
   const [publishing, setPublishing] = useState(false);
   const published = publishedOn(schedule, draft.date);
   const kind = kindFor(schedule, draft);
-  const lost = gamesLost(schedule, draft);
+  const played = published?.games ?? 0;
+  // Games that publishing deletes.
+  const lost = kind === "edit" ? played : 0;
   const issues = problems(draft);
   const marked = new Set(issues.flatMap((p) => p.fields));
   const number = numberOf(schedule, draft.date);
   const staged = isStaged(schedule, draft);
+  // This puzzle is staged on its date, edited since or not.
+  const stagedHere =
+    board.staged === draft.date && Boolean(stagedOn(schedule, draft.date));
   const rows = inOrder(draft.groups);
   const colored = rows.filter((g) => !g.stache).length;
   const fields = rows.flatMap((g) => [
@@ -513,14 +517,13 @@ const BoardScreen = ({
     setStage({ step: "published", draft, kind, number });
   };
 
-  const played = published?.games ?? 0;
   const status = issues.length
     ? null
     : kind === "same"
       ? "Published, no changes"
       : staged
         ? "Staged"
-        : board.staged === draft.date
+        : stagedHere
           ? "Changes not staged"
           : "Not staged yet";
 
@@ -544,7 +547,7 @@ const BoardScreen = ({
             ? draft.date === schedule.today
               ? "Live"
               : "Published"
-            : staged
+            : stagedHere
               ? "Staged"
               : "New"}
         </span>
@@ -560,7 +563,7 @@ const BoardScreen = ({
         <p className="text-[16px] leading-snug opacity-80">
           {timing(draft.date, kind, schedule.announceAt)}
         </p>
-        {stagedOn(schedule, draft.date) && board.staged !== draft.date && (
+        {stagedOn(schedule, draft.date) && !stagedHere && (
           <p className={`${styles.label} ${styles.alert}`}>
             Staging replaces the one staged for {dayName(draft.date)}
           </p>
@@ -680,7 +683,7 @@ const BoardScreen = ({
               : null
         }
         reach={schedule.reach}
-        suggesting={busy === "suggest"}
+        busy={busy}
         onSuggest={
           schedule.haiku
             ? async () => {
@@ -724,10 +727,10 @@ const BoardScreen = ({
         </section>
       )}
 
-      {board.staged && stagedOn(schedule, board.staged) && (
+      {stagedHere && (
         <button
           type="button"
-          onClick={() => board.staged && unstage(board.staged)}
+          onClick={() => unstage(draft.date)}
           disabled={Boolean(busy)}
           className={`${x.link} ${styles.alert} self-center`}
         >

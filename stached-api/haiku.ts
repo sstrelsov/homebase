@@ -2,7 +2,7 @@
 // rows, and suggests a push line. The API stays dependency-free, so this
 // calls the Messages API with fetch, with structured output. The key is
 // ANTHROPIC_API_KEY in the API's settings; without it, both are off.
-import { ENOUGH_WORDS, type Group, PUSH_ROOM, Stop } from "./puzzles";
+import { enoughWords, type Group, PUSH_ROOM, Stop } from "./puzzles";
 
 const MODEL = "claude-haiku-5-5";
 
@@ -129,16 +129,14 @@ const loose = (text: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-/** Whether a word or phrase is in the paste, whole, ignoring case. */
+/** Whether a word or phrase is in the paste (loose), whole, ignoring case. */
 function inPaste(text: string, paste: string) {
   const escaped = loose(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return new RegExp(
     `(?<![\\p{L}\\p{N}])${escaped}(?![\\p{L}\\p{N}])`,
     "u",
-  ).test(loose(paste));
+  ).test(paste);
 }
-
-const words = (text: string) => text.split(/\s+/).filter(Boolean);
 
 /**
  * Sorts a paste into a puzzle's rows with Claude Haiku. A word that isn't in
@@ -147,16 +145,16 @@ const words = (text: string) => text.split(/\s+/).filter(Boolean);
  */
 export async function organize(paste: string, how: Ask): Promise<Organized> {
   // Sorting waits for enough words, so a paste like "test" costs nothing.
-  if (words(paste).length < ENOUGH_WORDS)
-    return { notEnough: "Paste a few more words first" };
+  if (!enoughWords(paste)) return { notEnough: "Paste a few more words first" };
   const answer = (await ask(how, ORGANIZE, paste, ORGANIZED)) as {
     kind?: string;
     rows?: { title?: unknown; words?: unknown; stache?: unknown }[];
     push?: unknown;
     reason?: unknown;
   };
+  const pasted = loose(paste);
   const found = (text: unknown) =>
-    typeof text === "string" && loose(text) && inPaste(text, paste)
+    typeof text === "string" && loose(text) && inPaste(text, pasted)
       ? text.trim()
       : "";
   const rows = answer.kind === "rows" ? (answer.rows ?? []).slice(0, 8) : [];

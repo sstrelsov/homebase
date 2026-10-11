@@ -193,6 +193,14 @@ notif: Shaken, stirred, or dunked?`);
   await check(psql(`select count(*) from plays p join puzzles z on z.id = p.puzzle_id where z.date = '${today.date}'`) === "1", "today's game is still there");
   await check(psql(`select push from puzzles where date = '${today.date}'`) === "A new line for today", "and Postgres has the new line");
 
+  // A past date: the page knows its published puzzle, and its number.
+  await page.getByRole("button", { name: "Done" }).click();
+  const yesterday = new Date(Date.parse(`${today.date}T12:00:00Z`) - 864e5).toISOString().slice(0, 10);
+  await page.getByLabel("Puzzle date").fill(yesterday);
+  await check(await page.getByText(/has a published puzzle already$/).isVisible(), "a past date's published puzzle shows as taken");
+  const picked = await page.locator("text=/^#\\d+ · /").first().textContent();
+  await check(picked?.startsWith("#1 · "), `and is numbered as published (${picked})`);
+
   await check(errors.length === 0, `no console errors (${errors.join(" | ")})`);
 } finally {
   await browser.close();

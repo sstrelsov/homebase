@@ -560,12 +560,11 @@ async function adminStats() {
 }
 
 /**
- * The admin page's Stage tab: today's puzzle and every one after it,
- * published (with its games, and whether it has pushed) and staged, and what
- * the page needs to number them and say when they push.
+ * The admin page's Stage tab: every puzzle, published (with its games, and
+ * whether it has pushed) and staged, and what the page needs to say when
+ * they push.
  */
 async function upcoming() {
-  const today = newYorkDate();
   const [published, staged, games, announced, [{ reach }]] = await Promise.all([
     readPuzzles(),
     readStaged(),
@@ -573,12 +572,10 @@ async function upcoming() {
     announcedDates(),
     sql`select count(*)::int as reach from push_subscriptions`,
   ]);
-  const ahead = published.filter((p) => p.date >= today);
   return {
-    today,
+    today: newYorkDate(),
     announceAt: ANNOUNCE_AT,
-    before: published.length - ahead.length,
-    published: ahead.map((p) => ({
+    published: published.map((p) => ({
       ...p,
       games: games.get(p.date) ?? 0,
       pushed: announced.has(p.date),

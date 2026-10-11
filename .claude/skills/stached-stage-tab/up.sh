@@ -13,6 +13,8 @@ for port in 5515 3915 5215 5516 3916; do
     exit 1
   fi
 done
+# The ports are ours: stop whatever this starts if a later step fails.
+trap '"$HERE/down.sh"' ERR
 rm -rf "$STATE/live" "$STATE/tester" && mkdir -p "$STATE/live" "$STATE/tester"
 today=$(TZ=America/New_York date +%F)
 day() { TZ=America/New_York date -v"$1"d +%F; }

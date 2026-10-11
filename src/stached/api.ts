@@ -131,15 +131,13 @@ export interface Published extends DayPuzzle {
   pushed: boolean;
 }
 
-/** The admin's Stage tab: today's puzzle and every one after it. */
+/** The admin's Stage tab: every puzzle, published and staged. */
 export interface Schedule {
   /** Today in New York. */
   today: string;
   /** When a puzzle's push goes out on its date, New York time: "09:12". */
   announceAt: string;
-  /** Published puzzles dated before today, for numbering. */
-  before: number;
-  /** From today on, by date. */
+  /** By date. */
   published: Published[];
   /** By date. */
   staged: DayPuzzle[];
@@ -230,7 +228,7 @@ export const api = {
     request<void>("/push/subscribe", { token, body: subscription }),
   /** The admin page's numbers and games; anyone else gets a 404. */
   admin: (token: string) => request<AdminStats>("/admin", { token }),
-  /** The admin's: every puzzle from today on, published and staged. */
+  /** The admin's: every puzzle, published and staged. */
   schedule: (token: string) => request<Schedule>("/admin/schedule", { token }),
   /** The admin's: Claude Haiku sorts a paste into a puzzle's rows. */
   organize: (token: string, paste: string) =>

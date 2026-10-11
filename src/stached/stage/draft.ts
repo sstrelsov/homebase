@@ -125,7 +125,7 @@ export const stagedOn = (schedule: Schedule, date: string) =>
 
 /** Its number once published: #1 is the first by date. */
 export const numberOf = (schedule: Schedule, date: string) =>
-  schedule.before + schedule.published.filter((p) => p.date < date).length + 1;
+  schedule.published.filter((p) => p.date < date).length + 1;
 
 export const addDays = (date: string, days: number) => {
   const day = new Date(`${date}T12:00:00Z`);
@@ -144,12 +144,6 @@ export function nextOpen(schedule: Schedule) {
 /** What publishing the draft does to the published puzzle on its date. */
 export const kindFor = (schedule: Schedule, draft: Draft) =>
   kindOf(plain(draft), publishedOn(schedule, draft.date));
-
-/** Games that publishing the draft deletes. */
-export const gamesLost = (schedule: Schedule, draft: Draft) =>
-  kindFor(schedule, draft) === "edit"
-    ? (publishedOn(schedule, draft.date)?.games ?? 0)
-    : 0;
 
 /** The draft as it was staged, word for word. */
 export const isStaged = (schedule: Schedule, draft: Draft) => {

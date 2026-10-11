@@ -27,8 +27,9 @@ export const MAX_GROUPS = COLORS.length + 1;
 /** What the lock screen shows of a push line: about three lines. */
 export const PUSH_ROOM = 110;
 
-/** Claude Haiku sorts a paste once it has this many words (haiku.ts). */
-export const ENOUGH_WORDS = 4;
+/** Whether a paste has enough words for Claude Haiku to sort (haiku.ts). */
+export const enoughWords = (paste: string) =>
+  paste.split(/\s+/).filter(Boolean).length >= 4;
 
 const isDate = (date: unknown): date is string =>
   typeof date === "string" &&
@@ -213,10 +214,16 @@ export function publish(
     "change a published puzzle",
     deleteGames,
   );
+  const now = plain(puzzle);
   const puzzles =
     kind === "same"
       ? published
-      : [...published.filter((p) => p !== old), plain(puzzle)].sort(byDate);
+      : [
+          ...published.filter((p) => p !== old),
+          // A new push line keeps its groups as the file spells them, so
+          // Postgres doesn't see an edit and delete their games.
+          kind === "push" && old ? { ...old, push: now.push } : now,
+        ].sort(byDate);
   return { puzzles, kind };
 }
 
@@ -280,8 +287,10 @@ export function clockTime(at: string) {
 export function timing(date: string, kind: Kind, at: string, now = new Date()) {
   const today = newYorkDate(now);
   const due = announceDue(date, at, now);
-  if (kind === "push" && date === today && !due)
-    return `The new line goes out with its push at ${clockTime(at)}.`;
+  if (kind !== "new" && date === today && !due)
+    return kind === "push"
+      ? `The new line goes out with its push at ${clockTime(at)}.`
+      : `It's out already, so the change is live right away. Its push goes out at ${clockTime(at)}.`;
   if (kind !== "new" && date <= today)
     return "It's out already, so the change is live right away. A puzzle never pushes twice.";
   if (date < today) return "It's dated before today, so it gets no push.";

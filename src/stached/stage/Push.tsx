@@ -13,7 +13,8 @@ interface PushProps {
   none: string | null;
   /** Browsers that get each push. */
   reach: number;
-  suggesting: boolean;
+  /** The screen's request under way, if any: Suggest one waits for it. */
+  busy: string | null;
   /** Asks Claude Haiku for a line; none without an Anthropic key. */
   onSuggest?: () => void;
   onChange: (push: string) => void;
@@ -26,7 +27,7 @@ const Push = ({
   push,
   none,
   reach,
-  suggesting,
+  busy,
   onSuggest,
   onChange,
 }: PushProps) => (
@@ -71,10 +72,10 @@ const Push = ({
               <button
                 type="button"
                 onClick={onSuggest}
-                disabled={suggesting}
+                disabled={Boolean(busy)}
                 className={x.link}
               >
-                {suggesting ? "Thinking…" : "Suggest one"}
+                {busy === "suggest" ? "Thinking…" : "Suggest one"}
               </button>
             )}
             {push && (

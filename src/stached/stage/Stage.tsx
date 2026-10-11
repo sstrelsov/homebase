@@ -2,7 +2,7 @@ import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
 import {
   clockTime,
   dayName,
-  ENOUGH_WORDS,
+  enoughWords,
   plural,
   timing,
 } from "../../../stached-api/puzzles";
@@ -141,7 +141,6 @@ const Paste = ({ schedule, stage, setStage }: StepProps<"paste">) => {
   const last = [addDays(schedule.today, 6), ...dates].sort().at(-1) as string;
   const days: string[] = [];
   for (let d = schedule.today; d <= last; d = addDays(d, 1)) days.push(d);
-  const enough = stage.text.split(/\s+/).filter(Boolean).length >= ENOUGH_WORDS;
   const canPaste = Boolean(navigator.clipboard?.readText);
 
   // Haiku's answer lands only if it's still sorting this paste: Cancel, or
@@ -216,7 +215,7 @@ const Paste = ({ schedule, stage, setStage }: StepProps<"paste">) => {
           <button
             type="button"
             onClick={organize}
-            disabled={!enough || !schedule.haiku}
+            disabled={!enoughWords(stage.text) || !schedule.haiku}
             className={`${styles.button} ${styles.primary}`}
           >
             Organize

@@ -54,7 +54,8 @@ screenshot and always stops the stacks after. Screenshots go to
    "Published, no changes". Changing only its push line publishes with no
    "Delete N games" tick, keeps the group order and the game, and updates
    Postgres.
-8. No console errors.
+8. A past date shows its published puzzle as taken, with its number.
+9. No console errors.
 
 ## Comparing with older code
 
