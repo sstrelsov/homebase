@@ -30,10 +30,9 @@
     0 0 16px color-mix(in srgb, var(--glow-cream) 50%, transparent);
 }
 
-/* Small gold links, like home's Rules and Past games */
+/* Home's small gold links, kept on one line */
 .link {
-  composes: display stacheText from "../stached.module.css";
-  font-size: 13px;
+  composes: link from "../stached.module.css";
   white-space: nowrap;
 }
 
@@ -216,11 +215,6 @@
 
 .segment button {
   padding: 7px 10px;
-  font-family: var(--display);
-  font-style: italic;
-  font-weight: 900;
-  font-stretch: 125%;
-  text-transform: uppercase;
   color: var(--muted);
   font-size: 11px;
 }

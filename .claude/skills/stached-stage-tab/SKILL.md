@@ -52,7 +52,8 @@ screenshot and always stops the stacks after. Screenshots go to
 5. Stage puts the puzzle on the tester ("Staged, and on the tester"). The live
    file and live players' puzzle stay the same.
 6. Publish writes it to the live file and unstages it.
-7. Today's puzzle has its stache group second and a played game. Opening it is
+7. Today's puzzle has its stache group second and a played game. Opening it,
+   moving a row and back, and adding a row and removing it are all
    "Published, no changes". Changing only its push line publishes with no
    "Delete N games" tick, keeps the group order and the game, and updates
    Postgres.

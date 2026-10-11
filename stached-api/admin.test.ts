@@ -1,10 +1,10 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { SQL } from "bun";
-import { type DayPuzzle, newYorkDate } from "./puzzles";
+import { addDays, type DayPuzzle, newYorkDate } from "./puzzles";
 import examples from "./puzzles.example.json";
 
 // The admin page's endpoints, against the real server: a throwaway Postgres
@@ -15,14 +15,9 @@ const initdb = Bun.which("initdb", {
   PATH: `${process.env.PATH}:/opt/homebrew/opt/postgresql@17/bin`,
 });
 
-const addDays = (date: string, days: number) => {
-  const day = new Date(`${date}T12:00:00Z`);
-  day.setUTCDate(day.getUTCDate() + days);
-  return day.toISOString().slice(0, 10);
-};
-
 describe.skipIf(!initdb)("the admin page's endpoints", () => {
-  const dir = mkdtempSync(join(tmpdir(), "stached-admin-"));
+  // Made in beforeAll, which a skipped run never reaches.
+  const dir = join(tmpdir(), `stached-admin-${crypto.randomUUID()}`);
   const bin = (tool: string) => join(initdb as string, "..", tool);
   const pgPort = 50_000 + Math.floor(Math.random() * 10_000);
   const apiPort = 40_000 + Math.floor(Math.random() * 10_000);
@@ -57,6 +52,7 @@ describe.skipIf(!initdb)("the admin page's endpoints", () => {
   };
 
   beforeAll(async () => {
+    mkdirSync(dir);
     run("initdb", "-D", `${dir}/pg`, "-U", "postgres", "--auth=trust");
     run(
       "pg_ctl",

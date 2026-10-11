@@ -3,7 +3,6 @@ import {
   type CSSProperties,
   type Dispatch,
   type KeyboardEvent,
-  type ReactNode,
   type SetStateAction,
   useEffect,
   useState,
@@ -30,13 +29,13 @@ import {
   inOrder,
   isStaged,
   kindFor,
-  nextOpen,
   numberOf,
   pastedFor,
   problems,
   publishedOn,
   type Stage,
   stagedOn,
+  toPaste,
 } from "./draft";
 import Push from "./Push";
 import x from "./stage.module.css";
@@ -383,15 +382,6 @@ const PublishDialog = ({
   );
 };
 
-/** A note in a box, for what Haiku did or what's at stake. */
-const Note = ({
-  danger,
-  children,
-}: {
-  danger?: boolean;
-  children: ReactNode;
-}) => <div className={danger ? x.danger : x.note}>{children}</div>;
-
 interface BoardProps {
   schedule: Schedule;
   setSchedule: (schedule: Schedule) => void;
@@ -475,12 +465,14 @@ const BoardScreen = ({
     return () => clearTimeout(timer);
   }, [toast]);
 
+  // Rows trade places in the file, so the stache group keeps its own there,
+  // and a move undone, or a row added and removed, is no edit.
   const move = (id: string, by: number) =>
     edit((groups) => {
       const order = inOrder(groups);
       const i = order.findIndex((g) => g.id === id);
-      [order[i], order[i + by]] = [order[i + by], order[i]];
-      return order;
+      const [a, b] = [order[i], order[i + by]];
+      return groups.map((g) => (g === a ? b : g === b ? a : g));
     });
 
   // The old stache group takes the new one's place and color.
@@ -489,12 +481,11 @@ const BoardScreen = ({
       const old = groups.find((g) => g.stache);
       const chosen = groups.find((g) => g.id === id);
       if (!chosen || chosen === old) return groups;
-      const rest = groups
-        .filter((g) => !g.stache)
-        .flatMap((g) =>
-          g.id !== id ? [g] : old ? [{ ...old, stache: false }] : [],
-        );
-      return [...rest, { ...chosen, stache: true }];
+      const stache = { ...chosen, stache: true };
+      if (!old) return groups.map((g) => (g === chosen ? stache : g));
+      return groups.map((g) =>
+        g === chosen ? { ...old, stache: false } : g === old ? stache : g,
+      );
     });
 
   const nextField = (field: string) => {
@@ -503,8 +494,7 @@ const BoardScreen = ({
     else (document.activeElement as HTMLElement | null)?.blur();
   };
 
-  const toList = (date = nextOpen(schedule)) =>
-    setStage({ step: "paste", date, text: "" });
+  const toList = () => setStage(toPaste(schedule));
 
   const stage = async () => {
     const res = await run("stage", (token) => api.stage(token, plain(draft)));
@@ -525,7 +515,7 @@ const BoardScreen = ({
     const next = await run("unstage", (token) => api.unstage(token, date));
     if (!next) return;
     setSchedule(next);
-    setStage({ step: "paste", date: nextOpen(next), text: "" });
+    setStage(toPaste(next));
   };
 
   const publish = async (deleteGames: boolean) => {
@@ -538,6 +528,12 @@ const BoardScreen = ({
     setStage({ step: "published", draft, kind, number });
   };
 
+  // Live today, published for another day, or not published.
+  const standing = published
+    ? draft.date === schedule.today
+      ? "live"
+      : "ready"
+    : "draft";
   const status = issues.length
     ? null
     : kind === "same"
@@ -551,26 +547,17 @@ const BoardScreen = ({
   return (
     <div className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-3">
-        <button type="button" onClick={() => toList()} className={x.link}>
+        <button type="button" onClick={toList} className={x.link}>
           ‹ All puzzles
         </button>
-        <span
-          className={x.pill}
-          data-kind={
-            published
-              ? draft.date === schedule.today
-                ? "live"
-                : "ready"
-              : "draft"
+        <span className={x.pill} data-kind={standing}>
+          {
+            {
+              live: "Live",
+              ready: "Published",
+              draft: stagedHere ? "Staged" : "New",
+            }[standing]
           }
-        >
-          {published
-            ? draft.date === schedule.today
-              ? "Live"
-              : "Published"
-            : stagedHere
-              ? "Staged"
-              : "New"}
         </span>
       </div>
 
@@ -592,7 +579,7 @@ const BoardScreen = ({
       </div>
 
       {played > 0 && (
-        <Note danger>
+        <div className={x.danger}>
           <p className="text-[16px] leading-snug">
             <strong>
               {played === 1 ? "1 person has" : `${played} people have`} played
@@ -601,11 +588,11 @@ const BoardScreen = ({
             Changing a word or a title deletes their games. Its push line is
             safe to change.
           </p>
-        </Note>
+        </div>
       )}
 
       {board.pasted !== null && (
-        <Note>
+        <div className={x.note}>
           <p className="text-[16px] leading-snug">
             <span className={`${styles.label} mr-1.5`}>Claude Haiku</span>
             sorted your paste into rows.{" "}
@@ -628,7 +615,7 @@ const BoardScreen = ({
           >
             ‹ Back to the paste
           </button>
-        </Note>
+        </div>
       )}
 
       <div className="flex items-center justify-between gap-3">
@@ -644,6 +631,7 @@ const BoardScreen = ({
               type="button"
               onClick={() => patch({ view })}
               data-on={board.view === view || undefined}
+              className={styles.display}
             >
               {view === "rows" ? "Rows" : "Shuffled"}
             </button>
@@ -681,9 +669,9 @@ const BoardScreen = ({
               type="button"
               onClick={() =>
                 edit((groups) => {
-                  const order = inOrder(groups);
-                  order.splice(colored, 0, group());
-                  return order;
+                  // After the last colored row in the file, as on the board.
+                  const at = groups.findLastIndex((g) => !g.stache) + 1;
+                  return [...groups.slice(0, at), group(), ...groups.slice(at)];
                 })
               }
               className={x.addRow}
@@ -698,13 +686,7 @@ const BoardScreen = ({
         number={number}
         date={draft.date}
         push={draft.push}
-        none={
-          published?.pushed
-            ? "It went out already. A puzzle never pushes twice."
-            : draft.date < schedule.today
-              ? "It's dated before today, so it gets no push."
-              : null
-        }
+        none={Boolean(published?.pushed) || draft.date < schedule.today}
         reach={schedule.reach}
         busy={busy}
         onSuggest={

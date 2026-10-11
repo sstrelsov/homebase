@@ -96,9 +96,9 @@ export const announcedDates = async () =>
     ).map((row: { date: string }) => row.date),
   );
 
-/** Each puzzle's number, by date: #1 is the first. */
-export const numbers = (puzzles: DayPuzzle[]) =>
-  new Map(puzzles.map((p, i) => [p.date, i + 1]));
+/** A puzzle's number: #1 is the first by date. */
+export const numberOf = (puzzles: DayPuzzle[], date: string) =>
+  puzzles.findIndex((p) => p.date === date) + 1;
 
 /** The puzzles file, written with a copy of what it replaced, then Postgres. */
 async function savePuzzles(puzzles: DayPuzzle[]) {
@@ -157,7 +157,7 @@ export async function confirm(date: string, { deleteGames = false } = {}) {
   await savePuzzles(puzzles);
   await unstage(date);
   await pushNow(puzzles, date);
-  return { puzzle, kind, number: numbers(puzzles).get(date) ?? 0 };
+  return { puzzle, kind, number: numberOf(puzzles, date) };
 }
 
 /** Takes a published puzzle down. */
@@ -175,7 +175,7 @@ export async function pushNow(puzzles: DayPuzzle[], date: string) {
   const keys = vapidKeys();
   const puzzle = puzzles.find((p) => p.date === date);
   if (!keys || !puzzle) return;
-  await announce({ ...puzzle, number: numbers(puzzles).get(date) ?? 0 }, keys);
+  await announce({ ...puzzle, number: numberOf(puzzles, date) }, keys);
 }
 
 /**

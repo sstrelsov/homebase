@@ -1,19 +1,20 @@
 import { type Dispatch, type SetStateAction, useEffect, useState } from "react";
+import { flushSync } from "react-dom";
 import {
+  addDays,
   clockTime,
   dayName,
   enoughWords,
   plural,
   timing,
 } from "../../../stached-api/puzzles";
-import { ApiError, api, type Schedule } from "../api";
+import { api, type Schedule } from "../api";
 import Logo from "../Logo";
 import { Retry } from "../Screen";
-import { useLoad, useStached } from "../session";
+import { failed, useLoad, useStached } from "../session";
 import styles from "../stached.module.css";
 import BoardScreen, { DatePick, focusField } from "./Board";
 import {
-  addDays,
   type Board,
   blank,
   loadStage,
@@ -24,6 +25,7 @@ import {
   saveStage,
   stagedOn,
   toDraft,
+  toPaste,
 } from "./draft";
 import x from "./stage.module.css";
 
@@ -162,10 +164,7 @@ const Paste = ({ schedule, stage, setStage }: StepProps<"paste">) => {
                 staged: null,
               }),
             ),
-      (err) =>
-        err instanceof ApiError && err.status === 401
-          ? signOut()
-          : back(err.message),
+      (err) => failed(err, signOut, back),
     );
   };
 
@@ -292,7 +291,7 @@ const Organizing = ({ stage, setStage }: StepProps<"organizing">) => (
 const Published = ({ schedule, stage, setStage }: StepProps<"published">) => {
   const { draft, kind, number } = stage;
   const next = nextOpen(schedule);
-  const toPaste = () => setStage({ step: "paste", date: next, text: "" });
+  const done = () => setStage(toPaste(schedule));
   return (
     <div className="flex flex-col items-center gap-4 text-center">
       <div className="w-full max-w-[320px]">
@@ -319,13 +318,14 @@ const Published = ({ schedule, stage, setStage }: StepProps<"published">) => {
         className={`${styles.rise} mt-2 grid w-full grid-cols-2 gap-3`}
         style={{ animationDelay: "1.3s" }}
       >
-        <button type="button" onClick={toPaste} className={styles.button}>
+        <button type="button" onClick={done} className={styles.button}>
           Done
         </button>
         <button
           type="button"
           onClick={() => {
-            toPaste();
+            // The paste box is there at once, so the tap puts the keyboard up.
+            flushSync(done);
             focusField("paste");
           }}
           className={`${styles.button} ${styles.primary}`}
@@ -340,9 +340,7 @@ const Published = ({ schedule, stage, setStage }: StepProps<"published">) => {
 /** What the tab shows, kept on this device (draft.ts). */
 function useStage(schedule: Schedule | null) {
   const [stage, setStage] = useState<Stage | null>(loadStage);
-  const shown: Stage | null =
-    stage ??
-    (schedule && { step: "paste", date: nextOpen(schedule), text: "" });
+  const shown: Stage | null = stage ?? (schedule && toPaste(schedule));
   useEffect(() => {
     if (stage) saveStage(stage);
   }, [stage]);

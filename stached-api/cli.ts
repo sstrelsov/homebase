@@ -24,7 +24,7 @@ import {
   announcedDates,
   confirm,
   gamesByDate,
-  numbers,
+  numberOf,
   pushNow,
   puzzlesFile,
   readPuzzles,
@@ -130,13 +130,15 @@ async function stageFile(source: string | undefined) {
     throw new Stop(`That's not JSON: ${(error as Error).message}`);
   }
   const staged = await stage(Array.isArray(parsed) ? parsed : [parsed]);
-  const [published, games] = await Promise.all([readPuzzles(), gamesByDate()]);
+  let [published, games] = await Promise.all([readPuzzles(), gamesByDate()]);
   for (const puzzle of staged) {
     const { date, groups, push } = puzzle;
     const { puzzles, kind } = publish(published, puzzle, games, {
       deleteGames: true,
     });
-    const number = numbers(puzzles).get(date);
+    // Numbered as if the ones before it in the file were published too.
+    published = puzzles;
+    const number = numberOf(puzzles, date);
     const titles = groups.map((g) => g.title + (g.stache ? " (stache)" : ""));
     console.log(`#${number} · ${label(date)}`);
     console.log(`  ${titles.join(" · ")}`);

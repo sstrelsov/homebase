@@ -124,11 +124,12 @@ const stachedLeaderboardRoute = createRoute({
 });
 
 // Players and turnout, and staging and publishing puzzles, for the admin
-// only. Unlinked except on the admin's home.
+// only. Unlinked except on the admin's home, and its own chunk, so players
+// never load it.
 const stachedAdminRoute = createRoute({
   getParentRoute: () => stachedRoute,
   path: "admin",
-  component: lazyRouteComponent(stachedPage, "StachedAdmin"),
+  component: lazyRouteComponent(() => import("./stached/Admin")),
   head: () => ({ meta: [{ title: "Admin | Stached" }] }),
 });
 

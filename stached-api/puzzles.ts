@@ -48,7 +48,7 @@ const fold = (text: string) => text.trim().toLowerCase();
  * the stache group, the groups as a whole, a group's title (t:1) or one of
  * its words (w:1:3), by place in the file.
  */
-export type Spot =
+type Spot =
   | "date"
   | "push"
   | "stache"
@@ -56,7 +56,7 @@ export type Spot =
   | `t:${number}`
   | `w:${number}:${number}`;
 
-export interface Problem {
+interface Problem {
   text: string;
   spots: Spot[];
 }
@@ -178,6 +178,13 @@ export const dayName = (date: string) =>
     timeZone: "UTC",
   });
 
+/** The date some days on: addDays("2026-10-02", 1) is "2026-10-03". */
+export const addDays = (date: string, days: number) => {
+  const day = new Date(`${date}T12:00:00Z`);
+  day.setUTCDate(day.getUTCDate() + days);
+  return day.toISOString().slice(0, 10);
+};
+
 /** "1 game", "3 games" */
 export const plural = (n: number, word: string) =>
   `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -255,7 +262,7 @@ const NEW_YORK = new Intl.DateTimeFormat("en-US", {
 });
 
 /** The time in New York as "2026-10-02 09:12", which sorts as text. */
-export function newYorkTime(now = new Date()) {
+function newYorkTime(now = new Date()) {
   const part = Object.fromEntries(
     NEW_YORK.formatToParts(now).map(({ type, value }) => [type, value]),
   );

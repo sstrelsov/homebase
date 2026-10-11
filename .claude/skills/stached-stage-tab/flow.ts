@@ -181,6 +181,14 @@ notif: Shaken, stirred, or dunked?`);
   await shot("today-opened");
   await check(eq(await boardTitles(), ["Kitchen tools", "Card games", "Planets", "Famous mustaches*"]), `shown stache last: ${await boardTitles()}`);
   await check((await status()) === "Published, no changes", `opening it is no change (status: ${await status()})`);
+  // A move undone, and a row added and removed, leave its stache second.
+  const rowOf = (n: number) => page.locator('section:has([data-field^="t:"])').nth(n);
+  await rowOf(0).getByRole("button", { name: "Move down: harder" }).click();
+  await check(eq(await boardTitles(), ["Card games", "Kitchen tools", "Planets", "Famous mustaches*"]), `moved down: ${await boardTitles()}`);
+  await rowOf(1).getByRole("button", { name: "Move up: easier" }).click();
+  await page.getByRole("button", { name: "+ Add a row" }).click();
+  await rowOf(3).getByRole("button", { name: "Remove this row" }).click();
+  await check((await status()) === "Published, no changes", `a move undone, a row added and removed: no change (status: ${await status()})`);
   await page.locator('[data-field="push"]').fill("A new line for today");
   await blur();
   await check((await status()) === "Not staged yet", `push-line change: ${await status()}`);

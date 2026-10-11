@@ -3,6 +3,7 @@
 // (stached-api/puzzles.ts), so the page shows a problem before the API would
 // refuse it.
 import {
+  addDays,
   type Group,
   type Kind,
   kindOf,
@@ -151,12 +152,6 @@ export const stagedOn = (schedule: Schedule, date: string) =>
 export const numberOf = (schedule: Schedule, date: string) =>
   schedule.published.filter((p) => p.date < date).length + 1;
 
-export const addDays = (date: string, days: number) => {
-  const day = new Date(`${date}T12:00:00Z`);
-  day.setUTCDate(day.getUTCDate() + days);
-  return day.toISOString().slice(0, 10);
-};
-
 /** The first day from today with no puzzle, published or staged. */
 export function nextOpen(schedule: Schedule) {
   let date = schedule.today;
@@ -164,6 +159,13 @@ export function nextOpen(schedule: Schedule) {
     date = addDays(date, 1);
   return date;
 }
+
+/** The paste box, empty, on the next open day. */
+export const toPaste = (schedule: Schedule): Stage => ({
+  step: "paste",
+  date: nextOpen(schedule),
+  text: "",
+});
 
 /** What publishing the draft does to the published puzzle on its date. */
 export const kindFor = (schedule: Schedule, draft: Draft) =>

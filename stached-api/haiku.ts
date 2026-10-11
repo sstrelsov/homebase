@@ -10,7 +10,7 @@ const MODEL = "claude-haiku-5-5";
  * A row Haiku sorted, and per tile, the word as pasted where Haiku changed
  * it (a typo it fixed), for the page to offer back; "" where it didn't.
  */
-export interface SortedGroup extends Group {
+interface SortedGroup extends Group {
   pasted: string[];
 }
 
@@ -25,7 +25,7 @@ interface Ask {
   fetch?: typeof fetch;
 }
 
-const ORGANIZE = `You sort rough notes into a puzzle for Stached, a daily word game like Connections: four groups of four words, and one of the groups is about mustaches (the stache group).
+const ORGANIZE = `You sort rough notes into a puzzle for Stached, a daily word game like Connections: four or five groups of four words, and one of the groups is about mustaches (the stache group).
 
 The user pastes notes in any shape. Answer with kind "rows" and one row per group, in the order the notes give them:
 - Words: one tile per word or phrase from the notes, never a new one. "from" is it exactly as the notes have it; "word" is it tidied: capitalize the first letter, fix spacing, and fix an obvious typo. A group with fewer than four words gets {"word": "", "from": ""} for each missing one. At most four tiles per row.
@@ -208,18 +208,16 @@ export async function organize(paste: string, how: Ask): Promise<Organized> {
     typeof text === "string" && loose(text) && inPaste(text, pasted)
       ? text.trim()
       : "";
-  // The pasted word a tile came from, and Haiku's word if it's close to it.
+  // Haiku's word if it's in the paste; or if it's close to the pasted word
+  // it came from, with that word for the page to offer back.
   const tile = (filled: unknown) => {
     const { word, from } = (filled ?? {}) as Record<string, unknown>;
-    if (typeof word !== "string") return { word: "", pasted: "" };
-    const source = [found(from), found(word)].find(
-      (text) => text && closeTo(word, text),
-    );
-    if (!source) return { word: "", pasted: "" };
-    return {
-      word: word.trim(),
-      pasted: loose(word) === loose(source) ? "" : source,
-    };
+    const kept = found(word);
+    if (kept) return { word: kept, pasted: "" };
+    const source = found(from);
+    return typeof word === "string" && source && closeTo(word, source)
+      ? { word: word.trim(), pasted: source }
+      : { word: "", pasted: "" };
   };
   const rows = answer.kind === "rows" ? (answer.rows ?? []).slice(0, 8) : [];
   if (!rows.length)

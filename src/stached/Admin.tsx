@@ -1,11 +1,10 @@
 import { type ReactNode, useState } from "react";
-import { plural } from "../../stached-api/puzzles";
+import { dayName, plural } from "../../stached-api/puzzles";
 import {
   type AdminGame,
   type AdminPuzzle,
   type AdminStats,
   api,
-  formatDate,
   formatTime,
 } from "./api";
 import GuessGrid from "./GuessGrid";
@@ -16,7 +15,7 @@ import StageTab from "./stage/Stage";
 import x from "./stage/stage.module.css";
 
 const puzzleTitle = ({ number, date }: AdminPuzzle) =>
-  `#${number} · ${formatDate(date, { weekday: "short", month: "short", day: "numeric" })}`;
+  `#${number} · ${dayName(date)}`;
 
 /** The parts that apply, between dots. */
 const dotted = (...parts: (string | false)[]) =>

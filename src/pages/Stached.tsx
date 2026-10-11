@@ -26,8 +26,8 @@ import styles from "../stached/stached.module.css";
 // public/stached/manifest.json and vite.config.mts.
 const THEME: Look = "light";
 
-// The router loads every Stached screen from here, so they share one chunk.
-export { default as StachedAdmin } from "../stached/Admin";
+// The router loads the players' screens from here, so they share one chunk.
+// The admin page is a chunk of its own (src/router.ts).
 export { default as StachedDay } from "../stached/DayGame";
 export { default as StachedHome } from "../stached/Home";
 export { default as StachedLeaderboard } from "../stached/Leaderboard";

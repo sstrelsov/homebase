@@ -9,8 +9,8 @@ interface PushProps {
   date: string;
   /** Its line; empty takes a random quote from home. */
   push: string;
-  /** Why it has no push to send, if it hasn't: one went out, or none will. */
-  none: string | null;
+  /** No push to send: one went out, or none will (timing() says which). */
+  none: boolean;
   /** Browsers that get each push. */
   reach: number;
   /** The screen's request under way, if any: Suggest one waits for it. */
@@ -47,9 +47,7 @@ const Push = ({
       })}
       line={push || undefined}
     />
-    {none ? (
-      <p className={styles.label}>{none}</p>
-    ) : (
+    {!none && (
       <>
         <textarea
           data-field="push"
