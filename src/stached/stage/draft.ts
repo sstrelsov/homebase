@@ -3,7 +3,7 @@
 // (stached-api/puzzles.ts), so the page shows a problem before the API would
 // refuse it.
 import {
-  type DayPuzzle,
+  type Group,
   type Kind,
   kindOf,
   plain,
@@ -17,6 +17,11 @@ export interface DraftGroup {
   title: string;
   words: string[];
   stache: boolean;
+  /**
+   * Per tile, the word as pasted where Claude Haiku changed it (a typo it
+   * fixed), for one tap to put back; "" where it didn't.
+   */
+  pasted?: string[];
 }
 
 /** A puzzle being written: the file's shape, with ids for the editor. */
@@ -35,11 +40,13 @@ export const group = (
   title = "",
   words = ["", "", "", ""],
   stache = false,
+  pasted?: string[],
 ): DraftGroup => ({
   id: Math.random().toString(36).slice(2),
   title,
   words,
   stache,
+  ...(pasted && { pasted }),
 });
 
 /** The stache group last, after the rest in their order: easiest first. */
@@ -54,11 +61,28 @@ export const blank = (date: string): Draft => ({
   push: "",
 });
 
-export const toDraft = ({ date, groups, push }: DayPuzzle): Draft => ({
+/** A puzzle to edit: one on the schedule, or Claude Haiku's rows. */
+export const toDraft = ({
   date,
-  groups: groups.map((g) => group(g.title, [...g.words], Boolean(g.stache))),
+  groups,
+  push,
+}: {
+  date: string;
+  groups: (Group & { pasted?: string[] })[];
+  push?: string | null;
+}): Draft => ({
+  date,
+  groups: groups.map((g) =>
+    group(g.title, [...g.words], Boolean(g.stache), g.pasted),
+  ),
   push: push ?? "",
 });
+
+/** What was pasted for a tile Haiku changed, while it's still changed. */
+export const pastedFor = (g: DraftGroup, i: number) => {
+  const pasted = g.pasted?.[i];
+  return pasted && g.words[i] !== pasted ? pasted : null;
+};
 
 /**
  * What the API would refuse, and where on the board: a row's title (t:id) or

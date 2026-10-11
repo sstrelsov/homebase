@@ -86,7 +86,7 @@ try {
 
   // Organize, and Cancel mid-call: the late answer must not land.
   const paste = page.locator('[data-field="paste"]');
-  await paste.fill(`cookies: chocolate chip, oatmeal, sugar, snickerdoodle / martinis: dirty, dry, vesper, espresso
+  await paste.fill(`cookies: chocolate chip, oatmeal, sugar, snickerdoodel / martinis: dirty, dry, vesper, espresso
 things w keys - piano, map, keyboard, florida
 stache ones: pencil, imperial, toothbrush, english
 notif: Shaken, stirred, or dunked?`);
@@ -123,6 +123,15 @@ notif: Shaken, stirred, or dunked?`);
   await blur();
   await check((await page.locator("#problems").count()) === 0, "no problems once it's filled");
 
+  // A typo Haiku fixed shows what was pasted; one tap puts it back.
+  const fixedTile = page.locator('input[aria-label="Cookies 3, word 4"]');
+  const putBack = page.getByRole("button", { name: "Put back “snickerdoodel”" });
+  await check((await fixedTile.inputValue()) === "Snickerdoodle" && (await putBack.isVisible()), "a fixed typo shows what was pasted");
+  await check(await page.getByText("It fixed 1 word").isVisible(), "and the note says so");
+  await putBack.click();
+  await check((await fixedTile.inputValue()) === "snickerdoodel", `one tap puts it back (${await fixedTile.inputValue()})`);
+  await check(!(await putBack.isVisible()) && !(await page.getByText("It fixed 1 word").isVisible()), "and the marker goes");
+
   // Move a row, then make another group the stache.
   await page.getByRole("button", { name: "Move down: harder" }).first().click();
   await check(eq(await boardTitles(), ["Martinis", "Cookies 3", "Things with keys", "Mustache styles*"]), `moved down: ${await boardTitles()}`);
@@ -145,7 +154,7 @@ notif: Shaken, stirred, or dunked?`);
   await check(eq(titles(staged[0]), ["Mustache styles", "Cookies 3", "Things with keys", "Martinis*"]), `staged as on the board: ${titles(staged[0])}`);
   const tp = await post(T, "/login", { name: "Cy", password: "test" });
   const tday = (await get(T, "/today", tp.token)).puzzle;
-  await check(tday.words.includes("Snickerdoodle") && tday.words.includes("English"), "the tester's today is the staged puzzle");
+  await check(tday.words.includes("snickerdoodel") && tday.words.includes("English"), "the tester's today is the staged puzzle, as pasted");
   await check(md5(LIVE_FILE) === liveBefore, "live puzzles file unchanged by staging");
   await check(eq((await get(L, "/today", bea.token)).puzzle.words, today.words), "live players still get today's puzzle");
 
@@ -157,6 +166,7 @@ notif: Shaken, stirred, or dunked?`);
   await page.getByText("Published!").waitFor();
   const published = (json(LIVE_FILE) as Puzzle[]).find((p) => p.date === date);
   await check(published && eq(titles(published), ["Mustache styles", "Cookies 3", "Things with keys", "Martinis*"]), `published on ${date} as staged`);
+  await check(published?.groups.some((g) => g.words.includes("snickerdoodel")), "with the word as pasted, not Haiku's fix");
   await check(!(json(STAGED_FILE) as Puzzle[]).some((p) => p.date === date), "and unstaged");
   await check((json(STAGED_FILE) as Puzzle[]).length === 1, "the stale staged puzzle is still there");
   await page.getByRole("button", { name: "Done" }).click();

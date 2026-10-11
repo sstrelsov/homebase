@@ -407,8 +407,10 @@
   box-shadow: inset 0 -2px 0 currentColor;
 }
 
+/* Editing hides the look; a tap on what was pasted under a word isn't
+   editing */
 .titleField:focus-within > span,
-.tileField:focus-within > span {
+.tileField:has(> input:focus) > span {
   visibility: hidden;
 }
 
@@ -426,6 +428,38 @@
 .hole {
   composes: label from "../stached.module.css";
   color: var(--on-color);
+}
+
+/* A word Claude Haiku changed from the paste (a typo it fixed), and under
+   it, small and quiet, what was pasted: a tap there puts it back */
+.tileField[data-changed] {
+  flex-direction: column;
+  padding-bottom: 0;
+}
+
+.changedWord {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 0;
+}
+
+.original {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  padding: 1px 3px 4px;
+  overflow: hidden;
+  font-family: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: none;
+  white-space: nowrap;
+  opacity: 0.6;
 }
 
 /* What the server would refuse: a red ring, clear of any bar's color */

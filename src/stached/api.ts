@@ -1,6 +1,7 @@
 // Client for the Stached API (stached-api/ at the repo root, on the Studio). In
 // dev it goes through Vite's proxy to a local API, unless VITE_STACHED_API
 // points somewhere else.
+import type { Organized } from "../../stached-api/haiku";
 import type { Leaderboard, Mark } from "../../stached-api/leaderboard";
 import type { DayPuzzle } from "../../stached-api/puzzles";
 
@@ -146,11 +147,6 @@ export interface Schedule {
   /** Browsers that get each push. */
   reach: number;
 }
-
-/** Claude Haiku's rows for a paste, or why there's no puzzle in it yet. */
-export type Organized =
-  | { groups: DayPuzzle["groups"]; push: string | null }
-  | { notEnough: string };
 
 /**
  * How a game starts, for the admin page: in the home-screen app or the

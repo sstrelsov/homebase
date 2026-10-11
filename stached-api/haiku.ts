@@ -6,9 +6,17 @@ import { enoughWords, type Group, PUSH_ROOM, Stop } from "./puzzles";
 
 const MODEL = "claude-haiku-5-5";
 
+/**
+ * A row Haiku sorted, and per tile, the word as pasted where Haiku changed
+ * it (a typo it fixed), for the page to offer back; "" where it didn't.
+ */
+export interface SortedGroup extends Group {
+  pasted: string[];
+}
+
 /** Haiku's rows, or why there's no puzzle in the paste yet. */
 export type Organized =
-  | { groups: Group[]; push: string | null }
+  | { groups: SortedGroup[]; push: string | null }
   | { notEnough: string };
 
 interface Ask {
@@ -20,7 +28,7 @@ interface Ask {
 const ORGANIZE = `You sort rough notes into a puzzle for Stached, a daily word game like Connections: four groups of four words, and one of the groups is about mustaches (the stache group).
 
 The user pastes notes in any shape. Answer with kind "rows" and one row per group, in the order the notes give them:
-- Words: only words and phrases from the notes, tidied (capitalize the first letter, fix spacing), never new ones. A group with fewer than four words gets "" for each missing word. At most four words per row.
+- Words: one tile per word or phrase from the notes, never a new one. "from" is it exactly as the notes have it; "word" is it tidied: capitalize the first letter, fix spacing, and fix an obvious typo. A group with fewer than four words gets {"word": "", "from": ""} for each missing one. At most four tiles per row.
 - Title: the notes' own name for the group, tidied and with abbreviations spelled out, or a short name for what its words share.
 - stache: true on the one group about mustaches, if one clearly is; otherwise false on every row.
 - push: a line the notes mark for the notification (like "notif: ..."), as written; otherwise "".
@@ -30,11 +38,18 @@ If the notes don't hold at least one group of words, answer with kind "not_enoug
 
 const SUGGEST = `You write the one line under "Puzzle #N is up" in the push notification for Stached, a daily word game like Connections with a mustache theme. Given today's groups, write a playful line, under 60 characters, that hints at the day without giving anything away: no group's title and none of its words. No hashtags, no emoji, no quotation marks.`;
 
+const TILE = {
+  type: "object",
+  properties: { word: { type: "string" }, from: { type: "string" } },
+  required: ["word", "from"],
+  additionalProperties: false,
+};
+
 const ROW = {
   type: "object",
   properties: {
     title: { type: "string" },
-    words: { type: "array", items: { type: "string" } },
+    words: { type: "array", items: TILE },
     stache: { type: "boolean" },
   },
   required: ["title", "words", "stache"],
@@ -138,10 +153,46 @@ function inPaste(text: string, paste: string) {
   ).test(paste);
 }
 
+/** Lowercase letters and digits only: "Rock 'n' roll" is "rocknroll". */
+const squash = (text: string) =>
+  text.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
+
 /**
- * Sorts a paste into a puzzle's rows with Claude Haiku. A word that isn't in
- * the paste is never kept: its tile is left empty, as a missing word's is,
- * for the admin to fill.
+ * Edits from one string to the other: a character added, dropped, changed,
+ * or swapped with its neighbor.
+ */
+function edits(a: string, b: string) {
+  const d = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (_, j) => (i ? (j ? 0 : i) : j)),
+  );
+  for (let i = 1; i <= a.length; i++)
+    for (let j = 1; j <= b.length; j++) {
+      d[i][j] = Math.min(
+        d[i - 1][j] + 1,
+        d[i][j - 1] + 1,
+        d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1),
+      );
+      if (i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1])
+        d[i][j] = Math.min(d[i][j], d[i - 2][j - 2] + 1);
+    }
+  return d[a.length][b.length];
+}
+
+/**
+ * Whether a word is the pasted one, or a typo fixed in it: the same letters
+ * and digits, ignoring case, spacing and punctuation, give or take one edit
+ * for a pasted word of up to five, or two for a longer one.
+ */
+export function closeTo(word: string, pasted: string) {
+  const [a, b] = [squash(word), squash(pasted)];
+  return Boolean(a && b) && edits(a, b) <= (b.length <= 5 ? 1 : 2);
+}
+
+/**
+ * Sorts a paste into a puzzle's rows with Claude Haiku. A tile keeps Haiku's
+ * word only if it's in the paste, or close to the pasted word Haiku says it
+ * came from (closeTo); otherwise it's left empty, as a missing word's is, for
+ * the admin to fill. Nothing is invented.
  */
 export async function organize(paste: string, how: Ask): Promise<Organized> {
   // Sorting waits for enough words, so a paste like "test" costs nothing.
@@ -157,6 +208,19 @@ export async function organize(paste: string, how: Ask): Promise<Organized> {
     typeof text === "string" && loose(text) && inPaste(text, pasted)
       ? text.trim()
       : "";
+  // The pasted word a tile came from, and Haiku's word if it's close to it.
+  const tile = (filled: unknown) => {
+    const { word, from } = (filled ?? {}) as Record<string, unknown>;
+    if (typeof word !== "string") return { word: "", pasted: "" };
+    const source = [found(from), found(word)].find(
+      (text) => text && closeTo(word, text),
+    );
+    if (!source) return { word: "", pasted: "" };
+    return {
+      word: word.trim(),
+      pasted: loose(word) === loose(source) ? "" : source,
+    };
+  };
   const rows = answer.kind === "rows" ? (answer.rows ?? []).slice(0, 8) : [];
   if (!rows.length)
     return {
@@ -168,10 +232,13 @@ export async function organize(paste: string, how: Ask): Promise<Organized> {
   const stache = rows.findIndex((row) => row.stache === true);
   return {
     groups: rows.map((row, i) => {
-      const kept = Array.isArray(row.words) ? row.words.map(found) : [];
+      const tiles = [0, 1, 2, 3].map((j) =>
+        tile(Array.isArray(row.words) ? row.words[j] : undefined),
+      );
       return {
         title: typeof row.title === "string" ? row.title.trim() : "",
-        words: [0, 1, 2, 3].map((j) => kept[j] ?? ""),
+        words: tiles.map((t) => t.word),
+        pasted: tiles.map((t) => t.pasted),
         ...(i === stache && { stache: true }),
       };
     }),

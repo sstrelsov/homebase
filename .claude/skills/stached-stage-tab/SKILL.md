@@ -29,7 +29,8 @@ screenshot and always stops the stacks after. Screenshots go to
   the tester.
 - **Claude:** `fake-anthropic.ts` is preloaded into the throwaway live API
   only. No key, no real call. Each answer comes back after 900ms, and each
-  Organize answer's first title carries its call number ("Cookies 3"). That
+  Organize answer's first title carries its call number ("Cookies 3"). It
+  fixes the paste's typo "snickerdoodel" and invents "Walrus". That
   lets the flow tell which answer landed, and
   `grep "fake-anthropic call" $TMPDIR/stached-stage-tab/live/api.log` counts
   the calls. The dev server runs React's StrictMode, so a call made from an
@@ -44,7 +45,8 @@ screenshot and always stops the stacks after. Screenshots go to
 2. Cancel mid-Organize drops the late answer. Organize, Cancel and Organize
    again lands only the last answer, with one call per tap.
 3. A word Haiku invented comes back as an empty tile. Filling it clears the
-   problems.
+   problems. A typo Haiku fixed shows what was pasted under it, and one tap
+   puts that back; the word as pasted is what gets staged and published.
 4. Moving a row and picking another stache group reorder the board, and
    Stage writes that order.
 5. Stage puts the puzzle on the tester ("Staged, and on the tester"). The live

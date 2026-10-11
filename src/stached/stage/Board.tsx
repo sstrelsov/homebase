@@ -32,6 +32,7 @@ import {
   kindFor,
   nextOpen,
   numberOf,
+  pastedFor,
   problems,
   publishedOn,
   type Stage,
@@ -111,7 +112,8 @@ interface RowProps {
  * A group as a bar in its color: its title, the arrows that move it and
  * Gerald, who makes it the stache group, over its four tiles. Every title and
  * tile is a text field under the tile's look, so a tap puts the keyboard up
- * right there.
+ * right there. A word Claude Haiku changed from the paste shows what was
+ * pasted under it, which a tap puts back.
  */
 const Row = ({
   group: g,
@@ -206,6 +208,17 @@ const Row = ({
       <div className={x.tiles}>
         {g.words.map((word, i) => {
           const field = `w:${g.id}:${i}`;
+          const pasted = pastedFor(g, i);
+          const setWord = (value: string) =>
+            onChange({
+              ...g,
+              words: g.words.map((w, j) => (j === i ? value : w)),
+            });
+          const look = word.trim() ? (
+            <FitWord key={word} word={word} />
+          ) : (
+            <span className={x.hole}>Word</span>
+          );
           return (
             <div
               // biome-ignore lint/suspicious/noArrayIndexKey: a tile is its place in the row
@@ -214,25 +227,29 @@ const Row = ({
               data-selected={focus === field || undefined}
               data-empty={!word.trim() || undefined}
               data-problem={marked.has(field) || undefined}
+              data-changed={pasted !== null || undefined}
               data-edge={i === 0 ? "start" : i === 3 ? "end" : undefined}
               style={{ "--letters": word.length } as CSSProperties}
             >
-              {word.trim() ? (
-                <FitWord key={word} word={word} />
+              {pasted === null ? (
+                look
               ) : (
-                <span className={x.hole}>Word</span>
+                <>
+                  <span className={x.changedWord}>{look}</span>
+                  <button
+                    type="button"
+                    onClick={() => setWord(pasted)}
+                    aria-label={`Put back “${pasted}”`}
+                    className={x.original}
+                  >
+                    ↺ {pasted}
+                  </button>
+                </>
               )}
               <input
                 data-field={field}
                 value={word}
-                onChange={(e) =>
-                  onChange({
-                    ...g,
-                    words: g.words.map((w, j) =>
-                      j === i ? e.target.value : w,
-                    ),
-                  })
-                }
+                onChange={(e) => setWord(e.target.value)}
                 onKeyDown={onReturn(() => next(field))}
                 enterKeyHint={g.stache && i === 3 ? "done" : "next"}
                 autoComplete="off"
@@ -415,6 +432,10 @@ const BoardScreen = ({
     board.staged === draft.date && Boolean(stagedOn(schedule, draft.date));
   const rows = inOrder(draft.groups);
   const colored = rows.filter((g) => !g.stache).length;
+  // Words Haiku changed from the paste, and not yet put back.
+  const fixed = rows.flatMap((g) =>
+    g.words.filter((_, i) => pastedFor(g, i) !== null),
+  ).length;
   const fields = rows.flatMap((g) => [
     `t:${g.id}`,
     ...g.words.map((_, i) => `w:${g.id}:${i}`),
@@ -591,6 +612,8 @@ const BoardScreen = ({
             {draft.groups.some((g) => g.stache)
               ? "It picked the stache group: check it."
               : "It couldn't tell which is the stache group."}
+            {fixed > 0 &&
+              ` It fixed ${plural(fixed, "word")}: tap ↺ to put yours back.`}
           </p>
           <button
             type="button"
