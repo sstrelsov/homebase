@@ -15,7 +15,8 @@ description: >-
 # Stached puzzles
 
 A puzzle goes live in three steps: **stage** it (checked, not live), **preview**
-it (Spencer plays it on his phone before anyone else), and **confirm** it
+it (Spencer plays it on his phone before anyone else, on the tester for
+today's puzzle), and **confirm** it
 (published, with one push notification). The CLI does all of it; never edit
 `puzzles.json` by hand.
 
@@ -82,9 +83,21 @@ a line of text.
    ```
    Fix whatever it reports and stage again. It prints each puzzle's number,
    titles, push line, and when it goes live and pushes.
-3. Offer a preview: `scripts/stached preview`. Give Spencer the link it prints
-   (Tailscale on, password `test`, any name). It runs in tmux on the Studio
-   until `preview stop` or `confirm`. Nothing played there reaches the live game.
+3. Preview it. **For today's puzzle (the usual case), use the tester, not
+   `preview`.** Spencer's home-screen app is installed there, so the puzzle
+   plays in the real app and the push comes through:
+   ```bash
+   scripts/stached --tester stage - <<'EOF'
+   { …the same puzzle… }
+   EOF
+   scripts/stached --tester confirm
+   ```
+   Run `scripts/stached --tester list` until its push says `sent`, then send
+   Spencer the link `https://studio.<tailnet>.ts.net:8444/stached/`.
+   The tester doesn't show a puzzle dated after today until its date. For those,
+   run `scripts/stached preview` and give Spencer the link it prints (Tailscale
+   on, password `test`, any name). It runs in tmux on the Studio until
+   `preview stop` or `confirm`. Neither one reaches the live game.
 4. **Confirm only when Spencer says to:** `scripts/stached confirm`. It publishes
    to real players and sends a real push. Read him the line it prints.
 5. `scripts/stached list` to show where things stand.
