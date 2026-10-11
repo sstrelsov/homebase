@@ -139,20 +139,13 @@ const stachedPastRoute = createRoute({
   head: () => ({ meta: [{ title: "Past games | Stached" }] }),
 });
 
-// One puzzle's game: /stached/2026-09-29, or /stached/2026-10-11/2 for a
-// date's second puzzle. Each gets a fresh game screen.
+// One day's game: /stached/2026-09-29. Each date gets a fresh game screen.
 const stachedDayRoute = createRoute({
   getParentRoute: () => stachedRoute,
-  path: "$date/{-$part}",
+  path: "$date",
   component: lazyRouteComponent(stachedPage, "StachedDay"),
-  remountDeps: ({ params }) => `${params.date}/${params.part ?? 1}`,
-  head: ({ params }) => ({
-    meta: [
-      {
-        title: `Stached · ${params.date}${params.part ? ` · ${params.part}` : ""}`,
-      },
-    ],
-  }),
+  remountDeps: ({ params }) => params.date,
+  head: ({ params }) => ({ meta: [{ title: `Stached · ${params.date}` }] }),
 });
 
 // Dev only: the admin's past runs and puzzle staging, on made-up data

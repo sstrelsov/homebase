@@ -1,14 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import {
-  api,
-  type Day,
-  formatDate,
-  formatTime,
-  gameLink,
-  type Today,
-  weekday,
-} from "./api";
+import { api, formatDate, formatTime, type Today, weekday } from "./api";
 import HomeScreen, { isHomeScreenApp } from "./HomeScreen";
 import { Square } from "./Leaderboard";
 import Logo from "./Logo";
@@ -19,7 +11,7 @@ import { Retry } from "./Screen";
 import { useLoad, useStached } from "./session";
 import styles from "./stached.module.css";
 
-function status({ play }: Day) {
+function status(play: Today["latest"]) {
   if (!play) return null;
   if (!play.finished) return "Game in progress";
   const stache =
@@ -34,25 +26,37 @@ let introShown = false;
 
 type WeekDay = Today["week"][number];
 
-/** A puzzle under its weekday, in the leaderboard's square. */
-const DaySquare = ({ date, part, mark, today }: WeekDay) => (
-  <Link
-    {...gameLink({ date, part })}
-    className={styles.homeDay}
-    data-today={today || undefined}
-  >
-    <span className={styles.weekday} data-today={today || undefined}>
-      {weekday(date)}
-    </span>
-    <Square mark={mark} />
-  </Link>
-);
+/**
+ * A day under its weekday, in the leaderboard's square; a day with no puzzle
+ * (missed, and never caught up) is an empty slot.
+ */
+const DaySquare = ({ date, mark, today }: WeekDay) => {
+  const square = (
+    <>
+      <span className={styles.weekday} data-today={today || undefined}>
+        {weekday(date)}
+      </span>
+      <Square mark={mark} />
+    </>
+  );
+  return mark === "gap" ? (
+    <span className={styles.homeDay}>{square}</span>
+  ) : (
+    <Link
+      to="/stached/$date"
+      params={{ date }}
+      className={styles.homeDay}
+      data-today={today || undefined}
+    >
+      {square}
+    </Link>
+  );
+};
 
 /**
  * Your week under Play: the leaderboard's squares in a strip to swipe, ending
- * at today's (two on a doubled date), where it opens. A dashed square is
- * still to play. Past the days before are every game so far, then settings.
- * Tap a day to open it.
+ * at today's, where it opens. A dashed square is still to play. Past the days
+ * before are every game so far, then settings. Tap a day to open it.
  */
 const Week = ({
   week,
@@ -111,7 +115,7 @@ const Week = ({
           <span className={styles.homeTile}>View all</span>
         </Link>
         {week.map((day) => (
-          <DaySquare key={day.number} {...day} />
+          <DaySquare key={day.date} {...day} />
         ))}
       </nav>
       {away && (
@@ -179,15 +183,22 @@ const Home = () => {
     introShown = true;
   }, []);
 
-  // Asks again, in case the day has turned (or you've finished one of a
-  // doubled date's) since this screen loaded.
+  // Asks again, in case the day has turned (or you've finished one of
+  // today's) since this screen loaded.
   const play = () =>
-    api
-      .today(session.token)
-      .then((next) => navigate(gameLink(next.puzzle)), fail);
+    api.today(session.token).then(
+      (next) =>
+        navigate({
+          to: "/stached/$date",
+          params: { date: next.puzzle.date },
+        }),
+      fail,
+    );
 
   const rise = intro ? styles.rise : "";
-  const note = today ? status(today) : "Loading…";
+  const note = today ? status(today.latest) : "Loading…";
+  // Today's puzzles, more than one when a missed day's came out with today's.
+  const { nth, of } = today?.puzzle ?? { nth: 1, of: 1 };
 
   return (
     // At least the screen, less the page's padding, with the quotes in
@@ -202,7 +213,9 @@ const Home = () => {
       >
         <h1 className={`${styles.title} text-[32px]`}>Stached</h1>
         <p className={styles.label}>
-          {today ? formatDate(today.puzzle.date) : " "}
+          {today
+            ? formatDate(today.week.at(-1)?.date ?? today.puzzle.date)
+            : " "}
         </p>
       </div>
       <div className={`${rise} flex gap-3`} style={{ animationDelay: "1.3s" }}>
@@ -228,9 +241,7 @@ const Home = () => {
           disabled={!today}
           className={`${styles.button} ${styles.primary} flex-1`}
         >
-          {today && today.puzzle.parts > 1
-            ? `Play ${today.puzzle.part} of ${today.puzzle.parts}`
-            : "Play"}
+          {of > 1 ? `Play ${nth} of ${of}` : "Play"}
         </button>
       </div>
       <div className={rise} style={{ animationDelay: "1.4s" }}>
@@ -259,9 +270,7 @@ const Home = () => {
           <NotificationsDialog
             {...notifications}
             // The one after today's last
-            number={
-              today.puzzle.number + today.puzzle.parts - today.puzzle.part + 1
-            }
+            number={today.puzzle.number + of - nth + 1}
           />
         )
       ) : (

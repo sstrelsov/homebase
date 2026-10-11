@@ -1,7 +1,7 @@
 // Client for the Stached API (stached-api/ at the repo root, on the Studio). In
 // dev it goes through Vite's proxy to a local API, unless VITE_STACHED_API
 // points somewhere else.
-import type { Leaderboard, Mark } from "../../stached-api/leaderboard";
+import type { Leaderboard, Mark, WeekDay } from "../../stached-api/leaderboard";
 
 const API =
   import.meta.env.VITE_STACHED_API ??
@@ -42,7 +42,7 @@ export interface Score {
 
 /** A puzzle so far, with how you did on it. */
 export interface PastGame
-  extends Pick<Day["puzzle"], "number" | "date" | "part" | "parts" | "today"> {
+  extends Pick<Day["puzzle"], "date" | "today" | "next"> {
   play: Pick<Play, "finished" | "completed" | "stachedMs"> | null;
 }
 
@@ -50,15 +50,20 @@ export interface PastGame
 export interface Day {
   puzzle: {
     id: number;
-    /** #1 is the first puzzle, by date and part. */
+    /** #1 is the first puzzle, by date. */
     number: number;
     date: string;
-    /** Which of its date's puzzles it is, played in order: 1, 2, … */
-    part: number;
-    /** How many puzzles its date has: 2 or more on a doubled date. */
-    parts: number;
-    /** One of today's puzzles: the newest date's. */
+    /**
+     * One of today's: out on the newest day, with any missed day's puzzle
+     * caught up along with it.
+     */
     today: boolean;
+    /** Its place among the puzzles out on its day, oldest first: 1, 2, … */
+    nth: number;
+    /** How many came out on its day: 2 or more when catching up. */
+    of: number;
+    /** The date of the next puzzle out on its day, which Next opens. */
+    next: string | null;
     words: string[];
     groupCount: number;
     /** Before any bonus life (Play.bonusLife). */
@@ -69,17 +74,13 @@ export interface Day {
 }
 
 /**
- * Today's game (the first of today's you haven't finished, or the last), and
+ * Today's game (the oldest of today's you haven't finished, or the last), and
  * your squares for the week, as on the leaderboard.
  */
 export interface Today extends Day {
-  week: {
-    number: number;
-    date: string;
-    part: number;
-    today: boolean;
-    mark: Mark;
-  }[];
+  week: (Pick<WeekDay, "date" | "today"> & { mark: Mark })[];
+  /** Your game started last among today's, for home's note. */
+  latest: Pick<Play, "finished" | "completed" | "stachedMs"> | null;
 }
 
 // The leaderboard's shape comes with its rules, so the two can't drift apart.
@@ -183,9 +184,9 @@ export const api = {
   today: (token: string) => request<Today>("/today", { token }),
   leaderboard: (token: string) =>
     request<Leaderboard>("/leaderboard", { token }),
-  /** Starts that puzzle's game, or picks it back up. */
-  start: (token: string, date: string, part: number, how: HowStarted) =>
-    request<Day>("/start", { token, body: { date, part, ...how } }),
+  /** Starts that day's game, or picks it back up. */
+  start: (token: string, date: string, how: HowStarted) =>
+    request<Day>("/start", { token, body: { date, ...how } }),
   pastGames: (token: string) => request<PastGame[]>("/puzzles", { token }),
   /** Tells the server the board is on screen, so the clock keeps running. */
   clock: (token: string, puzzleId: number) =>
@@ -285,19 +286,6 @@ export function formatDate(
   const [year, month, day] = date.split("-").map(Number);
   return new Date(year, month - 1, day).toLocaleDateString("en-US", options);
 }
-
-/**
- * A puzzle's game, for a link: /stached/2026-10-11, with /2 after it for its
- * date's second puzzle.
- */
-export const gameLink = ({
-  date,
-  part,
-}: Pick<Day["puzzle"], "date" | "part">) =>
-  ({
-    to: "/stached/$date/{-$part}",
-    params: { date, part: part > 1 ? String(part) : undefined },
-  }) as const;
 
 /** "2026-10-05" → "Mo", as the leaderboard and home head each day. */
 export const weekday = (date: string) =>

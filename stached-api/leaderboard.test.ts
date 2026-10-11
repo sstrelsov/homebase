@@ -19,7 +19,6 @@ const DAYS: Day[] = DATES.map((date, i) => ({
   id: i + 1,
   number: i + 1,
   date,
-  part: 1,
   today: i + 1 === TODAY,
   counts: i + 1 === TODAY,
 }));
@@ -48,6 +47,12 @@ const playing = (name: string, day: number, seconds: number | null = null) =>
 const late = (played: Game): Game => ({ ...played, late: true });
 
 const board = (...games: Game[]) => leaderboardOf(DAYS, games);
+// The week's days, as the leaderboard heads them: #2 to #8.
+const WEEK_DAYS = DAYS.slice(1).map(({ date, number, today }) => ({
+  date,
+  number,
+  today,
+}));
 const player = (games: Game[], name: string) =>
   board(...games).players.find((p) => p.name === name);
 
@@ -228,61 +233,6 @@ describe("yesterday's puzzle, while it still counts", () => {
   });
 });
 
-describe("a date with two puzzles", () => {
-  // Today doubles up after a missed day: #9 is a second puzzle on #8's date.
-  // Each is its own square and fastest stache; the week is the last seven
-  // puzzles, so it starts a day later.
-  const doubled: Day[] = [
-    ...DAYS,
-    {
-      id: 9,
-      number: 9,
-      date: DATES[TODAY - 1],
-      part: 2,
-      today: true,
-      counts: true,
-    },
-  ];
-  const games = [
-    solved("Ada", TODAY, 30),
-    solved("Bo", TODAY, 40),
-    solved("Bo", 9, 20),
-    missed("Ada", 9, 25),
-  ];
-
-  test("gives each puzzle its own column, fastest stache and points", () => {
-    const { days, fastestToday, players } = leaderboardOf(doubled, games);
-    expect(days.map((day) => day.number)).toEqual([3, 4, 5, 6, 7, 8, 9]);
-    expect(days.slice(-2).map((day) => day.date)).toEqual([
-      DATES[TODAY - 1],
-      DATES[TODAY - 1],
-    ]);
-    expect(fastestToday).toEqual([
-      { number: 8, name: "Ada", stachedMs: 30_000, solved: true },
-      { number: 9, name: "Bo", stachedMs: 20_000, solved: true },
-    ]);
-    expect(
-      players.map(({ name, marks, points, streak }) => [
-        name,
-        marks.slice(-2),
-        points,
-        streak,
-      ]),
-    ).toEqual([
-      ["Bo", ["solved", "won"], 3, 2],
-      ["Ada", ["won", "missed"], 2, 0],
-    ]);
-  });
-
-  test("leaves each open until it's played, on home too", () => {
-    const mine = [solved("Ada", TODAY, 30)];
-    expect(weekOf(doubled, mine, mine).slice(-2)).toEqual([
-      { number: 8, date: DATES[TODAY - 1], part: 1, today: true, mark: "won" },
-      { number: 9, date: DATES[TODAY - 1], part: 2, today: true, mark: "open" },
-    ]);
-  });
-});
-
 describe("a player's week, for home", () => {
   const marks = (days: Day[], games: Game[], mine: Game[]) =>
     weekOf(days, games, mine).map((day) => day.mark);
@@ -376,15 +326,13 @@ test("a puzzle not out yet never shows, nor do its games or words", () => {
     solved("Oli", 9, 1), // #9 isn't out
     solved("Uma", TODAY, 50),
   ]);
-  expect(result.days).toEqual(
-    DAYS.slice(1).map(({ number, date, today }) => ({ number, date, today })),
-  );
+  expect(result.days).toEqual(WEEK_DAYS);
   expect(result.players.map((p) => p.name)).toEqual(["Uma"]);
   expect(result.fastestToday.map((f) => f.name)).toEqual(["Uma"]);
   expect(JSON.stringify(result)).not.toContain("FUTURE");
 });
 
-test("the squares are the last 7 puzzles, but points and a streak run back further", () => {
+test("the squares are the last 7 days, but points and a streak run back further", () => {
   const pia = player(
     DAYS.map((day) => solved("Pia", day.id, 45)),
     "Pia",
@@ -418,11 +366,7 @@ test("lists a player whose only games are older than the week, with their points
 
 test("is empty before anyone finishes, or any puzzle is out", () => {
   expect(board(playing("Vi", TODAY, 12))).toEqual({
-    days: DAYS.slice(1).map(({ number, date, today }) => ({
-      number,
-      date,
-      today,
-    })),
+    days: WEEK_DAYS,
     fastestToday: [],
     players: [],
   });
@@ -430,5 +374,101 @@ test("is empty before anyone finishes, or any puzzle is out", () => {
     days: [],
     fastestToday: [],
     players: [],
+  });
+});
+
+describe("catching up on a missed day", () => {
+  // Today (#8's date) Spencer catches up on the day before: #7 comes out
+  // today too, with #8, so both are today's.
+  const caughtUp = DAYS.map((day) => ({
+    ...day,
+    today: day.id >= 7,
+    counts: day.id >= 7,
+  }));
+
+  test("gives each of today's its own fastest stache and square", () => {
+    const { days, fastestToday, players } = leaderboardOf(caughtUp, [
+      solved("Ada", 7, 30),
+      solved("Bo", 7, 40),
+      solved("Bo", TODAY, 20),
+      missed("Ada", TODAY, 25),
+    ]);
+    expect(days.slice(-2)).toEqual([
+      { date: DATES[6], number: 7, today: true },
+      { date: DATES[7], number: 8, today: true },
+    ]);
+    expect(fastestToday).toEqual([
+      { number: 7, name: "Ada", stachedMs: 30_000, solved: true },
+      { number: 8, name: "Bo", stachedMs: 20_000, solved: true },
+    ]);
+    expect(
+      players.map(({ name, marks, points }) => [name, marks.slice(-2), points]),
+    ).toEqual([
+      ["Bo", ["solved", "won"], 3],
+      ["Ada", ["won", "missed"], 2],
+    ]);
+  });
+
+  test("leaves each open on home until it's played", () => {
+    const mine = [solved("Ada", 7, 30)];
+    expect(weekOf(caughtUp, mine, mine).slice(-2)).toEqual([
+      { date: DATES[6], today: true, mark: "won" },
+      { date: DATES[7], today: true, mark: "open" },
+    ]);
+  });
+});
+
+describe("a missed day never caught up", () => {
+  // #5's day (Sep 29) never got a puzzle: the rest move up a number, and the
+  // week keeps an empty slot under its weekday rather than reach back.
+  const gap = DAYS.filter((day) => day.id !== 5).map((day, i) => ({
+    ...day,
+    id: i + 1,
+    number: i + 1,
+  }));
+  const last = gap.length;
+
+  test("stays a gap in the week, which is still 7 days", () => {
+    const { days, players } = leaderboardOf(gap, [
+      solved("Cy", 4, 30),
+      solved("Cy", last, 30),
+    ]);
+    expect(days.map((day) => [day.date, day.number])).toEqual([
+      [DATES[1], 2],
+      [DATES[2], 3],
+      [DATES[3], 4],
+      [DATES[4], null],
+      [DATES[5], 5],
+      [DATES[6], 6],
+      [DATES[7], 7],
+    ]);
+    expect(players[0].marks).toEqual([
+      "none",
+      "none",
+      "won",
+      "gap",
+      "none",
+      "none",
+      "won",
+    ]);
+    // A gap isn't a puzzle missed, so the streak runs over it.
+    expect(players[0].streak).toBe(1);
+  });
+
+  test("shows as a gap on home too", () => {
+    expect(weekOf(gap, [], []).map((day) => day.mark)).toEqual([
+      "none",
+      "none",
+      "none",
+      "gap",
+      "none",
+      "none",
+      "open",
+    ]);
+  });
+
+  test("starts the week no earlier than the first puzzle", () => {
+    expect(leaderboardOf(DAYS.slice(-2), []).days).toHaveLength(2);
+    expect(weekOf(DAYS.slice(-2), [], [])).toHaveLength(2);
   });
 });

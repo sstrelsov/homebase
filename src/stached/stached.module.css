@@ -848,8 +848,8 @@
 }
 
 /* A day: green solved, red missed, Gerald on the day's fastest stache, a dot
-   for a day not finished in time, and a dashed outline for one that still
-   counts until it's finished */
+   for a day not finished in time, a dashed outline for one that still counts
+   until it's finished, and nothing for a day with no puzzle */
 .mark {
   display: grid;
   flex: none;

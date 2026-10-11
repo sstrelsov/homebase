@@ -94,18 +94,18 @@ test("the day's line reads like the game's labels", () => {
   );
 });
 
-test("a day with two puzzles shows both", () => {
+test("puzzles out together show together", () => {
   expect(dayLine({ numbers: [17, 18], date: "2026-10-11" })).toBe(
     "#17 AND #18 · SUN, OCT 11",
   );
   const line = (card: Picture) => box(card, 0, 440, 1200, 530);
-  const doubled = decodePng(
+  const both = decodePng(
     renderCard({ numbers: [17, 18], date: "2026-10-11" }, "blue"),
   );
   const single = decodePng(
     renderCard({ numbers: [17], date: "2026-10-11" }, "blue"),
   );
-  expect(line(doubled)).not.toBe(line(single));
+  expect(line(both)).not.toBe(line(single));
 });
 
 test("the border takes the colors in turn, never the same twice running", () => {

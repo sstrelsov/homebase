@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { changes, publish, timing, unpublish } from "./cli";
-import { type DayPuzzle, puzzlePath } from "./puzzles";
+import type { DayPuzzle } from "./puzzles";
 import examples from "./puzzles.example.json";
 
 // The made-up sample, published on two days, and a third day staged.
@@ -35,7 +35,7 @@ describe("confirming staged puzzles", () => {
     };
     expect(
       changes(PUBLISHED, [respelled], new Map([["2026-10-01", 5]])),
-    ).toEqual([{ date: "2026-10-01", part: 1, kind: "same", games: 0 }]);
+    ).toEqual([{ date: "2026-10-01", kind: "same", games: 0 }]);
     expect(publish(PUBLISHED, [respelled], new Map())[0]).toBe(PUBLISHED[0]);
   });
 
@@ -48,7 +48,7 @@ describe("confirming staged puzzles", () => {
     const games = new Map([["2026-10-01", 3]]);
     const pushed = { ...on("2026-10-01"), push: "Read all about it" };
     expect(changes(PUBLISHED, [pushed], games)).toEqual([
-      { date: "2026-10-01", part: 1, kind: "push", games: 0 },
+      { date: "2026-10-01", kind: "push", games: 0 },
     ]);
     expect(publish(PUBLISHED, [pushed], games)[0].push).toBe(
       "Read all about it",
@@ -71,61 +71,84 @@ describe("confirming staged puzzles", () => {
   });
 });
 
-describe("a date with two puzzles", () => {
-  const second = (date: string, puzzle = SAMPLE): DayPuzzle => ({
-    ...on(date, puzzle),
-    part: 2,
-  });
+describe("catching up on a missed day", () => {
+  // Sunday, October 11, 8am in New York. Friday's push went out; Sunday's
+  // puzzle was confirmed the night before, and Saturday's was missed.
+  const now = new Date("2026-10-11T12:00:00Z");
+  const published = [on("2026-10-09"), on("2026-10-11")];
+  const pushed = new Set(["2026-10-09"]);
+  const outs = (puzzles: DayPuzzle[]) => puzzles.map((p) => [p.date, p.out]);
 
-  test("stages both at once, or a part 2 beside a published part 1", () => {
-    const both = publish(
-      [],
-      [on("2026-10-03"), second("2026-10-03")],
-      new Map(),
-    );
-    expect(both.map(puzzlePath)).toEqual(["2026-10-03", "2026-10-03/2"]);
-    const added = publish(PUBLISHED, [second("2026-10-01")], new Map());
-    expect(added.map(puzzlePath)).toEqual([
-      "2026-10-01",
-      "2026-10-01/2",
-      "2026-10-02",
-    ]);
-    expect(changes(PUBLISHED, [second("2026-10-01")], new Map())).toEqual([
-      { date: "2026-10-01", part: 2, kind: "new", games: 0 },
-    ]);
-  });
-
-  test("won't stage a part 2 without a part 1", () => {
-    expect(() => publish(PUBLISHED, [second("2026-10-03")], new Map())).toThrow(
-      "2026-10-03: has a part 2 but no part 1",
-    );
-  });
-
-  test("refuses to change a part 2 people have played, by its address", () => {
-    const published = [...PUBLISHED, second("2026-10-02")];
-    const games = new Map([
-      ["2026-10-02", 4],
-      ["2026-10-02/2", 3],
-    ]);
-    const edited = { ...structuredClone(second("2026-10-02")) };
-    edited.groups[0].words[0] = "Crumpet";
-    expect(() => publish(published, [edited], games)).toThrow(
-      /Fri, Oct 2 \(2026-10-02\/2\): 3 games/,
-    );
-    // Part 1 is untouched, so its games are never at stake.
-    expect(changes(published, [edited], games)).toEqual([
-      { date: "2026-10-02", part: 2, kind: "edit", games: 3 },
-    ]);
-  });
-
-  test("takes down a part 2, but not a part 1 that has one", () => {
-    const published = [...PUBLISHED, second("2026-10-02")];
+  test("brings a missed day's puzzle out today, numbered by its date", () => {
     expect(
-      unpublish(published, "2026-10-02/2", new Map()).map(puzzlePath),
-    ).toEqual(["2026-10-01", "2026-10-02"]);
-    expect(() => unpublish(published, "2026-10-02", new Map())).toThrow(
-      "2026-10-02/2 comes after it on its date: remove that first.",
+      outs(publish(published, [on("2026-10-10")], new Map(), { pushed, now })),
+    ).toEqual([
+      ["2026-10-09", undefined],
+      ["2026-10-10", "2026-10-11"],
+      ["2026-10-11", undefined],
+    ]);
+  });
+
+  test("catches up on several days at once, with today's", () => {
+    const staged = ["2026-10-07", "2026-10-08", "2026-10-11"].map((d) => on(d));
+    const pushedTuesday = new Set(["2026-10-06"]);
+    expect(
+      outs(
+        publish([on("2026-10-06")], staged, new Map(), {
+          pushed: pushedTuesday,
+          now,
+        }),
+      ),
+    ).toEqual([
+      ["2026-10-06", undefined],
+      ["2026-10-07", "2026-10-11"],
+      ["2026-10-08", "2026-10-11"],
+      ["2026-10-11", undefined],
+    ]);
+  });
+
+  test("leaves today's and upcoming days out on their own dates", () => {
+    const staged = [on("2026-10-12"), on("2026-10-13")];
+    expect(
+      outs(publish(published, staged, new Map(), { pushed, now })).slice(-2),
+    ).toEqual([
+      ["2026-10-12", undefined],
+      ["2026-10-13", undefined],
+    ]);
+  });
+
+  test("keeps the day a published puzzle came out when it's edited", () => {
+    const caughtUp = [...published, { ...on("2026-10-10"), out: "2026-10-11" }];
+    const puzzles = publish(caughtUp, [edited("2026-10-10")], new Map(), {
+      pushed,
+      now,
+    });
+    expect(puzzles[1]).toMatchObject({ date: "2026-10-10", out: "2026-10-11" });
+    expect(
+      publish(published, [edited("2026-10-09")], new Map(), { pushed, now })[0]
+        .out,
+    ).toBeUndefined();
+  });
+
+  test("refuses once a later day's push has gone out, since it would renumber", () => {
+    expect(() =>
+      publish(published, [on("2026-10-10")], new Map(), {
+        pushed: new Set(["2026-10-09", "2026-10-11"]),
+        now,
+      }),
+    ).toThrow(
+      /^Too late to catch up on Sat, Oct 10 \(2026-10-10\): Sun, Oct 11's push has gone out/,
     );
+    expect(() =>
+      publish(published, [on("2026-10-08")], new Map(), { pushed, now }),
+    ).toThrow(/Too late to catch up on Thu, Oct 8 .*Fri, Oct 9's push/);
+    // Editing a puzzle that's out never renumbers anything.
+    expect(() =>
+      publish(published, [edited("2026-10-09")], new Map(), {
+        pushed: new Set(["2026-10-09", "2026-10-11"]),
+        now,
+      }),
+    ).not.toThrow();
   });
 });
 
@@ -147,7 +170,7 @@ describe("removing a puzzle", () => {
 
   test("says so when there's no such puzzle", () => {
     expect(() => unpublish(PUBLISHED, "2026-12-25", new Map())).toThrow(
-      "No published puzzle at 2026-12-25.",
+      "No published puzzle on 2026-12-25.",
     );
   });
 
@@ -189,24 +212,18 @@ describe("timing", () => {
   test("a new push line for today goes out if its push hasn't", () => {
     expect(
       timing("2026-10-01", "push", false, new Date("2026-10-01T12:00:00Z")),
-    ).toBe("The new line goes out with its push at 9:12am.");
+    ).toBe("Its push goes out at 9:12am.");
+    expect(timing("2026-10-01", "push", false, night)).toBe(
+      "Its push goes out right away.",
+    );
     expect(timing("2026-10-01", "push", true, night)).toContain(
       "A puzzle never pushes twice.",
     );
   });
 
-  test("a part 2 for today pushes with its date, or not at all once that's out", () => {
-    expect(timing("2026-10-01", "new", false, night)).toBe(
-      "It goes live and pushes right away.",
-    );
+  test("a puzzle that joins today's after their push gets none", () => {
     expect(timing("2026-10-01", "new", true, night)).toBe(
       "It goes live right away, with no push: today's went out already.",
-    );
-  });
-
-  test("a puzzle dated before today gets no push", () => {
-    expect(timing("2026-09-30", "new", false, night)).toBe(
-      "It's dated before today, so it gets no push.",
     );
   });
 });

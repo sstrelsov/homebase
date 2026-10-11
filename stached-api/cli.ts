@@ -21,14 +21,13 @@ import {
   announceDue,
   newYorkTime,
   vapidKeys as pushKeys,
+  pushTitle,
 } from "./push";
 import {
+  byDate,
   type DayPuzzle,
-  gamesByPuzzle,
-  inOrder,
-  missingParts,
-  partOf,
-  puzzlePath,
+  gamesByDate,
+  outOf,
   puzzleProblems,
   readPuzzles,
   syncPuzzles,
@@ -40,16 +39,17 @@ const USAGE = `Stage, play and publish Stached puzzles.
   stached list               every puzzle, published and staged
   stached stage <file>       check puzzles (one, or a list) and stage them,
                              replacing what's staged, and make the first
-                             date's today's on the tester; - reads stdin
-  stached preview [date]     make a staged date's puzzles (the first, or that
+                             one's day today's on the tester; - reads stdin
+  stached preview [date]     make a staged puzzle's day (the first, or that
                              date's) today's on the tester
   stached confirm            publish what's staged
-  stached remove <date>      take a published puzzle down (<date>/2 for the
-                             date's part 2)
+  stached remove <date>      take a published puzzle down
   stached vapid-keys         make the API's push keys, for api.env
   stached push-again         send today's push again (the tester only)
 
-A date can have more than one puzzle: give the second "part": 2, and so on.
+To catch up on a missed day, stage its puzzle (dated that day) with today's:
+it comes out today, with today's, in one push. That works until today's push
+goes out.
 Changing or removing a puzzle people have played deletes their games, so
 confirm and remove refuse to unless you add --delete-games.`;
 
@@ -95,10 +95,6 @@ const day = (date: string) =>
     timeZone: "UTC",
   });
 
-/** "Fri, Oct 2 (2026-10-02)", or "Sun, Oct 11 (2026-10-11/2)" for a part 2. */
-const label = (puzzle: Pick<DayPuzzle, "date" | "part">) =>
-  `${day(puzzle.date)} (${puzzlePath(puzzle)})`;
-
 /** "9:12am" */
 const pushTime = (() => {
   const [hour, minute] = ANNOUNCE_AT.split(":").map(Number);
@@ -108,37 +104,38 @@ const pushTime = (() => {
 const today = (now = new Date()) => newYorkTime(now).slice(0, 10);
 
 /**
- * When a puzzle published now goes live, and when its push goes out: one per
- * date, so a puzzle added to a date whose push went out gets none.
+ * When a puzzle published now goes live, and when its push goes out: one for
+ * every puzzle out on its day (out), so one that joins a day whose push went
+ * out gets none.
  */
 export function timing(
-  date: string,
+  out: string,
   kind: Change["kind"],
-  announced: boolean,
+  pushed: boolean,
   now = new Date(),
 ) {
   const current = today(now);
-  if (kind === "push" && date === current && !announceDue(date, now))
-    return `The new line goes out with its push at ${pushTime}.`;
-  if (kind !== "new" && date <= current)
+  if (kind === "push" && out === current && !pushed)
+    return announceDue(out, now)
+      ? "Its push goes out right away."
+      : `Its push goes out at ${pushTime}.`;
+  if (kind !== "new" && out <= current)
     return "It's out already, so the change is live right away. A puzzle never pushes twice.";
-  if (date < current) return "It's dated before today, so it gets no push.";
-  if (date > current)
-    return `It goes live at midnight New York time on ${day(date)}, with its push at ${pushTime}.`;
-  if (announced)
+  if (out > current)
+    return `It goes live at midnight New York time on ${day(out)}, with its push at ${pushTime}.`;
+  if (pushed)
     return "It goes live right away, with no push: today's went out already.";
-  return announceDue(date, now)
+  return announceDue(out, now)
     ? "It goes live and pushes right away."
     : `It goes live right away, with its push at ${pushTime}.`;
 }
 
 /**
- * A puzzle kept plain: its date and part, each group's title, words and
- * stache flag, and its push line.
+ * A puzzle kept plain: its date, each group's title, words and stache flag,
+ * and its push line.
  */
-const plain = ({ date, part, groups, push }: DayPuzzle): DayPuzzle => ({
+const plain = ({ date, groups, push }: DayPuzzle): DayPuzzle => ({
   date,
-  ...(partOf({ part }) > 1 && { part }),
   groups: groups.map(({ title, words, stache }) => ({
     title,
     words,
@@ -147,31 +144,35 @@ const plain = ({ date, part, groups, push }: DayPuzzle): DayPuzzle => ({
   ...(push && { push }),
 });
 
+/**
+ * A puzzle as the file keeps it: plain, and the day it came out, if that's
+ * after its date.
+ */
+const filed = (puzzle: DayPuzzle, out: string | undefined): DayPuzzle => {
+  const { date, ...rest } = plain(puzzle);
+  return { date, ...(out && out > date && { out }), ...rest };
+};
+
 /** The same groups, give or take how their JSON is spelled. */
 const sameGroups = (a: DayPuzzle, b: DayPuzzle) =>
   JSON.stringify(plain(a).groups) === JSON.stringify(plain(b).groups);
 
 interface Change {
   date: string;
-  part: number;
   /** "push" changes only the push line, which keeps the puzzle's games. */
   kind: "new" | "edit" | "push" | "same";
   /** Games that publishing deletes. */
   games: number;
 }
 
-/**
- * What publishing each staged puzzle does to the published ones: each takes
- * the place of the published puzzle with its date and part, if there is one.
- */
+/** What publishing each staged puzzle does to the published ones. */
 export function changes(
   published: DayPuzzle[],
   staged: DayPuzzle[],
   games: Map<string, number>,
 ): Change[] {
   return staged.map((puzzle) => {
-    const path = puzzlePath(puzzle);
-    const old = published.find((p) => puzzlePath(p) === path);
+    const old = published.find((p) => p.date === puzzle.date);
     const kind = !old
       ? "new"
       : !sameGroups(old, puzzle)
@@ -179,8 +180,8 @@ export function changes(
         : old.push !== puzzle.push
           ? "push"
           : "same";
-    const lost = kind === "edit" ? (games.get(path) ?? 0) : 0;
-    return { date: puzzle.date, part: partOf(puzzle), kind, games: lost };
+    const lost = kind === "edit" ? (games.get(puzzle.date) ?? 0) : 0;
+    return { date: puzzle.date, kind, games: lost };
   });
 }
 
@@ -188,14 +189,14 @@ const gameCount = (n: number) => `${n} game${n === 1 ? "" : "s"}`;
 
 /** Refuses to delete anyone's games without --delete-games. */
 function guard(
-  losses: { date: string; part: number; games: number }[],
+  losses: { date: string; games: number }[],
   verb: string,
   deleteGames: boolean,
 ) {
   const played = losses.filter((loss) => loss.games > 0);
   if (!played.length || deleteGames) return;
   const lines = played.map(
-    (loss) => `  ${label(loss)}: ${gameCount(loss.games)}`,
+    ({ date, games }) => `  ${day(date)} (${date}): ${gameCount(games)}`,
   );
   throw new Stop(
     [
@@ -206,58 +207,72 @@ function guard(
   );
 }
 
-/** A puzzles file in play order, once no date is missing a part. */
-function checked(puzzles: DayPuzzle[]) {
-  const missing = missingParts(puzzles);
-  if (missing.length) throw new Stop(missing.join("\n"));
-  return puzzles.sort(inOrder);
+/**
+ * Refuses to catch up on a missed day once a later day's push has gone out:
+ * its puzzle would take the number people were sent, and that push can't
+ * name it.
+ */
+function tooLate(date: string, pushed: Set<string>) {
+  const since = [...pushed].filter((d) => d > date).sort();
+  if (!since.length) return;
+  throw new Stop(
+    `Too late to catch up on ${day(date)} (${date}): ${day(since[0])}'s push has gone out, so it would change the numbers people were sent. A missed day can only come out with the next puzzles, before their push.`,
+  );
 }
 
 /**
- * The puzzles file after publishing staged puzzles: new ones added, edited
- * ones replaced, identical ones left as they were.
+ * The puzzles file after publishing staged puzzles: new dates added, edited
+ * ones replaced, identical ones left as they were. A new one dated before
+ * today catches up on a missed day: it comes out today, with today's.
+ * `pushed` holds the dates whose push has gone out.
  */
 export function publish(
   published: DayPuzzle[],
   staged: DayPuzzle[],
   games: Map<string, number>,
-  { deleteGames = false } = {},
+  { deleteGames = false, pushed = new Set<string>(), now = new Date() } = {},
 ) {
   const planned = changes(published, staged, games);
   guard(planned, "change a published puzzle", deleteGames);
-  const puzzles = new Map(published.map((p) => [puzzlePath(p), p]));
+  const current = today(now);
+  const puzzles = new Map(published.map((p) => [p.date, p]));
   staged.forEach((puzzle, i) => {
-    if (planned[i].kind !== "same") puzzles.set(puzzlePath(puzzle), puzzle);
+    if (planned[i].kind === "same") return;
+    const old = puzzles.get(puzzle.date);
+    if (!old && puzzle.date < current) tooLate(puzzle.date, pushed);
+    // A published puzzle keeps the day it came out.
+    puzzles.set(
+      puzzle.date,
+      filed(
+        puzzle,
+        old ? old.out : puzzle.date < current ? current : undefined,
+      ),
+    );
   });
-  return checked([...puzzles.values()]);
+  return [...puzzles.values()].sort(byDate);
 }
 
-/** The puzzles file without one puzzle, named by its path (date[/part]). */
+/** The puzzles out on the same day as the one with this date, oldest first. */
+const outWith = (puzzles: DayPuzzle[], date: string) => {
+  const puzzle = puzzles.find((p) => p.date === date);
+  return puzzle ? puzzles.filter((p) => outOf(p) === outOf(puzzle)) : [];
+};
+
+/** The puzzles file without one puzzle. */
 export function unpublish(
   published: DayPuzzle[],
-  path: string,
+  date: string,
   games: Map<string, number>,
   { deleteGames = false } = {},
 ) {
-  const puzzle = published.find((p) => puzzlePath(p) === path);
-  if (!puzzle) throw new Stop(`No published puzzle at ${path}.`);
+  if (!published.some((p) => p.date === date))
+    throw new Stop(`No published puzzle on ${date}.`);
   if (published.length === 1)
     throw new Stop(
       "It's the only puzzle. Stage and confirm a replacement for it instead.",
     );
-  const later = published.find(
-    (p) => p.date === puzzle.date && partOf(p) > partOf(puzzle),
-  );
-  if (later)
-    throw new Stop(
-      `${puzzlePath(later)} comes after it on its date: remove that first.`,
-    );
-  guard(
-    [{ date: puzzle.date, part: partOf(puzzle), games: games.get(path) ?? 0 }],
-    "remove it",
-    deleteGames,
-  );
-  return published.filter((p) => p !== puzzle);
+  guard([{ date, games: games.get(date) ?? 0 }], "remove it", deleteGames);
+  return published.filter((p) => p.date !== date);
 }
 
 /** The puzzles file, written with a copy of what it replaced, then Postgres. */
@@ -269,56 +284,60 @@ async function savePuzzles(puzzles: DayPuzzle[]) {
   await syncPuzzles(puzzles);
 }
 
-/**
- * Each puzzle's number (#1 is the first by date and part) once these are
- * published, by path.
- */
+/** Each puzzle's number (#1 is the first by date) once these are published. */
 const numbers = (puzzles: DayPuzzle[]) =>
-  new Map(puzzles.map((p, i) => [puzzlePath(p), i + 1]));
+  new Map(puzzles.map((p, i) => [p.date, i + 1]));
 
-/** The dates whose push has gone out. */
-const announcedDates = async () =>
-  new Set(
+/** The dates whose push has gone out (a push claims each of its dates). */
+const pushedDates = async () =>
+  new Set<string>(
     (
       await sql`select to_char(date, 'YYYY-MM-DD') as date from announcements`
     ).map((row: { date: string }) => row.date),
   );
 
 async function list() {
-  const [published, staged, games, announced] = await Promise.all([
+  const [published, staged, games, pushed] = await Promise.all([
     readPuzzles(puzzlesFile()),
     readStaged(),
-    gamesByPuzzle(),
-    announcedDates(),
+    gamesByDate(),
+    pushedDates(),
   ]);
   const now = new Date();
   const current = today(now);
-  const newest = published.findLast((p) => p.date <= current)?.date;
-  const push = (date: string) =>
-    announced.has(date)
+  const newest = published
+    .map(outOf)
+    .filter((out) => out <= current)
+    .sort()
+    .at(-1);
+  const status = (p: DayPuzzle) => {
+    const out = outOf(p);
+    const when = out === newest ? "today" : out < current ? "out" : "upcoming";
+    return p.out ? `${when}, caught up` : when;
+  };
+  const push = (p: DayPuzzle) =>
+    pushed.has(p.date)
       ? "sent"
-      : date < current
+      : outOf(p) < current
         ? "none"
-        : announceDue(date, now)
+        : announceDue(outOf(p), now)
           ? "any minute"
           : pushTime;
   const rows = [
     ["", "DATE", "", "STATUS", "GAMES", "PUSH"],
     ...published.map((p, i) => [
       `#${i + 1}`,
-      puzzlePath(p),
+      p.date,
       day(p.date),
-      p.date === newest ? "today" : p.date < current ? "out" : "upcoming",
-      String(games.get(puzzlePath(p)) ?? 0),
-      push(p.date),
+      status(p),
+      String(games.get(p.date) ?? 0),
+      push(p),
     ]),
     ...staged.map((p) => [
       "",
-      puzzlePath(p),
+      p.date,
       day(p.date),
-      published.some((q) => puzzlePath(q) === puzzlePath(p))
-        ? "staged edit"
-        : "staged",
+      published.some((q) => q.date === p.date) ? "staged edit" : "staged",
       "",
       "",
     ]),
@@ -352,23 +371,32 @@ async function stage(source: string | undefined) {
   const problems = puzzleProblems(incoming);
   if (problems.length) throw new Stop(problems.join("\n"));
 
-  const staged = (incoming as DayPuzzle[]).map(plain).sort(inOrder);
-  const [published, games, announced] = await Promise.all([
+  const staged = (incoming as DayPuzzle[]).map(plain).sort(byDate);
+  const [published, games, pushed] = await Promise.all([
     readPuzzles(puzzlesFile()),
-    gamesByPuzzle(),
-    announcedDates(),
+    gamesByDate(),
+    pushedDates(),
   ]);
-  // Checked before it's staged, so a part 2 needs its part 1.
-  const merged = publish(published, staged, games, { deleteGames: true });
+  // Before it's staged, so a missed day too late to catch up never is.
+  const merged = publish(published, staged, games, {
+    deleteGames: true,
+    pushed,
+  });
   writePrivate(stagedFile(), staged);
 
   const number = numbers(merged);
   for (const [i, change] of changes(published, staged, games).entries()) {
     const { date, groups, push } = staged[i];
     const titles = groups.map((g) => g.title + (g.stache ? " (stache)" : ""));
-    console.log(`#${number.get(puzzlePath(staged[i]))} · ${label(staged[i])}`);
+    // The push it comes out with: the oldest puzzle's line, or a quote.
+    const together = outWith(merged, date);
+    const title = pushTitle(together.map((p) => number.get(p.date) ?? 0));
+    const line = together[0].push ?? "a random quote from home";
+    console.log(`#${number.get(date)} · ${day(date)} (${date})`);
     console.log(`  ${titles.join(" · ")}`);
-    console.log(`  Push line: ${push ?? "a random quote from home"}`);
+    console.log(`  Push: ${title} · ${line}`);
+    if (push && together[0].date !== date)
+      console.log("  Its own push line goes unused: the oldest puzzle's wins.");
     if (change.kind === "same") {
       console.log("  Already published, word for word.");
       continue;
@@ -381,17 +409,19 @@ async function stage(source: string | undefined) {
       );
     if (change.kind === "push")
       console.log("  Changes only its push line, so its games stay.");
-    console.log(`  ${timing(date, change.kind, announced.has(date))}`);
+    const out = outOf(together[0]);
+    const sent = together.some((p) => pushed.has(p.date));
+    console.log(`  ${timing(out, change.kind, sent)}`);
   }
-  if (!TESTER) toTester(merged.filter((p) => p.date === staged[0].date));
+  if (!TESTER) toTester(outWith(merged, staged[0].date));
   console.log("\nStaged, not live. Publish it with `stached confirm`.");
 }
 
 /**
- * Makes a date's puzzles, as they'll be once what's staged is published,
- * today's on the tester, to play in its home-screen app before anyone else.
- * This CLI runs again with the tester's settings, since one process talks to
- * one database.
+ * Makes the puzzles out on a day, as they'll be once what's staged is
+ * published, today's on the tester, to play in its home-screen app before
+ * anyone else. This CLI runs again with the tester's settings, since one
+ * process talks to one database.
  */
 function toTester(puzzles: DayPuzzle[]) {
   if (!existsSync(TESTER_ENV)) {
@@ -416,8 +446,8 @@ function toTester(puzzles: DayPuzzle[]) {
 }
 
 /**
- * Puts a staged date's puzzles (the first date's, or that one's) on the
- * tester, as today's.
+ * Puts a staged puzzle's day (the first's, or that date's) on the tester, as
+ * today's: every puzzle out with it, as they'll be once published.
  */
 async function preview(date: string | undefined) {
   if (TESTER)
@@ -435,30 +465,47 @@ async function preview(date: string | undefined) {
     );
   // A preview publishes nothing, so no games are at stake.
   const merged = publish(published, staged, new Map(), { deleteGames: true });
-  toTester(merged.filter((p) => p.date === wanted));
+  toTester(outWith(merged, wanted as string));
 }
 
+const addDays = (date: string, days: number) => {
+  const moved = new Date(`${date}T12:00:00Z`);
+  moved.setUTCDate(moved.getUTCDate() + days);
+  return moved.toISOString().slice(0, 10);
+};
+
 /**
- * The tester only: makes a date's puzzles from stdin today's, in place of the
- * tester's own. Their games go with them if the words changed, as on any
- * edit: they're all made up. It pushes right away, even if today's push went
- * out already, so each staging shows its notification too.
+ * The tester only: makes the puzzles from stdin (out on one day) today's, in
+ * place of the tester's own: moved so they come out today, the newest dated
+ * today and any missed day's the days before, caught up. Their games go with
+ * them if the words changed, as on any edit: they're all made up. It pushes
+ * right away, even if today's push went out already, so each staging shows
+ * its notification too.
  */
 async function play() {
   if (!TESTER) throw new Stop("play is for the tester: stage sends it there.");
   const date = today();
   const incoming: DayPuzzle[] = JSON.parse(await Bun.stdin.text());
-  const puzzles = checked([
-    ...(await readPuzzles(puzzlesFile())).filter((p) => p.date !== date),
-    ...incoming.map((puzzle) => ({ ...plain(puzzle), date })),
-  ]);
+  const shift =
+    (Date.parse(date) - Date.parse(outOf(incoming[0]))) / 86_400_000;
+  const moved = incoming.map((puzzle) =>
+    filed({ ...puzzle, date: addDays(puzzle.date, shift) }, date),
+  );
+  const dates = new Set(moved.map((p) => p.date));
+  // The tester's own come out on their dates, so today's are just these.
+  const puzzles = [
+    ...(await readPuzzles(puzzlesFile()))
+      .filter((p) => !dates.has(p.date))
+      .map((p) => filed(p, undefined)),
+    ...moved,
+  ].sort(byDate);
   writePrivate(puzzlesFile(), puzzles);
   await syncPuzzles(puzzles);
   const site = process.env.ALLOWED_ORIGINS?.split(",")[0];
   console.log(
-    incoming.length === 1
+    moved.length === 1
       ? `It's today's puzzle on the tester: ${site}/stached/`
-      : `They're today's ${incoming.length} puzzles on the tester: ${site}/stached/`,
+      : `They're today's ${moved.length} puzzles on the tester: ${site}/stached/`,
   );
   await pushAgain();
 }
@@ -466,53 +513,56 @@ async function play() {
 async function confirm(deleteGames: boolean) {
   const staged = await readStaged();
   if (!staged.length) throw new Stop("Nothing staged.");
-  const [published, games, announced] = await Promise.all([
+  const [published, games, pushed] = await Promise.all([
     readPuzzles(puzzlesFile()),
-    gamesByPuzzle(),
-    announcedDates(),
+    gamesByDate(),
+    pushedDates(),
   ]);
   const planned = changes(published, staged, games);
-  const puzzles = publish(published, staged, games, { deleteGames });
+  const puzzles = publish(published, staged, games, { deleteGames, pushed });
   await savePuzzles(puzzles);
   rmSync(stagedFile());
   const number = numbers(puzzles);
-  for (const change of planned) {
-    const named = `#${number.get(puzzlePath(change))} · ${label(change)}`;
+  const outDay = new Map(puzzles.map((p) => [p.date, outOf(p)]));
+  for (const { date, kind } of planned) {
+    const out = outDay.get(date) as string;
+    const sent = puzzles.some((p) => outOf(p) === out && pushed.has(p.date));
     console.log(
-      change.kind === "same"
-        ? `${named} was already published.`
-        : `Published ${named}. ${timing(change.date, change.kind, announced.has(change.date))}`,
+      kind === "same"
+        ? `#${number.get(date)} · ${day(date)} was already published.`
+        : `Published #${number.get(date)} · ${day(date)}. ${timing(out, kind, sent)}`,
     );
   }
-  for (const date of new Set(planned.map((c) => c.date)))
-    await pushNow(puzzles, date);
+  for (const out of new Set(planned.map(({ date }) => outDay.get(date))))
+    await pushNow(puzzles, out as string);
 }
 
 /**
- * Sends a date's push now if it's due, instead of at the API's check a
- * minute later, and prints how it went. The API claims a push the same way
- * (announce), so it still goes out once. Without push keys, push is off.
+ * Sends the push for the puzzles out on a day now if it's due, instead of at
+ * the API's check a minute later, and prints how it went. The API claims a
+ * push the same way (announce), so it still goes out once. Without push keys,
+ * push is off.
  */
-async function pushNow(puzzles: DayPuzzle[], date: string) {
+async function pushNow(puzzles: DayPuzzle[], out: string) {
   const keys = pushKeys();
   if (!keys) return;
   const number = numbers(puzzles);
   await announce(
     puzzles
-      .filter((p) => p.date === date)
-      .map((p) => ({ ...p, number: number.get(puzzlePath(p)) ?? 0 })),
+      .filter((p) => outOf(p) === out)
+      .map((p) => ({ ...p, out, number: number.get(p.date) ?? 0 })),
     keys,
   );
 }
 
-async function remove(path: string | undefined, deleteGames: boolean) {
-  if (!path) throw new Stop("Remove which date? stached remove 2026-10-02");
+async function remove(date: string | undefined, deleteGames: boolean) {
+  if (!date) throw new Stop("Remove which date? stached remove 2026-10-02");
   const [published, games] = await Promise.all([
     readPuzzles(puzzlesFile()),
-    gamesByPuzzle(),
+    gamesByDate(),
   ]);
-  await savePuzzles(unpublish(published, path, games, { deleteGames }));
-  console.log(`Removed ${day(path.slice(0, 10))} (${path}).`);
+  await savePuzzles(unpublish(published, date, games, { deleteGames }));
+  console.log(`Removed ${day(date)} (${date}).`);
 }
 
 /**
@@ -526,11 +576,12 @@ async function pushAgain() {
     );
   const date = today();
   const puzzles = await readPuzzles(puzzlesFile());
-  if (!puzzles.some((p) => p.date === date))
+  const dates = puzzles.filter((p) => outOf(p) === date).map((p) => p.date);
+  if (!dates.length)
     throw new Stop(
-      `No puzzle for today (${date}) on the tester: stage one first.`,
+      `No puzzle out today (${date}) on the tester: stage one first.`,
     );
-  await sql`delete from announcements where date = ${date}`;
+  await sql`delete from announcements where date in ${sql(dates)}`;
   await pushNow(puzzles, date);
 }
 

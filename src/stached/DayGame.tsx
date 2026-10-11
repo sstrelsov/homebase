@@ -1,30 +1,27 @@
 import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { api, gameLink } from "./api";
+import { api } from "./api";
 import Game from "./Game";
 import { isHomeScreenApp } from "./HomeScreen";
 import { useLoad, useStached } from "./session";
 import styles from "./stached.module.css";
 
 /**
- * One puzzle's game at /stached/<date> (or /stached/<date>/2 for its date's
- * second), fresh for each. Opening it starts that game, or picks it back up
- * from the server: a finished one shows its board, answers and results; a
- * missed day is played late.
+ * One day's game at /stached/<date>, fresh for each date. Opening it starts
+ * that day's game, or picks it back up from the server: a finished day shows
+ * its board, answers and results; a missed day is played late.
  */
 const DayGame = () => {
   const navigate = useNavigate();
-  const params = useParams({ from: "/stached/$date/{-$part}" });
-  const { date } = params;
-  const part = Number(params.part ?? 1);
+  const { date } = useParams({ from: "/stached/$date" });
   const { session, openRules } = useStached();
   const start = useCallback(
     (token: string) =>
-      api.start(token, date, part, {
+      api.start(token, date, {
         homeScreen: isHomeScreenApp(),
         dark: matchMedia("(prefers-color-scheme: dark)").matches,
       }),
-    [date, part],
+    [date],
   );
   const { data: day, setData: setDay, error } = useLoad(start);
 
@@ -41,19 +38,20 @@ const DayGame = () => {
   if (!day?.play)
     return <p className={`${styles.label} pt-24 text-center`}>Loading…</p>;
 
-  const { puzzle } = day;
+  // Today's come out together, played back to back.
+  const { today, next } = day.puzzle;
   return (
     <Game
       token={session.token}
       player={session.name}
-      puzzle={puzzle}
+      puzzle={day.puzzle}
       board={day.board}
       play={day.play}
       onDay={setDay}
       onHome={() => navigate({ to: "/stached" })}
       onNext={
-        puzzle.part < puzzle.parts
-          ? () => navigate(gameLink({ date, part: puzzle.part + 1 }))
+        today && next
+          ? () => navigate({ to: "/stached/$date", params: { date: next } })
           : undefined
       }
       onRules={openRules}

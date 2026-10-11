@@ -131,6 +131,8 @@ const Game = ({
   onRules,
 }: GameProps) => {
   const [bars, setBars] = useState(() => barsFor(play));
+  // One of today's, out with a missed day's.
+  const together = puzzle.today && puzzle.of > 1;
   const [order, setOrder] = useState(() =>
     shuffle(puzzle.words.filter((w) => !bars.some((g) => g.words.includes(w)))),
   );
@@ -267,16 +269,16 @@ const Game = ({
         >
           Stached
         </button>
-        {/* Today's game needs no date; a past one does. A date with more
-            than one puzzle says which this is. */}
-        {(!puzzle.today || puzzle.parts > 1) && (
+        {/* Today's game needs no date; a past one does, and so does each
+            of today's when a missed day came out with it, with which it is. */}
+        {(!puzzle.today || together) && (
           <span
             className={`${styles.label} flex flex-col items-center gap-1 text-center`}
           >
-            {!puzzle.today && <span>{formatDate(puzzle.date)}</span>}
-            {puzzle.parts > 1 && (
+            <span>{formatDate(puzzle.date)}</span>
+            {together && (
               <span>
-                Puzzle {puzzle.part} of {puzzle.parts}
+                Puzzle {puzzle.nth} of {puzzle.of}
               </span>
             )}
           </span>

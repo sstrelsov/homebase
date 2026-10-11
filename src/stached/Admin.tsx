@@ -144,7 +144,7 @@ export const PastRuns = ({ stats }: { stats: AdminStats }) => {
         <h2 className={styles.label}>Puzzles</h2>
         {stats.puzzles.map((puzzle) => (
           <Row
-            key={puzzle.number}
+            key={puzzle.date}
             title={puzzleTitle(puzzle)}
             detail={dotted(
               `${puzzle.played} played`,
@@ -177,7 +177,7 @@ export const PastRuns = ({ stats }: { stats: AdminStats }) => {
             >
               {games.map(({ puzzle, game }) => (
                 <GameLine
-                  key={puzzle.number}
+                  key={puzzle.date}
                   title={puzzleTitle(puzzle)}
                   game={game}
                 />

@@ -1,12 +1,8 @@
 // The leaderboard's rules, kept apart from server.ts so tests can load them:
 // a point for each solve and each fastest stache on every puzzle so far, and a
-// square per player for each of the last WEEK puzzles out. Late games never
-// count.
+// square per player for each of the last WEEK days. Late games never count.
 
-/**
- * How many puzzles the leaderboard shows squares for, today's last: a date
- * with two puzzles has two squares.
- */
+/** How many days the leaderboard shows squares for, today's last. */
 export const WEEK = 7;
 
 /** Always #1, whatever her points. Matched without case. */
@@ -15,12 +11,10 @@ const PINNED = "cat";
 /** A puzzle out so far (dated today or earlier). */
 export interface Day {
   id: number;
-  /** #1 is the first puzzle, by date and part. */
+  /** #1 is the first puzzle, by date. */
   number: number;
   date: string;
-  /** Which of its date's puzzles it is: 1, or 2 and up on a doubled date. */
-  part: number;
-  /** One of today's: the newest date's (two or more on a doubled date). */
+  /** One of today's: out on the newest day, a missed day's caught up too. */
   today: boolean;
   /** Today's, or pushed in the last day: its games still count. */
   counts: boolean;
@@ -42,10 +36,18 @@ type Finished = Game & { completed: boolean; stachedMs: number };
 
 /**
  * A player's day: solved or missed, "won" or "won-missed" with the day's
- * fastest stache, "none" if they didn't finish it while it counted, and
- * "open" for one that still counts until they finish it.
+ * fastest stache, "none" if they didn't finish it while it counted, "open"
+ * for one that still counts until they finish it, and "gap" for a day with no
+ * puzzle (missed, and never caught up).
  */
-export type Mark = "won" | "won-missed" | "solved" | "missed" | "none" | "open";
+export type Mark =
+  | "won"
+  | "won-missed"
+  | "solved"
+  | "missed"
+  | "none"
+  | "open"
+  | "gap";
 
 export interface Standing {
   name: string;
@@ -66,9 +68,16 @@ export interface Standing {
   streak: number;
 }
 
+/** A day of the week, with its puzzle's number, or null for a gap. */
+export interface WeekDay {
+  date: string;
+  number: number | null;
+  today: boolean;
+}
+
 /** Today's fastest stache, on a finished game. */
 export interface Fastest {
-  /** Which of today's puzzles it's on: a doubled date has two. */
+  /** Which of today's puzzles it's on: a catch-up day has two or more. */
   number: number;
   name: string;
   stachedMs: number;
@@ -76,9 +85,9 @@ export interface Fastest {
 }
 
 export interface Leaderboard {
-  /** The last WEEK puzzles out, oldest first, today's last. */
-  days: Pick<Day, "number" | "date" | "today">[];
-  /** Everyone tied for each of today's puzzles' fastest stache, by name. */
+  /** The last WEEK days, oldest first, up to the newest puzzle's. */
+  days: WeekDay[];
+  /** Everyone tied for the fastest stache on each of today's puzzles. */
   fastestToday: Fastest[];
   /** Everyone who has finished a game: Cat first, then most points first. */
   players: Standing[];
@@ -111,13 +120,30 @@ function marker(counted: Game[]) {
 }
 
 /**
+ * The last WEEK days up to the newest puzzle's, oldest first, each with its
+ * puzzle, if it has one. It starts no earlier than the first puzzle.
+ */
+export function lastWeek<T extends Pick<Day, "date">>(days: T[]) {
+  const last = days.at(-1);
+  if (!last) return [];
+  const byDate = new Map(days.map((day) => [day.date, day]));
+  return Array.from({ length: WEEK }, (_, i) => {
+    const date = new Date(`${last.date}T12:00:00Z`);
+    date.setUTCDate(date.getUTCDate() - (WEEK - 1 - i));
+    return date.toISOString().slice(0, 10);
+  })
+    .filter((date) => date >= days[0].date)
+    .map((date) => ({ date, day: byDate.get(date) }));
+}
+
+/**
  * The leaderboard from the puzzles out so far (oldest first) and everyone's
  * games. Only players with a finished game are listed, so not playing never
  * ties a loss. Cat is listed first, at #1, whatever her points.
  */
 export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
   const counted = games.filter((game) => !game.late);
-  const week = days.slice(-WEEK);
+  const week = lastWeek(days);
   const today = new Map(
     days.filter((day) => day.today).map((day) => [day.id, day.number]),
   );
@@ -135,7 +161,9 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
       return [
         {
           name,
-          marks: marks.slice(-WEEK),
+          marks: week.map(({ day }) =>
+            day ? mark(day, byDay.get(day.id)) : "gap",
+          ),
           solved,
           fastest,
           points: solved + fastest,
@@ -154,7 +182,11 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
   );
 
   return {
-    days: week.map(({ number, date, today }) => ({ number, date, today })),
+    days: week.map(({ date, day }) => ({
+      date,
+      number: day?.number ?? null,
+      today: day?.today ?? false,
+    })),
     fastestToday: counted
       .filter((game) => today.has(game.puzzleId))
       .filter(isFastest)
@@ -184,17 +216,14 @@ function ranked<T extends { points: number }>(standings: T[]) {
  * come apart, since the admin's aren't among everyone's.
  */
 export function weekOf(days: Day[], games: Game[], mine: Game[]) {
-  const week = days.slice(-WEEK);
   const { mark } = marker(games.filter((game) => !game.late));
   const byDay = new Map(
     mine.filter((game) => !game.late).map((game) => [game.puzzleId, game]),
   );
-  return week.map((day) => ({
-    number: day.number,
-    date: day.date,
-    part: day.part,
-    today: day.today,
-    mark: mark(day, byDay.get(day.id)),
+  return lastWeek(days).map(({ date, day }) => ({
+    date,
+    today: day?.today ?? false,
+    mark: day ? mark(day, byDay.get(day.id)) : ("gap" as const),
   }));
 }
 

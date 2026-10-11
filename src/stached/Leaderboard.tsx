@@ -18,9 +18,13 @@ const MARKS: Record<Mark, string> = {
   missed: "Missed",
   none: "Not finished in time",
   open: "Still to play",
+  gap: "No puzzle",
 };
 
-/** A day: green solved, red missed, Gerald on the day's fastest stache. */
+/**
+ * A day: green solved, red missed, Gerald on the day's fastest stache, and
+ * nothing on a day with no puzzle.
+ */
 export const Square = ({ mark }: { mark: Mark }) => (
   <span
     className={styles.mark}
@@ -38,8 +42,8 @@ export const Square = ({ mark }: { mark: Mark }) => (
 );
 
 /**
- * Today's fastest stache, in a gold box: one for each of today's puzzles (a
- * doubled date has two). Ties share it.
+ * A puzzle's fastest stache today, in a gold box: one for each of today's (a
+ * missed day's caught up with today's has its own). Ties share it.
  */
 const FastestToday = ({
   board,
@@ -119,7 +123,7 @@ const Standings = ({ board: { days, players } }: { board: Board }) => {
             <span className={styles.week}>
               {days.map((day) => (
                 <span
-                  key={day.number}
+                  key={day.date}
                   className={styles.weekday}
                   data-today={day.today || undefined}
                 >
@@ -152,7 +156,7 @@ const Standings = ({ board: { days, players } }: { board: Board }) => {
                 </span>
                 <span className={styles.week}>
                   {player.marks.map((mark, i) => (
-                    <Square key={days[i].number} mark={mark} />
+                    <Square key={days[i].date} mark={mark} />
                   ))}
                 </span>
                 <span
@@ -183,7 +187,7 @@ const Leaderboard = () => {
           {board.days
             .filter((day) => day.today)
             .map((day) => (
-              <FastestToday key={day.number} board={board} day={day} />
+              <FastestToday key={day.date} board={board} day={day} />
             ))}
           <Standings board={board} />
         </div>
