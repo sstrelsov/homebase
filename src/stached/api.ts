@@ -26,6 +26,8 @@ export interface Play {
   stachedMs: number | null;
   finished: boolean;
   completed: boolean | null;
+  /** Played once the puzzle stopped counting, so it doesn't count. */
+  late: boolean;
   /** Every group, once the game is over. */
   answers?: Group[];
   /** Each guess as the colors of its words, once the game is over. */
@@ -42,7 +44,7 @@ export interface Score {
 
 /** A puzzle so far, with how you did on it. */
 export interface PastGame extends Pick<Day["puzzle"], "date" | "today"> {
-  play: Pick<Play, "finished" | "completed" | "stachedMs"> | null;
+  play: Pick<Play, "finished" | "completed" | "stachedMs" | "late"> | null;
 }
 
 /** A day's game: its puzzle, your play, and its scoreboard. */

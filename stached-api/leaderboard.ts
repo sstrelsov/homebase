@@ -1,7 +1,7 @@
 // The leaderboard's rules, kept apart from server.ts so tests can load them:
 // a point for each solve and each fastest stache on every puzzle so far, and a
-// square per player for each of the last WEEK puzzles out. Late games never
-// count.
+// square per player for each of the last WEEK puzzles out. Late games show,
+// striped, but never count.
 
 /** How many puzzles the leaderboard shows squares for, today's last. */
 export const WEEK = 7;
@@ -35,10 +35,24 @@ type Finished = Game & { completed: boolean; stachedMs: number };
 
 /**
  * A player's day: solved or missed, "won" or "won-missed" with the day's
- * fastest stache, "none" if they didn't finish it while it counted, and
- * "open" for one that still counts until they finish it.
+ * fastest stache, "late-solved" or "late-missed" for a game finished once it
+ * stopped counting, "none" if they didn't finish it, and "open" for one that
+ * still counts until they finish it.
  */
-export type Mark = "won" | "won-missed" | "solved" | "missed" | "none" | "open";
+export type Mark =
+  | "won"
+  | "won-missed"
+  | "solved"
+  | "missed"
+  | "late-solved"
+  | "late-missed"
+  | "none"
+  | "open";
+
+/** The marks of a game finished while it counted. */
+const COUNTED: Mark[] = ["won", "won-missed", "solved", "missed"];
+
+const isSolve = (mark: Mark) => mark === "won" || mark === "solved";
 
 export interface Standing {
   name: string;
@@ -77,24 +91,23 @@ export interface Leaderboard {
 
 /**
  * Marks a game on its day. Each puzzle's fastest stache is the lowest stache
- * time on a game finished while it counted, solved or not; ties share it.
+ * time on a game finished while it counted, solved or not; ties share it. A
+ * late game shows its result, but never the fastest stache.
  */
-function marker(counted: Game[]) {
-  const finished = counted.filter(
-    (game): game is Finished =>
-      game.completed !== null && game.stachedMs !== null,
-  );
+function marker(games: Game[]) {
+  const timed = (game: Game): game is Finished =>
+    !game.late && game.completed !== null && game.stachedMs !== null;
   const fastestMs = new Map(
-    [...Map.groupBy(finished, (game) => game.puzzleId)].map(([id, games]) => [
-      id,
-      Math.min(...games.map((game) => game.stachedMs)),
-    ]),
+    [...Map.groupBy(games.filter(timed), (game) => game.puzzleId)].map(
+      ([id, played]) => [id, Math.min(...played.map((game) => game.stachedMs))],
+    ),
   );
   const isFastest = (game: Game): game is Finished =>
-    game.completed !== null && game.stachedMs === fastestMs.get(game.puzzleId);
+    timed(game) && game.stachedMs === fastestMs.get(game.puzzleId);
 
   const mark = (day: Day, game: Game | undefined): Mark => {
     if (!game || game.completed === null) return day.counts ? "open" : "none";
+    if (game.late) return game.completed ? "late-solved" : "late-missed";
     if (isFastest(game)) return game.completed ? "won" : "won-missed";
     return game.completed ? "solved" : "missed";
   };
@@ -103,21 +116,21 @@ function marker(counted: Game[]) {
 
 /**
  * The leaderboard from the puzzles out so far (oldest first) and everyone's
- * games. Only players with a finished game are listed, so not playing never
- * ties a loss. Cat is listed first, at #1, whatever her points.
+ * games. Only players with a game finished while it counted are listed, so
+ * not playing, or playing only late, never ties a loss. Cat is listed first,
+ * at #1, whatever her points.
  */
 export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
-  const counted = games.filter((game) => !game.late);
   const week = days.slice(-WEEK);
   const today = days.at(-1);
-  const { isFastest, mark } = marker(counted);
+  const { isFastest, mark } = marker(games);
 
-  const standings = [...Map.groupBy(counted, (game) => game.name)].flatMap(
+  const standings = [...Map.groupBy(games, (game) => game.name)].flatMap(
     ([name, played]) => {
       const byDay = new Map(played.map((game) => [game.puzzleId, game]));
       const marks = days.map((day) => mark(day, byDay.get(day.id)));
-      if (marks.every((m) => m === "none" || m === "open")) return [];
-      const solved = marks.filter((m) => m === "won" || m === "solved").length;
+      if (!marks.some((m) => COUNTED.includes(m))) return [];
+      const solved = marks.filter(isSolve).length;
       const fastest = marks.filter(
         (m) => m === "won" || m === "won-missed",
       ).length;
@@ -128,7 +141,7 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
           solved,
           fastest,
           points: solved + fastest,
-          streak: streak(days, byDay),
+          streak: streak(marks),
         },
       ];
     },
@@ -144,7 +157,7 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
 
   return {
     days: week.map(({ number, date }) => ({ number, date })),
-    fastestToday: counted
+    fastestToday: games
       .filter((game) => game.puzzleId === today?.id)
       .filter(isFastest)
       .map(({ name, stachedMs, completed }) => ({
@@ -173,10 +186,8 @@ function ranked<T extends { points: number }>(standings: T[]) {
  */
 export function weekOf(days: Day[], games: Game[], mine: Game[]) {
   const week = days.slice(-WEEK);
-  const { mark } = marker(games.filter((game) => !game.late));
-  const byDay = new Map(
-    mine.filter((game) => !game.late).map((game) => [game.puzzleId, game]),
-  );
+  const { mark } = marker(games);
+  const byDay = new Map(mine.map((game) => [game.puzzleId, game]));
   return week.map((day) => ({
     date: day.date,
     mark: mark(day, byDay.get(day.id)),
@@ -184,15 +195,15 @@ export function weekOf(days: Day[], games: Game[], mine: Game[]) {
 }
 
 /**
- * Puzzles solved in a row, newest first. One that still counts doesn't break
- * it until it's finished: there's still time to keep it going.
+ * Puzzles solved in a row, from a player's marks, newest first. One that still
+ * counts doesn't break it until it's finished: there's still time to keep it
+ * going. A late solve breaks it, like a day not played.
  */
-function streak(days: Day[], byDay: Map<number, Game>) {
+function streak(marks: Mark[]) {
   let count = 0;
-  for (const day of days.toReversed()) {
-    const game = byDay.get(day.id);
-    if (day.counts && (!game || game.completed === null)) continue;
-    if (!game?.completed) break;
+  for (const mark of marks.toReversed()) {
+    if (mark === "open") continue;
+    if (!isSolve(mark)) break;
     count++;
   }
   return count;

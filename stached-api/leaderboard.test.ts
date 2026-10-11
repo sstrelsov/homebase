@@ -258,11 +258,12 @@ describe("a player's week, for home", () => {
     ]);
   });
 
-  test("dots a late game, and dashes yesterday's while it counts", () => {
+  test("stripes a late game, and dashes yesterday's while it counts", () => {
     const days = DAYS.map((day) => ({ ...day, counts: day.id >= 7 }));
-    const mine = [late(solved("Zoe", 5, 40))];
-    expect(marks(days, mine, mine).slice(-4)).toEqual([
-      "none",
+    const mine = [late(solved("Zoe", 4, 40)), late(missed("Zoe", 5, 20))];
+    expect(marks(days, mine, mine).slice(-5)).toEqual([
+      "late-solved",
+      "late-missed",
       "none",
       "open",
       "open",
@@ -295,18 +296,44 @@ test("players who skip days get a dot, and their streak restarts", () => {
   expect(kit?.streak).toBe(1);
 });
 
-test("late games never count", () => {
+describe("a late game", () => {
   const games = [
+    late(missed("Ned", 4, 10)), // #4's only stache, but played late
+    solved("Ned", 5, 40),
+    late(solved("Ned", 6, 20)),
     late(solved("Max", 7, 5)), // the fastest, but played late
     solved("Ned", 7, 30),
-    late(solved("Ned", 6, 20)),
   ];
-  expect(player(games, "Max")).toBeUndefined();
   const ned = player(games, "Ned");
-  expect(ned?.marks.slice(-3)).toEqual(["none", "won", "open"]);
-  expect(ned?.points).toBe(2);
-  expect(ned?.streak).toBe(1);
-  expect(board(late(solved("Max", TODAY, 5))).fastestToday).toEqual([]);
+
+  test("shows its result, striped, and never the fastest stache", () => {
+    expect(ned?.marks.slice(-5)).toEqual([
+      "late-missed",
+      "won",
+      "late-solved",
+      "won",
+      "open",
+    ]);
+  });
+
+  test("earns no points, and breaks a streak", () => {
+    expect(ned?.solved).toBe(2);
+    expect(ned?.fastest).toBe(2);
+    expect(ned?.points).toBe(4);
+    expect(ned?.streak).toBe(1);
+  });
+
+  test("doesn't list a player who only played late", () => {
+    expect(player(games, "Max")).toBeUndefined();
+  });
+
+  test("never takes today's fastest stache, even on a tie", () => {
+    expect(board(late(solved("Max", TODAY, 5))).fastestToday).toEqual([]);
+    expect(
+      board(late(solved("Max", TODAY, 5)), solved("Ned", TODAY, 5))
+        .fastestToday,
+    ).toEqual([{ name: "Ned", stachedMs: 5_000, solved: true }]);
+  });
 });
 
 test("a puzzle not out yet never shows, nor do its games or words", () => {
