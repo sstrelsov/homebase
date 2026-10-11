@@ -171,22 +171,13 @@ const Game = ({
     await sleep(450);
   };
 
-  const clearMiss = async () => {
-    await sleep(MISS_LINGER_MS);
-    setSelected([]);
-  };
-
-  const alreadyGuessed = () => {
-    say("Already guessed!");
-    return clearMiss();
-  };
-
   const submit = async () => {
     const key = (words: string[]) => [...words].sort().join("|");
     setBusy(true);
     try {
+      // A repeat costs no life and keeps the four selected, like one away.
       if (play.guesses.some((g) => key(g) === key(selected))) {
-        await alreadyGuessed();
+        say("Already guessed!");
         return;
       }
 
@@ -219,16 +210,21 @@ const Game = ({
           if (result.bonusLife) say("Bonus life!");
         }
       } else if (next.result === "repeat") {
-        await alreadyGuessed();
+        say("Already guessed!");
       } else {
-        if (next.result === "one_away") say("One away…");
+        const oneAway = next.result === "one_away";
+        if (oneAway) say("One away…");
         await animate(
           "[data-selected]",
           { x: [0, -9, 9, -7, 7, -3, 3, 0] },
           { duration: 0.45 },
         );
         setMistakes(result.mistakes);
-        await clearMiss();
+        // One away keeps the four selected, so you can swap one out.
+        if (!oneAway || result.finished) {
+          await sleep(MISS_LINGER_MS);
+          setSelected([]);
+        }
       }
 
       if (result.finished) {
