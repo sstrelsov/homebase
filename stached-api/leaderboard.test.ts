@@ -260,7 +260,11 @@ describe("a player's week, for home", () => {
 
   test("stripes a late game, and dashes yesterday's while it counts", () => {
     const days = DAYS.map((day) => ({ ...day, counts: day.id >= 7 }));
-    const mine = [late(solved("Zoe", 4, 40)), late(missed("Zoe", 5, 20))];
+    const mine = [
+      late(solved("Zoe", 4, 40)),
+      late(missed("Zoe", 5, 20)),
+      late(playing("Zoe", 6, 10)), // not finished, so a dot
+    ];
     expect(marks(days, mine, mine).slice(-5)).toEqual([
       "late-solved",
       "late-missed",

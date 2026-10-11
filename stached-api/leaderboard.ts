@@ -63,7 +63,7 @@ export interface Standing {
   rank: number;
   /** One per day of the week, oldest first; the last is today. */
   marks: Mark[];
-  /** Puzzles solved, on any day so far. */
+  /** Puzzles solved while they counted, on any day so far. */
   solved: number;
   /** Puzzles with the fastest stache, on any day so far. */
   fastest: number;
@@ -85,7 +85,10 @@ export interface Leaderboard {
   days: Pick<Day, "number" | "date">[];
   /** Everyone tied for today's fastest stache, by name. */
   fastestToday: Fastest[];
-  /** Everyone who has finished a game: Cat first, then most points first. */
+  /**
+   * Everyone who has finished a game while it counted: Cat first, then most
+   * points first.
+   */
   players: Standing[];
 }
 
@@ -95,15 +98,15 @@ export interface Leaderboard {
  * late game shows its result, but never the fastest stache.
  */
 function marker(games: Game[]) {
-  const timed = (game: Game): game is Finished =>
+  const finishedOnTime = (game: Game): game is Finished =>
     !game.late && game.completed !== null && game.stachedMs !== null;
   const fastestMs = new Map(
-    [...Map.groupBy(games.filter(timed), (game) => game.puzzleId)].map(
+    [...Map.groupBy(games.filter(finishedOnTime), (game) => game.puzzleId)].map(
       ([id, played]) => [id, Math.min(...played.map((game) => game.stachedMs))],
     ),
   );
   const isFastest = (game: Game): game is Finished =>
-    timed(game) && game.stachedMs === fastestMs.get(game.puzzleId);
+    finishedOnTime(game) && game.stachedMs === fastestMs.get(game.puzzleId);
 
   const mark = (day: Day, game: Game | undefined): Mark => {
     if (!game || game.completed === null) return day.counts ? "open" : "none";
