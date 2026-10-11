@@ -51,7 +51,8 @@ const Tile = ({ game }: { game: PastGame }) => {
             : formatTime(play?.stachedMs ?? null)}
       </span>
       <span className={`${styles.label} h-4 leading-4`}>
-        {play?.finished && (play.completed ? "✓ Solved" : "✗ Missed")}
+        {play?.finished &&
+          `${play.completed ? "✓ Solved" : "✗ Missed"}${play.late ? " late" : ""}`}
       </span>
     </Link>
   );

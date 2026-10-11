@@ -16,11 +16,16 @@ const MARKS: Record<Mark, string> = {
   "won-missed": "Missed, with the fastest stache",
   solved: "Solved",
   missed: "Missed",
+  "late-solved": "Solved late",
+  "late-missed": "Missed late",
   none: "Not finished in time",
   open: "Still to play",
 };
 
-/** A day: green solved, red missed, Gerald on the day's fastest stache. */
+/**
+ * A day: green solved, red missed, Gerald on the day's fastest stache, and
+ * striped if it was played late.
+ */
 export const Square = ({ mark }: { mark: Mark }) => (
   <span
     className={styles.mark}
