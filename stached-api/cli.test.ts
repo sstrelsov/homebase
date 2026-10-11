@@ -124,7 +124,7 @@ describe("a date with two puzzles", () => {
       unpublish(published, "2026-10-02/2", new Map()).map(puzzlePath),
     ).toEqual(["2026-10-01", "2026-10-02"]);
     expect(() => unpublish(published, "2026-10-02", new Map())).toThrow(
-      "2026-10-02: has a part 2 but no part 1",
+      "2026-10-02/2 comes after it on its date: remove that first.",
     );
   });
 });

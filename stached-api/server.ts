@@ -220,10 +220,11 @@ async function pastGames(userId: number) {
 
 /**
  * The puzzles out so far as the leaderboard reads them: each one's number,
- * date and whether it still counts, never the words or a puzzle still to come.
+ * date, part and whether it's today's and still counts, never the words or a
+ * puzzle still to come.
  */
 const boardDays = (): Promise<Day[]> =>
-  sql`select id, number, date, part, counts from ${released()} order by number`;
+  sql`select id, number, date, part, today, counts from ${released()} order by number`;
 
 /** Games as the leaderboard reads them: by default, all but the admin's. */
 const boardGames = (

@@ -135,35 +135,38 @@ export const numbered = (numbers: number[]) =>
  * people have played wipes their games: scores from the old words wouldn't
  * mean anything against the new ones. Its push line can change freely. The
  * API runs this as it starts, and the CLI as it publishes, so the API serves
- * the change without a restart.
+ * the change without a restart. It's one transaction, so the API's push never
+ * goes out with half a date's puzzles.
  */
 export async function syncPuzzles(puzzles: DayPuzzle[]) {
-  const dropped = await sql`
-    delete from puzzles
-    where to_char(date, 'YYYY-MM-DD') || '/' || part
-      not in ${sql(puzzles.map((p) => `${p.date}/${partOf(p)}`))}`;
-  if (dropped.count) console.log(`Dropped ${dropped.count} puzzles`);
-  for (const puzzle of puzzles) {
-    const { date, groups, push = null } = puzzle;
-    const part = partOf(puzzle);
-    const [changed] = await sql`
-      insert into puzzles (date, part, groups, push)
-      values (${date}, ${part}, ${groups}::jsonb, ${push})
-      on conflict (date, part) do update set groups = excluded.groups
-      where puzzles.groups is distinct from excluded.groups
-      returning id`;
-    await sql`
-      update puzzles set push = ${push}
-      where date = ${date} and part = ${part} and push is distinct from ${push}`;
-    if (changed) {
-      const cleared =
-        await sql`delete from plays where puzzle_id = ${changed.id}`;
-      if (cleared.count)
-        console.log(
-          `${puzzlePath(puzzle)} changed: cleared ${cleared.count} plays`,
-        );
+  await sql.begin(async (tx) => {
+    const dropped = await tx`
+      delete from puzzles
+      where to_char(date, 'YYYY-MM-DD') || '/' || part
+        not in ${tx(puzzles.map((p) => `${p.date}/${partOf(p)}`))}`;
+    if (dropped.count) console.log(`Dropped ${dropped.count} puzzles`);
+    for (const puzzle of puzzles) {
+      const { date, groups, push = null } = puzzle;
+      const part = partOf(puzzle);
+      const [changed] = await tx`
+        insert into puzzles (date, part, groups, push)
+        values (${date}, ${part}, ${groups}::jsonb, ${push})
+        on conflict (date, part) do update set groups = excluded.groups
+        where puzzles.groups is distinct from excluded.groups
+        returning id`;
+      await tx`
+        update puzzles set push = ${push}
+        where date = ${date} and part = ${part} and push is distinct from ${push}`;
+      if (changed) {
+        const cleared =
+          await tx`delete from plays where puzzle_id = ${changed.id}`;
+        if (cleared.count)
+          console.log(
+            `${puzzlePath(puzzle)} changed: cleared ${cleared.count} plays`,
+          );
+      }
     }
-  }
+  });
 }
 
 /** How many games each puzzle has, by its path, finished or not. */

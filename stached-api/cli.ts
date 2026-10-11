@@ -245,14 +245,19 @@ export function unpublish(
     throw new Stop(
       "It's the only puzzle. Stage and confirm a replacement for it instead.",
     );
-  const rest = checked(published.filter((p) => p !== puzzle));
-  const { date, part } = puzzle;
+  const later = published.find(
+    (p) => p.date === puzzle.date && partOf(p) > partOf(puzzle),
+  );
+  if (later)
+    throw new Stop(
+      `${puzzlePath(later)} comes after it on its date: remove that first.`,
+    );
   guard(
-    [{ date, part: partOf({ part }), games: games.get(path) ?? 0 }],
+    [{ date: puzzle.date, part: partOf(puzzle), games: games.get(path) ?? 0 }],
     "remove it",
     deleteGames,
   );
-  return rest;
+  return published.filter((p) => p !== puzzle);
 }
 
 /** The puzzles file, written with a copy of what it replaced, then Postgres. */
@@ -417,10 +422,9 @@ function toTester(puzzles: DayPuzzle[]) {
 async function preview(date: string | undefined) {
   if (TESTER)
     throw new Stop("On the tester, stage and confirm puzzles directly.");
-  const [staged, published, games] = await Promise.all([
+  const [staged, published] = await Promise.all([
     readStaged(),
     readPuzzles(puzzlesFile()),
-    gamesByPuzzle(),
   ]);
   const wanted = date ?? staged[0]?.date;
   if (!staged.some((p) => p.date === wanted))
@@ -429,7 +433,8 @@ async function preview(date: string | undefined) {
         ? `Nothing staged for ${date}.`
         : "Nothing staged. Stage a puzzle first: stached stage <file>",
     );
-  const merged = publish(published, staged, games, { deleteGames: true });
+  // A preview publishes nothing, so no games are at stake.
+  const merged = publish(published, staged, new Map(), { deleteGames: true });
   toTester(merged.filter((p) => p.date === wanted));
 }
 

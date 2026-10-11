@@ -73,7 +73,13 @@ export interface Day {
  * your squares for the week, as on the leaderboard.
  */
 export interface Today extends Day {
-  week: { number: number; date: string; part: number; mark: Mark }[];
+  week: {
+    number: number;
+    date: string;
+    part: number;
+    today: boolean;
+    mark: Mark;
+  }[];
 }
 
 // The leaderboard's shape comes with its rules, so the two can't drift apart.

@@ -35,12 +35,7 @@ let introShown = false;
 type WeekDay = Today["week"][number];
 
 /** A puzzle under its weekday, in the leaderboard's square. */
-const DaySquare = ({
-  date,
-  part,
-  mark,
-  today,
-}: WeekDay & { today: boolean }) => (
+const DaySquare = ({ date, part, mark, today }: WeekDay) => (
   <Link
     {...gameLink({ date, part })}
     className={styles.homeDay}
@@ -116,7 +111,7 @@ const Week = ({
           <span className={styles.homeTile}>View all</span>
         </Link>
         {week.map((day) => (
-          <DaySquare key={day.number} {...day} today={day.date === last} />
+          <DaySquare key={day.number} {...day} />
         ))}
       </nav>
       {away && (

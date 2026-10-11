@@ -121,7 +121,7 @@ const Standings = ({ board: { days, players } }: { board: Board }) => {
                 <span
                   key={day.number}
                   className={styles.weekday}
-                  data-today={day.date === days.at(-1)?.date || undefined}
+                  data-today={day.today || undefined}
                 >
                   {weekday(day.date)}
                 </span>
@@ -181,7 +181,7 @@ const Leaderboard = () => {
       {board && (
         <div className="flex flex-col gap-6">
           {board.days
-            .filter((day) => day.date === board.days.at(-1)?.date)
+            .filter((day) => day.today)
             .map((day) => (
               <FastestToday key={day.number} board={board} day={day} />
             ))}

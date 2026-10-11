@@ -20,6 +20,8 @@ export interface Day {
   date: string;
   /** Which of its date's puzzles it is: 1, or 2 and up on a doubled date. */
   part: number;
+  /** One of today's: the newest date's (two or more on a doubled date). */
+  today: boolean;
   /** Today's, or pushed in the last day: its games still count. */
   counts: boolean;
 }
@@ -74,8 +76,8 @@ export interface Fastest {
 }
 
 export interface Leaderboard {
-  /** The last WEEK puzzles out, oldest first; the last date's are today's. */
-  days: Pick<Day, "number" | "date">[];
+  /** The last WEEK puzzles out, oldest first, today's last. */
+  days: Pick<Day, "number" | "date" | "today">[];
   /** Everyone tied for each of today's puzzles' fastest stache, by name. */
   fastestToday: Fastest[];
   /** Everyone who has finished a game: Cat first, then most points first. */
@@ -117,9 +119,7 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
   const counted = games.filter((game) => !game.late);
   const week = days.slice(-WEEK);
   const today = new Map(
-    days
-      .filter((day) => day.date === days.at(-1)?.date)
-      .map((day) => [day.id, day.number]),
+    days.filter((day) => day.today).map((day) => [day.id, day.number]),
   );
   const { isFastest, mark } = marker(counted);
 
@@ -154,7 +154,7 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
   );
 
   return {
-    days: week.map(({ number, date }) => ({ number, date })),
+    days: week.map(({ number, date, today }) => ({ number, date, today })),
     fastestToday: counted
       .filter((game) => today.has(game.puzzleId))
       .filter(isFastest)
@@ -193,6 +193,7 @@ export function weekOf(days: Day[], games: Game[], mine: Game[]) {
     number: day.number,
     date: day.date,
     part: day.part,
+    today: day.today,
     mark: mark(day, byDay.get(day.id)),
   }));
 }

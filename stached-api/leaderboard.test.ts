@@ -20,6 +20,7 @@ const DAYS: Day[] = DATES.map((date, i) => ({
   number: i + 1,
   date,
   part: 1,
+  today: i + 1 === TODAY,
   counts: i + 1 === TODAY,
 }));
 
@@ -233,7 +234,14 @@ describe("a date with two puzzles", () => {
   // puzzles, so it starts a day later.
   const doubled: Day[] = [
     ...DAYS,
-    { id: 9, number: 9, date: DATES[TODAY - 1], part: 2, counts: true },
+    {
+      id: 9,
+      number: 9,
+      date: DATES[TODAY - 1],
+      part: 2,
+      today: true,
+      counts: true,
+    },
   ];
   const games = [
     solved("Ada", TODAY, 30),
@@ -269,8 +277,8 @@ describe("a date with two puzzles", () => {
   test("leaves each open until it's played, on home too", () => {
     const mine = [solved("Ada", TODAY, 30)];
     expect(weekOf(doubled, mine, mine).slice(-2)).toEqual([
-      { number: 8, date: DATES[TODAY - 1], part: 1, mark: "won" },
-      { number: 9, date: DATES[TODAY - 1], part: 2, mark: "open" },
+      { number: 8, date: DATES[TODAY - 1], part: 1, today: true, mark: "won" },
+      { number: 9, date: DATES[TODAY - 1], part: 2, today: true, mark: "open" },
     ]);
   });
 });
@@ -369,7 +377,7 @@ test("a puzzle not out yet never shows, nor do its games or words", () => {
     solved("Uma", TODAY, 50),
   ]);
   expect(result.days).toEqual(
-    DAYS.slice(1).map(({ number, date }) => ({ number, date })),
+    DAYS.slice(1).map(({ number, date, today }) => ({ number, date, today })),
   );
   expect(result.players.map((p) => p.name)).toEqual(["Uma"]);
   expect(result.fastestToday.map((f) => f.name)).toEqual(["Uma"]);
@@ -410,7 +418,11 @@ test("lists a player whose only games are older than the week, with their points
 
 test("is empty before anyone finishes, or any puzzle is out", () => {
   expect(board(playing("Vi", TODAY, 12))).toEqual({
-    days: DAYS.slice(1).map(({ number, date }) => ({ number, date })),
+    days: DAYS.slice(1).map(({ number, date, today }) => ({
+      number,
+      date,
+      today,
+    })),
     fastestToday: [],
     players: [],
   });
