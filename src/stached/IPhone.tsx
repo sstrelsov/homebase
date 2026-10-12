@@ -102,31 +102,35 @@ const tomorrow = () => {
 /**
  * A push on a lock screen: "Puzzle #N is up", iOS's "from Stached", then its
  * line. Tomorrow's, with one of the quotes on home like the ones the API sends,
- * unless it's given another day or a puzzle's own line.
+ * unless it's given another day or a puzzle's own line. A push that isn't a
+ * puzzle's (the leaderboard mockups' ideas) brings its own title and time.
  */
 export const LockScreen = ({
   number,
+  title = `Puzzle #${number} is up`,
+  time = `${PUSH_TIME} AM`,
   day = tomorrow(),
   line = QUOTES[0],
-}: {
-  number: number;
+}: ({ number: number; title?: string } | { number?: never; title: string }) & {
+  /** "9:12 AM": the lock screen's clock, and the push's own time. */
+  time?: string;
   /** "Monday, October 5" */
   day?: string;
   line?: string;
 }) => (
   <div
     role="img"
-    aria-label={`A notification on an iPhone: Puzzle #${number} is up, from Stached`}
+    aria-label={`A notification on an iPhone: ${title}, from Stached`}
     className={styles.lock}
   >
     <p className={styles.lockDay}>{day}</p>
-    <p className={styles.lockTime}>{PUSH_TIME}</p>
+    <p className={styles.lockTime}>{time.split(" ")[0]}</p>
     <div className={styles.notice}>
       <img src={ICON} alt="" className={styles.noticeIcon} />
       <div className="min-w-0 flex-1">
         <div className="flex items-baseline justify-between gap-2">
-          <strong className="truncate">Puzzle #{number} is up</strong>
-          <span className={styles.noticeMuted}>{PUSH_TIME} AM</span>
+          <strong className="truncate">{title}</strong>
+          <span className={styles.noticeMuted}>{time}</span>
         </div>
         <p className={styles.noticeMuted}>from Stached</p>
         <p className={styles.noticeBody}>{line}</p>

@@ -1,0 +1,565 @@
+/* Leaderboard mockups (dev only): what the ideas add to the game's look.
+   Colors are the game's tokens (stached.module.css), so both looks work. */
+
+/* Season: three tabs, the one you're on a selected tile like the admin's */
+.periods {
+  composes: tabs from "../mockups.module.css";
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* A day of the week still to come */
+.later {
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+
+/* Season's Month and All time: solves and fastest staches, in place of the
+   week's squares */
+.counts {
+  display: grid;
+  grid-template-columns: repeat(2, 36px);
+  margin-right: 10px;
+  justify-items: end;
+  align-items: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.countValues {
+  composes: display from "../../stached.module.css";
+  color: var(--muted);
+}
+
+.counts [data-mark] {
+  width: 16px;
+  height: 16px;
+}
+
+.countStache {
+  width: 22px;
+  height: 7px;
+  fill: currentColor;
+}
+
+/* Places since yesterday: up in green, down in red */
+.moved {
+  composes: label from "../../stached.module.css";
+  flex: none;
+  letter-spacing: 0.04em;
+}
+
+.moved[data-way="up"] {
+  color: var(--green);
+}
+
+.moved[data-way="down"] {
+  color: var(--red);
+}
+
+/* Last time's champ, or the records, crowned with Gerald */
+.crown {
+  width: 34px;
+  height: 11px;
+  flex: none;
+  fill: var(--accent);
+  filter: drop-shadow(
+    0 0 6px color-mix(in srgb, var(--glow-gold) 60%, transparent)
+  );
+}
+
+.record {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 12px;
+  font-size: 19px;
+  line-height: 1.2;
+}
+
+/* A row of the standings that opens a player's card */
+.pick {
+  width: 100%;
+  text-align: left;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pick:active {
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+}
+
+/* A player's card: two weeks of squares, then the numbers, two by two */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.stat {
+  composes: panel from "../../stached.module.css";
+  padding: 10px 12px;
+}
+
+.statValue {
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 900;
+  font-stretch: 110%;
+  font-size: 24px;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Head to head: your share in green, theirs in red, ties in between */
+.versus {
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.versus > span:nth-child(1) {
+  background: var(--green);
+}
+
+.versus > span:nth-child(2) {
+  background: var(--muted);
+  opacity: 0.4;
+}
+
+.versus > span:nth-child(3) {
+  background: var(--red);
+}
+
+.score {
+  composes: display from "../../stached.module.css";
+  font-size: 17px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.score[data-lead="you"] {
+  color: var(--green);
+}
+
+.score[data-lead="them"] {
+  color: var(--red);
+}
+
+/* Rivals: one card for the player ahead, one for the player behind */
+.rival {
+  composes: panel from "../../stached.module.css";
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px;
+  background: var(--tile);
+}
+
+.h2h {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px 52px;
+  align-items: center;
+  column-gap: 10px;
+  min-height: 40px;
+  padding: 4px 0;
+}
+
+.tag {
+  composes: label from "../../stached.module.css";
+  flex: none;
+  padding: 2px 6px;
+  border: 1.5px solid var(--red);
+  border-radius: 999px;
+  color: var(--red);
+}
+
+/* Lives: the game's row of mustaches, small, hollow for each mistake */
+.lives {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.life {
+  width: 15px;
+  height: 5px;
+  fill: var(--face);
+}
+
+.life[data-lost] {
+  fill: none;
+  stroke: var(--muted);
+  stroke-width: 8;
+}
+
+/* Today's podium: second, first and third, each on a block in a group's
+   color, first in gold with Gerald */
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  align-items: end;
+  gap: 8px;
+}
+
+.step {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+}
+
+.stepName {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 5px;
+  font-size: 17px;
+  line-height: 1.1;
+}
+
+.block {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 4px;
+  padding-top: 8px;
+  border-radius: 7px 7px 0 0;
+  background: var(--color);
+  color: var(--on-color);
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 30px;
+  line-height: 1;
+  box-shadow: 0 0 18px color-mix(in srgb, var(--color) 45%, transparent);
+}
+
+[data-look="light"] .block {
+  box-shadow: none;
+}
+
+.block svg {
+  width: 40px;
+  height: 13px;
+  fill: currentColor;
+}
+
+/* Today's other finishers: place, square, name, lives left, stache time */
+.finisher {
+  display: grid;
+  grid-template-columns: 2ch 22px minmax(0, 1fr) auto 62px;
+  align-items: center;
+  column-gap: 8px;
+  min-height: 38px;
+  font-size: 18px;
+}
+
+.waiting {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  font-size: 17px;
+}
+
+.waiting > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* The timeline: a rail down the day, from the push to now, a stop for each
+   game finished */
+.rail {
+  position: relative;
+}
+
+.rail::before {
+  content: "";
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: calc(64px + 10px + 11px - 1px);
+  width: 2px;
+  background: var(--line);
+}
+
+.stop {
+  position: relative;
+  display: grid;
+  grid-template-columns: 64px 22px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 10px;
+  min-height: 30px;
+}
+
+.stopTime {
+  composes: label from "../../stached.module.css";
+  text-align: right;
+  letter-spacing: 0.04em;
+}
+
+/* The push and now sit on the rail, so they cover it */
+.pin {
+  display: grid;
+  background: var(--bg);
+  place-items: center;
+  width: 22px;
+  height: 22px;
+}
+
+.pin svg {
+  width: 20px;
+  height: 7px;
+  fill: var(--accent);
+}
+
+.now {
+  border: 1.5px dashed var(--accent);
+  border-radius: 50%;
+  animation: blink 1.6s steps(1) infinite;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.lead {
+  composes: label from "../../stached.module.css";
+  color: var(--accent);
+}
+
+/* Titles: each one a solved group's bar, holding who has it */
+.titleBar {
+  min-height: 54px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.chip {
+  padding: 1px 5px 0;
+  border-radius: 4px;
+  background: var(--color);
+  color: var(--on-color);
+  font-family: var(--display);
+  font-style: italic;
+  font-weight: 900;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+/* The stache group's chip: the logo's bands, too thin to read on, so ink */
+.chip[data-color="stache"] {
+  background: linear-gradient(
+    to bottom,
+    var(--c4) 0 25%,
+    var(--c3) 0 50%,
+    var(--c2) 0 75%,
+    var(--c1) 0
+  );
+  color: var(--cream);
+  text-shadow:
+    1px 1px 0 #000,
+    -1px -1px 0 #000,
+    1px -1px 0 #000,
+    -1px 1px 0 #000;
+}
+
+/* Bulletins: the time, then who and what */
+.bulletin {
+  display: grid;
+  grid-template-columns: 58px minmax(0, 1fr);
+  column-gap: 12px;
+  padding: 10px 0;
+}
+
+.bulletinTime {
+  composes: label from "../../stached.module.css";
+  padding-top: 5px;
+  letter-spacing: 0.04em;
+}
+
+.note {
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+/* The tour (Tour.tsx): a step's example, its cost and risk, its picture in a
+   frame, and the way on, along the bottom */
+.example {
+  padding-left: 12px;
+  border-left: 3px solid var(--accent);
+  font-size: 17px;
+  line-height: 1.35;
+}
+
+.cost {
+  composes: pill from "../mockups.module.css";
+  color: var(--ink);
+}
+
+.risk {
+  composes: pill from "../mockups.module.css";
+  border-radius: 10px;
+  color: var(--red);
+  white-space: normal;
+}
+
+.visual {
+  padding: 16px 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+}
+
+.tourNav {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  padding: 10px 0 calc(10px + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+}
+
+/* All steps: a number, then the step's title */
+.stepLink {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 18px;
+}
+
+.stepLink > span {
+  width: 2ch;
+  text-align: right;
+}
+
+.stepLink[data-on] {
+  color: var(--accent);
+}
+
+/* Ghost race: your late game, among the ones that counted */
+.ghost {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Rematch: each side of the challenge */
+.side {
+  composes: panel from "../../stached.module.css";
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+}
+
+/* Stache-five: a result, then Gerald to tap and the count */
+.five {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 10px;
+  min-height: 46px;
+  font-size: 18px;
+}
+
+.fiveButton {
+  composes: display from "../../stached.module.css";
+  display: inline-flex;
+  min-width: 58px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.fiveButton svg {
+  width: 24px;
+  height: 8px;
+  fill: currentColor;
+}
+
+.fiveButton[aria-pressed="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Here now: still to play, with a live dot for anyone on Stached */
+.here {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  min-height: 40px;
+  font-size: 18px;
+}
+
+.live {
+  composes: label from "../../stached.module.css";
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--green);
+}
+
+.live::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: live 1.6s ease-in-out infinite;
+}
+
+@keyframes live {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live::before {
+    animation: none;
+  }
+}
+
+/* Best five: the two days that don't count */
+.dropped {
+  opacity: 0.22;
+}
+
+/* Streak freeze: a miss that keeps the streak going */
+.frozen {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  background: var(--blue);
+  color: var(--cream);
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Clean bonus: the third point, beside the game's key */
+.cleanKey {
+  composes: display from "../../stached.module.css";
+  font-size: 13px;
+}

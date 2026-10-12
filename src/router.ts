@@ -8,6 +8,10 @@ import {
 } from "@tanstack/react-router";
 import App from "./App";
 import ProjectsTable from "./components/table/ProjectsTable";
+import {
+  parseLeaderboardSearch,
+  parseTourSearch,
+} from "./stached/mockups/leaderboard/search";
 import { parseMockupSearch } from "./stached/mockups/search";
 
 export { HeadContent };
@@ -148,9 +152,9 @@ const stachedDayRoute = createRoute({
   head: ({ params }) => ({ meta: [{ title: `Stached · ${params.date}` }] }),
 });
 
-// Dev only: the admin's past runs and puzzle staging, on made-up data
-// (src/stached/mockups/). Made inside the check, so a production build leaves
-// them out entirely.
+// Dev only: the admin's past runs and puzzle staging, and leaderboard ideas
+// with a tour of them, on made-up data (src/stached/mockups/). Made inside the
+// check, so a production build leaves them out entirely.
 const devRoutes = import.meta.env.DEV
   ? [
       createRoute({
@@ -163,6 +167,34 @@ const devRoutes = import.meta.env.DEV
         head: () => ({
           meta: [
             { title: "Admin mockups | Stached" },
+            { name: "robots", content: "noindex, nofollow" },
+          ],
+        }),
+      }),
+      createRoute({
+        getParentRoute: () => rootRoute,
+        path: "/stached/leaderboard-mockups",
+        component: lazyRouteComponent(
+          () => import("./stached/mockups/leaderboard/LeaderboardMockups"),
+        ),
+        validateSearch: parseLeaderboardSearch,
+        head: () => ({
+          meta: [
+            { title: "Leaderboard mockups | Stached" },
+            { name: "robots", content: "noindex, nofollow" },
+          ],
+        }),
+      }),
+      createRoute({
+        getParentRoute: () => rootRoute,
+        path: "/stached/leaderboard-mockups/tour",
+        component: lazyRouteComponent(
+          () => import("./stached/mockups/leaderboard/Tour"),
+        ),
+        validateSearch: parseTourSearch,
+        head: () => ({
+          meta: [
+            { title: "Leaderboard tour | Stached" },
             { name: "robots", content: "noindex, nofollow" },
           ],
         }),

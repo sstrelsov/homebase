@@ -9,6 +9,9 @@ export const WEEK = 7;
 /** Always #1, whatever her points. Matched without case. */
 const PINNED = "cat";
 
+export const isPinned = (standing: { name: string }) =>
+  standing.name.toLowerCase() === PINNED;
+
 /** A puzzle out so far (dated today or earlier). */
 export interface Day {
   id: number;
@@ -149,8 +152,6 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
       ];
     },
   );
-  const isPinned = (standing: { name: string }) =>
-    standing.name.toLowerCase() === PINNED;
   standings.sort(
     (a, b) =>
       Number(isPinned(b)) - Number(isPinned(a)) ||
@@ -174,7 +175,7 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
 }
 
 /** Places in the order given; a tie with the player above shares their place. */
-function ranked<T extends { points: number }>(standings: T[]) {
+export function ranked<T extends { points: number }>(standings: T[]) {
   let rank = 0;
   return standings.map((standing, i) => {
     if (i === 0 || standing.points !== standings[i - 1].points) rank = i + 1;

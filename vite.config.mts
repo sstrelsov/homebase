@@ -102,11 +102,12 @@ export default defineConfig({
   },
   // Dev: /stached-api goes to a local Stached API (on 3999, or
   // STACHED_API_PORT), and Tailscale Serve may front the dev server on a
-  // *.ts.net host (see `make phone`).
+  // *.ts.net host (see `make phone`). The folder's own source files share
+  // the prefix, and stay with Vite: the leaderboard mockups import its rules.
   server: {
     allowedHosts: [".ts.net"],
     proxy: {
-      "/stached-api": {
+      "^/stached-api/(?!.*\\.ts(\\?|$))": {
         target: `http://localhost:${process.env.STACHED_API_PORT ?? 3999}`,
         rewrite: (path) => path.replace(/^\/stached-api/, ""),
       },

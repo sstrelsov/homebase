@@ -28,7 +28,7 @@ export interface MockupSearch {
 }
 
 /** The option that matches, or the first. */
-const pick = <T extends string>(value: unknown, options: readonly T[]) =>
+export const pick = <T extends string>(value: unknown, options: readonly T[]) =>
   options.find((option) => option === value) ?? options[0];
 
 export const parseMockupSearch = (
