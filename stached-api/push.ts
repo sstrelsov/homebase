@@ -8,6 +8,7 @@
 // restarts.
 import { sql } from "bun";
 import QUOTES from "../src/stached/quotes.json";
+import { announceDue } from "./puzzles";
 import {
   base64url,
   type Subscription,
@@ -20,30 +21,6 @@ import {
  * it to midnight, so a test push goes out as soon as its puzzle is live.
  */
 export const ANNOUNCE_AT = process.env.ANNOUNCE_AT ?? "09:12";
-
-const NEW_YORK = new Intl.DateTimeFormat("en-US", {
-  timeZone: "America/New_York",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
-  hourCycle: "h23",
-});
-
-/** The time in New York as "2026-10-02 09:12", which sorts as text. */
-export function newYorkTime(now = new Date()) {
-  const part = Object.fromEntries(
-    NEW_YORK.formatToParts(now).map(({ type, value }) => [type, value]),
-  );
-  return `${part.year}-${part.month}-${part.day} ${part.hour}:${part.minute}`;
-}
-
-/** Whether a puzzle's push is due: on its date, from 9:12am New York time. */
-export function announceDue(date: string, now = new Date()) {
-  const time = newYorkTime(now);
-  return time.startsWith(date) && time >= `${date} ${ANNOUNCE_AT}`;
-}
 
 /** The API's VAPID keys, from its environment. Without them, push is off. */
 export function vapidKeys(): VapidKeys | null {
@@ -125,7 +102,7 @@ export async function announce(
   keys: VapidKeys,
   now = new Date(),
 ) {
-  if (!announceDue(puzzle.date, now)) return false;
+  if (!announceDue(puzzle.date, ANNOUNCE_AT, now)) return false;
   const [claimed] = await sql`
     insert into announcements (date) values (${puzzle.date})
     on conflict do nothing

@@ -1,7 +1,9 @@
 // Client for the Stached API (stached-api/ at the repo root, on the Studio). In
 // dev it goes through Vite's proxy to a local API, unless VITE_STACHED_API
 // points somewhere else.
+import type { Organized } from "../../stached-api/haiku";
 import type { Leaderboard, Mark } from "../../stached-api/leaderboard";
+import type { DayPuzzle } from "../../stached-api/puzzles";
 
 const API =
   import.meta.env.VITE_STACHED_API ??
@@ -124,6 +126,30 @@ export interface AdminStats {
   puzzles: AdminPuzzle[];
 }
 
+/** A published puzzle on the admin's Stage tab. */
+export interface Published extends DayPuzzle {
+  /** Games on it so far, finished or not. */
+  games: number;
+  /** Its push has gone out. */
+  pushed: boolean;
+}
+
+/** The admin's Stage tab: every puzzle, published and staged. */
+export interface Schedule {
+  /** Today in New York. */
+  today: string;
+  /** When a puzzle's push goes out on its date, New York time: "09:12". */
+  announceAt: string;
+  /** By date. */
+  published: Published[];
+  /** By date. */
+  staged: DayPuzzle[];
+  /** Claude Haiku is on: the API has an Anthropic key. */
+  haiku: boolean;
+  /** Browsers that get each push. */
+  reach: number;
+}
+
 /**
  * How a game starts, for the admin page: in the home-screen app or the
  * website, and whether the device is set to dark mode (its own setting, not
@@ -200,6 +226,29 @@ export const api = {
     request<void>("/push/subscribe", { token, body: subscription }),
   /** The admin page's numbers and games; anyone else gets a 404. */
   admin: (token: string) => request<AdminStats>("/admin", { token }),
+  /** The admin's: every puzzle, published and staged. */
+  schedule: (token: string) => request<Schedule>("/admin/schedule", { token }),
+  /** The admin's: Claude Haiku sorts a paste into a puzzle's rows. */
+  organize: (token: string, paste: string) =>
+    request<Organized>("/admin/organize", { token, body: { paste } }),
+  /** The admin's: Claude Haiku suggests a push line for these groups. */
+  suggestPush: (token: string, groups: DayPuzzle["groups"]) =>
+    request<{ push: string }>("/admin/suggest", { token, body: { groups } }),
+  /** The admin's: stages a puzzle, and makes it today's on the tester. */
+  stage: (token: string, puzzle: DayPuzzle) =>
+    request<{ schedule: Schedule; tester: { ok: boolean; text: string } }>(
+      "/admin/stage",
+      { token, body: { puzzle } },
+    ),
+  /** The admin's: drops the puzzle staged on a date. */
+  unstage: (token: string, date: string) =>
+    request<Schedule>("/admin/unstage", { token, body: { date } }),
+  /** The admin's: publishes the puzzle staged on a date. */
+  publish: (token: string, date: string, deleteGames: boolean) =>
+    request<Schedule>("/admin/publish", {
+      token,
+      body: { date, deleteGames },
+    }),
   guess: (token: string, puzzleId: number, words: string[]) =>
     request<Day & { result: GuessResult }>("/guess", {
       token,

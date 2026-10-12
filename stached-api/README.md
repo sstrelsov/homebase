@@ -24,9 +24,12 @@ phone ──► spencerstrelsov.com/stached      GitHub Pages (this repo's src/)
 |---|---|
 | Game UI | `src/pages/Stached.tsx` (the page and session), `src/stached/` (login, home, game, past games, clock, leaderboard, dialogs, logo, styles) |
 | API server | `stached-api/server.ts` (dependency-free Bun) |
-| Puzzle rules | `stached-api/puzzles.ts` (shared by the API and the puzzle CLI) |
+| Puzzle rules | `stached-api/puzzles.ts` (no Bun, so the API, the puzzle CLI and the admin page share them: what makes a puzzle, what publishing one changes, when it pushes) |
+| Staging and publishing | `stached-api/schedule.ts` (the puzzles file, `staged.json` and Postgres, for the puzzle CLI and the admin page alike) |
+| Claude Haiku, for the admin page | `stached-api/haiku.ts` (sorts a paste into rows, suggests a push line) |
 | Leaderboard rules | `stached-api/leaderboard.ts` (the points so far and the week's squares, with tests) |
 | Puzzle CLI | `stached-api/cli.ts`, run with `scripts/stached`; the `stached-puzzles` skill walks through it |
+| Admin page | `src/stached/Admin.tsx` (its tabs and past runs), `src/stached/stage/` (staging and publishing puzzles) |
 | Push notifications | `stached-api/push.ts` (who gets them, and when), `stached-api/webpush.ts` (encryption and signing), `public/stached/sw.js` (shows them), `src/stached/push.ts` and `src/stached/NotificationsDialog.tsx` (turning them on) |
 | Link-preview card | `stached-api/card.ts` (draws it), `stached-api/card/` (its art, from `art.html`) |
 | Home-screen app | `public/stached/manifest.json`, `public/images/stached-icon-v2-*.png` (from `art.html?icon`), `src/stached/HomeScreen.tsx` (the dialog that asks for it), `src/stached/IPhone.tsx` (the dialogs' drawings of an iPhone) |
@@ -105,10 +108,25 @@ Then restart the API (`make deploy-stached`). The private key never leaves the S
 
 ## Admin page
 
-`/stached/admin` is for one player, the admin (`ADMIN_NAME`; Spencer on the live game). Only the admin's home links to it, and the API answers anyone else's `GET /admin` with a 404.
+`/stached/admin` is for one player, the admin (`ADMIN_NAME`; Spencer on the live game). Only the admin's home links to it, and the API answers anyone else's `/admin` requests with a 404. It has two tabs, Past runs and Stage, and a device keeps the one it was on.
 
 - **Signing in:** the admin's name takes `ADMIN_PASSWORD`, not the shared password, so no friend can sign in as them. The admin stays off the leaderboard and the day's scoreboard, but plays and gets pushes like anyone. The admin's sessions also depend on `ADMIN_PASSWORD`, so setting up the admin or changing that password signs the admin out everywhere, along with anyone who took the name with the shared password before.
-- **What it shows:** how many players there are, how many played one of the last seven puzzles while it counted, how many have notifications on, and how many have started a game in the home-screen app. Then each puzzle: how many played and solved it while it counted, and how many played it late. Open a puzzle to see every finished game's share grid for it, to judge how hard it was, or open a player to see their grids across puzzles. Each game says how it started: in the home-screen app or the website, on a device in dark or light mode (the device's own setting, not Stached's look), and whether it started within 15 minutes of the push (Who it brings in, above), which each puzzle counts too. A player who has started a game in the app says "Home screen". It all comes from the games, push subscriptions and announcements: besides the game itself, each play keeps only those two facts (`plays.home_screen`, `plays.dark`), sent with `POST /start` and kept from its first start. Games from before don't have them. Nothing records visits.
+- **Past runs:** how many players there are, how many played one of the last seven puzzles while it counted, how many have notifications on, and how many have started a game in the home-screen app. Then each puzzle: how many played and solved it while it counted, and how many played it late. Open a puzzle to see every finished game's share grid for it, to judge how hard it was, or open a player to see their grids across puzzles. Each game says how it started: in the home-screen app or the website, on a device in dark or light mode (the device's own setting, not Stached's look), and whether it started within 15 minutes of the push (Who it brings in, above), which each puzzle counts too. A player who has started a game in the app says "Home screen". It all comes from the games, push subscriptions and announcements: besides the game itself, each play keeps only those two facts (`plays.home_screen`, `plays.dark`), sent with `POST /start` and kept from its first start. Games from before don't have them. Nothing records visits.
+
+- **Stage:** writes and publishes puzzles from a phone, as the puzzle CLI does (Puzzles, below). Paste ideas in any shape and tap Organize: Claude Haiku sorts them into rows (Claude Haiku, below), or says in a line why there's no puzzle in it yet. Then fix the rows in place: tap a word or title to edit it, the arrows move a row (colors go easiest first), Gerald picks the stache group, and Change picks the date. A word Haiku fixed (a typo in the paste) shows what was pasted, small, under it: tap that to put it back. The API's own rules (`problemsOf` in `puzzles.ts`) ring what it would refuse and list it at the bottom, so nothing is sent until they pass. Under the rows, the notification as it lands on a lock screen, with its line (empty takes a quote from home).
+  - **Stage** does what `scripts/stached stage` does for that puzzle: it saves it in `staged.json`, in place of any puzzle staged on its date, and makes it today's on the tester (The tester, below), to play there first. It never touches what players see.
+  - **Publish** does what `scripts/stached confirm <date>` does for the puzzle staged on its date: it writes `puzzles.json` and Postgres, and sends the push right away if it's due. It waits until what's on screen is staged, word for word. Changing a puzzle people have played asks for an explicit "Delete N games" tick, the CLI's `--delete-games`.
+  - **Coming up** lists every day from today to the last puzzle: live, published, staged, or a gap to stage. Tap one to open it. A staged puzzle can be unstaged from there, and moving its date and staging it again moves it.
+  - What the tab shows, a puzzle half written included, is kept on the device (`stached.stage` in local storage), since iOS can drop a page left in the background.
+
+### Claude Haiku
+
+The Stage tab's Organize and "Suggest one" call Claude Haiku (`claude-haiku-5-5`) from the API (`haiku.ts`), with `fetch`, so the API stays dependency-free. Both need `ANTHROPIC_API_KEY` in `api.env`: add it on the Studio and restart the API (`make deploy-stached`). Without it, the page says so, and the rows are typed by hand.
+
+- **Organize** sends the paste, once it has 4 words or more, and Haiku answers in one of two shapes (structured output): `rows`, or `not_enough` with a one-line reason. Rows keep the paste's order and leave a short group's tile empty. Each tile is Haiku's word (tidied, with an obvious typo fixed) and `from`, the pasted word it came from. Titles may be Haiku's own, and the stache group is marked only when one clearly is. A line the paste marks for the notification ("notif: …") becomes the push line.
+- **Nothing is invented.** The API keeps Haiku's word only if it's in the paste as a whole word, or close to `from` and `from` is in the paste (`closeTo` in `haiku.ts`). Close means the same letters and digits, ignoring case, spacing and punctuation, give or take one edit for a pasted word of up to five, or two for a longer one (a letter added, dropped, changed, or swapped with its neighbor). Any other tile comes back empty, to fill by hand. Where the kept word differs from what was pasted in more than case or extra spaces, the page gets the pasted word too, and shows it under the tile. A long one is cut short there.
+- **Suggest one** sends the groups so far and gets back a push line that hints without naming a group or its words.
+- Each call costs well under a cent. The API allows 10 a minute, for the admin only. The key lives only in the Studio's `api.env`, like the password.
 
 ## Puzzles
 
@@ -129,27 +147,28 @@ Puzzles live in `~/.config/stached/puzzles.json` on the Studio (mode 600), becau
 ]
 ```
 
-- One puzzle per date, a title and four words per group, no word twice (ignoring case), no title twice, exactly one `"stache": true` group, at most five groups. The server refuses to start otherwise, and the CLI won't stage it.
+- One puzzle per date, a title and four words per group, no word twice (ignoring case), no title twice, exactly one `"stache": true` group, at most five groups. The server refuses to start otherwise, and neither the CLI nor the admin page will stage it.
 - Non-stache groups are colored in file order (yellow, orange, red, blue), so list them easiest first.
 - `push` is optional: the line under "Puzzle #12 is up" in its notification. Without it, the line is a random quote from home. It only matters until the push goes out, and changing it never touches anyone's games.
 - Add upcoming days ahead of time; each goes live on its date.
-- **Editing or removing a puzzle that people have played deletes their games for it.** Scores against old words wouldn't mean anything. The CLI refuses to unless you add `--delete-games`.
+- **Editing or removing a puzzle that people have played deletes their games for it.** Scores against old words wouldn't mean anything. The CLI refuses to unless you add `--delete-games`, and the admin page unless you tick "Delete N games".
 
 ### The puzzle CLI
 
-`scripts/stached` stages puzzles, puts them on the tester to play first, and publishes them (the code is `stached-api/cli.ts`, and the [`stached-puzzles`](../.claude/skills/stached-puzzles/SKILL.md) skill walks through it). It runs on the Studio with the API's settings. From this Mac it runs there over SSH, sending a puzzle file along. Publishing needs no deploy.
+`scripts/stached` stages puzzles, puts them on the tester to play first, and publishes them (the code is `stached-api/cli.ts`, and the [`stached-puzzles`](../.claude/skills/stached-puzzles/SKILL.md) skill walks through it). It runs on the Studio with the API's settings. From this Mac it runs there over SSH, sending a puzzle file along. Publishing needs no deploy. The admin page's Stage tab does the same, through the same code (`schedule.ts`), so a puzzle staged in one can be published from the other.
 
 ```bash
 scripts/stached stage oct-2.json   # check it, stage it (not live), and put it on the tester (- reads stdin)
-scripts/stached confirm            # publish it
+scripts/stached confirm            # publish it (with a date, when more than one is staged)
 scripts/stached list               # every puzzle: status, games, push
 ```
 
 | Command | What it does |
 |---|---|
-| `stage <file>` | Checks one puzzle, or a list, with the server's rules, and stages it in `staged.json` next to `puzzles.json`, replacing what was staged. Says each puzzle's number, its push line, and when it goes live and pushes. Then makes the first one today's puzzle on the tester (The tester, below), to play in its home-screen app before anyone else, and says the address. It sends the tester's push right away, push line and all, even if one went out earlier that day |
+| `stage <file>` | Checks one puzzle, or a list, with the server's rules, and stages each in `staged.json` next to `puzzles.json`, in place of any puzzle staged on its date; puzzles staged on other dates stay. Says each puzzle's number, its push line, and when it goes live and pushes. Then makes the first one today's puzzle on the tester (The tester, below), to play in its home-screen app before anyone else, and says the address. It sends the tester's push right away, push line and all, even if one went out earlier that day |
 | `preview [date]` | Puts a staged puzzle (the first, or that date's) on the tester, as today's |
-| `confirm` | Publishes what's staged: writes `puzzles.json` (keeping the old one as `puzzles.json.bak-…`) and syncs Postgres as the API does when it starts. The API serves it without a restart. A push that's due goes out right away, from the CLI, rather than at the API's next check |
+| `confirm [date]` | Publishes the puzzle staged on that date, or the only one staged (with more, it asks which): writes `puzzles.json` (keeping the old one as `puzzles.json.bak-…`) and syncs Postgres as the API does when it starts, and unstages it. The API serves it without a restart. A push that's due goes out right away, rather than at the API's next check |
+| `unstage <date>` | Drops the puzzle staged on that date |
 | `remove <date>` | Takes a published puzzle down |
 | `list` | Every puzzle with its number, status (out, today, upcoming, staged), games, and push (sent, none, or when) |
 | `vapid-keys` | Prints a new push key pair (Push keys, above) |
@@ -181,6 +200,8 @@ The API reads its settings from the environment (on the Studio, `~/.config/stach
 | `ANNOUNCE_AT` | when a puzzle's push goes out on its date, New York time: default `09:12` |
 | `ADMIN_NAME`, `ADMIN_PASSWORD` | the admin's name and their own password (Admin page, above). Set both or neither |
 | `STACHED_TESTER` | set on the tester only (The tester, below), where the puzzle CLI's `play` takes a staged puzzle as today's and `push-again` sends today's push again |
+| `ANTHROPIC_API_KEY` | Claude Haiku's key, for the admin page's Organize and Suggest one (Claude Haiku, above). Without it, both are off |
+| `TESTER_ENV` | the tester's settings, where staging puts a puzzle: default `~/.config/stached-tester/api.env`. Empty means no tester, as in a `make phone` run; tests point it elsewhere |
 
 The site calls `https://api.spencerstrelsov.com` in production and `/stached-api` in dev; `VITE_STACHED_API` overrides either.
 
@@ -192,7 +213,8 @@ Checks: `bun run lint` (Biome, for the site and the API), `bun run build`, and `
 
 - **Once:** open it on your phone (Tailscale on, password `test`), add it to the home screen as its dialog shows, open the app and turn on notifications when it asks. It's a separate app from the real one. Play as any name but `admin`, since the admin's own games stay off the admin page, and open the admin page (name `admin`, password `admin`) somewhere else, like this Mac.
 - **Each change:** push the branch, `make tester`, and try it. The API applies the branch's new migrations as it starts. The tester's database keeps every migration it has run, even from a branch that never merges; reset it (below) if one gets in the way.
-- **Puzzles:** staging a puzzle for the live game makes it today's here too (`scripts/stached stage`, The puzzle CLI, above): the tester runs `play` (`stached-api/cli.ts`), which puts it in place of the tester's own puzzle for today. Its games there go with it when the words change, as on any edit. `scripts/stached --tester` drives the tester's own puzzles directly with the same commands.
+- **Puzzles:** staging a puzzle for the live game, from the admin page or `scripts/stached stage`, makes it today's here too: the puzzle CLI's `play` (`stached-api/cli.ts`) runs with the tester's settings and puts it in place of the tester's own puzzle for today. Its games there go with it when the words change, as on any edit. `scripts/stached --tester` drives the tester's own puzzles directly with the same commands, and its admin page (name `admin`) stages and publishes them; staging there makes the puzzle today's there too, so the whole flow can be tried on the tester.
+- **How the live API reaches it:** the live API (a LaunchDaemon) and the tester (tmux) run as the same macOS user, `sstrelsov-personal`, so the live API runs that same `play` step itself (`toTester` in `schedule.ts`): a separate `bun` with `--env-file` set to the tester's `api.env` and nothing of the live game's environment, so it only ever reaches the tester's database and files. It's the only way anything of the live game's writes to the tester, and nothing on the tester writes to the live game. Only the admin's request waits for it; the API keeps serving players meanwhile.
 - **Pushes:** the tester pushes as soon as today's puzzle is live (`ANNOUNCE_AT=00:00`) and again each time a puzzle is staged there, and `scripts/stached --tester push-again` sends today's push again right away.
 - **Where it lives:** its own clone at `~/dev/homebase-tester`, detached at the branch; its settings, puzzles, Postgres and logs in `~/.config/stached-tester/`; its API and site in the tmux sessions `stached-tester-api` and `stached-tester-web`, on ports 3997 and 5197 behind Tailscale Serve's `:8444`, with Postgres on 5497. None of it touches the live game.
 - **After the Studio restarts,** run `make tester` again: tmux and the tester's Postgres don't start at boot.
@@ -261,7 +283,7 @@ To try a backup without touching production, restore it into a throwaway Postgre
 Everything runs as `sstrelsov-personal` (`ssh personal-studio`), from a clone at `~/dev/homebase`, and listens only on 127.0.0.1.
 
 - **Services:** LaunchDaemons `me.strelsov.stached.{postgres,api,tunnel,backup}` start at boot with nobody logged in. Install them, or re-install after changing `ops/install-daemons.sh`, with `ssh -t personal-studio 'sudo ~/dev/homebase/stached-api/ops/install-daemons.sh'`. FileVault is on, so after a reboot nothing starts until the disk is unlocked.
-- **Files in `~/.config/stached/`** (all mode 600): `api.env` (the password, a generated session secret, the push keys, and settings), `puzzles.json`, `staged.json` (puzzles staged with the CLI) and its backups of `puzzles.json`, `tunnel-token`, and a log per service.
+- **Files in `~/.config/stached/`** (all mode 600): `api.env` (the password, a generated session secret, the push keys, and settings), `puzzles.json`, `staged.json` (puzzles staged with the CLI or the admin page) and backups of `puzzles.json`, `tunnel-token`, and a log per service.
 - **Postgres** is Homebrew's `postgresql@17`, with data in `/opt/homebrew/var/postgresql@17`. Local connections authenticate as the macOS user; the API uses its own password-protected `stached` role over TCP.
 - **Health:** `curl -s http://127.0.0.1:3999/health` on the Studio, or `https://api.spencerstrelsov.com/health` from anywhere.
 
@@ -271,9 +293,9 @@ Everything runs as `sstrelsov-personal` (`ssh personal-studio`), from a clone at
 
 ## Security
 
-- The password, the admin password, the real puzzles and the VAPID private key exist only on the Studio. Changing the password (edit `STACHE_PASSWORD` in `api.env`, then `make deploy-stached`) doesn't sign anyone out.
+- The password, the admin password, the real puzzles, the VAPID private key and the Anthropic key exist only on the Studio. Changing the password (edit `STACHE_PASSWORD` in `api.env`, then `make deploy-stached`) doesn't sign anyone out.
 - Changing `SESSION_SECRET` signs everyone out, and changing `ADMIN_PASSWORD` signs the admin out. Deleting a player signs that player out.
-- The API allows browsers only from the site's origins. It limits each client to 10 sign-ins and 180 other requests a minute, and caps request bodies at 16 KB. Behind the tunnel it identifies clients by Cloudflare's `CF-Connecting-IP`, which only the tunnel can set, because the API listens on loopback.
+- The API allows browsers only from the site's origins. It limits each client to 10 sign-ins and 180 other requests a minute, Claude Haiku to 10 calls a minute in all, and caps request bodies at 16 KB. Behind the tunnel it identifies clients by Cloudflare's `CF-Connecting-IP`, which only the tunnel can set, because the API listens on loopback.
 - These limits count per IP address, so a crowd on one Wi-Fi shares them.
 
 ## Troubleshooting
@@ -286,4 +308,6 @@ Everything runs as `sstrelsov-personal` (`ssh personal-studio`), from a clone at
 | Everyone signed out | `SESSION_SECRET` changed, or the database was reset |
 | Someone stuck at "Wrong password" | the password is exact and case-sensitive |
 | No push for today's puzzle | `scripts/stached list` (sent, none, or when); the API log's `Announced #N: … sent, … gone, … failed` line, or "Push notifications are off" at start (no keys) |
+| Organize is off on the admin page, or says Claude didn't take the key | `ANTHROPIC_API_KEY` in `~/.config/stached/api.env`, then `make deploy-stached`. The API log has Claude's own error |
+| The admin page says "Staged, not on the tester" | The tester is down, usually after the Studio restarted: `make tester`, then Stage again (or `scripts/stached preview <date>`) |
 | Home doesn't ask for notifications | push only works in the home-screen app on iPhone. The app asks at most once a day, and never once they're on or after "Don't Allow" (iOS Settings → Notifications to undo). To see it again, delete the app and add it again from Safari. A browser tab shows a bell instead, where it can get pushes (desktop Chrome, Android) |

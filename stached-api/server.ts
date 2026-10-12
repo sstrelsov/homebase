@@ -1,7 +1,8 @@
 // The Stached API: sign-in, the day's puzzles, guesses, scoreboards, past
 // games, the leaderboard, the link-preview card, push notifications, and the
-// admin page. The server holds the answers and the clock, so scores can't be
-// fudged from the browser. Bun.sql connects with DATABASE_URL.
+// admin page, where the admin stages and publishes puzzles. The server holds
+// the answers and the clock, so scores can't be fudged from the browser.
+// Bun.sql connects with DATABASE_URL.
 //
 // The stache clock only runs while the board is on screen: the game checks in
 // every few seconds while it's visible and says when it's hidden. A stretch
@@ -10,6 +11,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { sql } from "bun";
 import { type CardPuzzle, nextColor, renderCard } from "./card";
+import { organize, suggestPush } from "./haiku";
 import {
   type Day,
   type Game,
@@ -19,13 +21,25 @@ import {
 } from "./leaderboard";
 import { migrate } from "./migrate";
 import {
+  ANNOUNCE_AT,
   announce,
   parseSubscription,
   saveSubscription,
   vapidKeys,
 } from "./push";
-import { COLORS, type Group, readPuzzles, syncPuzzles } from "./puzzles";
+import { COLORS, type Group, newYorkDate, Played, Stop } from "./puzzles";
 import { hasBonusLife, MAX_MISTAKES, outcome } from "./rules";
+import {
+  announcedDates,
+  confirm,
+  gamesByDate,
+  readPuzzles,
+  readStaged,
+  stage,
+  syncPuzzles,
+  toTester,
+  unstage,
+} from "./schedule";
 
 const PASSWORD = env("STACHE_PASSWORD");
 const SECRET = env("SESSION_SECRET");
@@ -44,6 +58,8 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? "";
 if (!ADMIN_NAME !== !ADMIN_PASSWORD)
   throw new Error("Set ADMIN_NAME and ADMIN_PASSWORD together");
 const isAdmin = (name: string) => name.toLowerCase() === ADMIN_NAME;
+// Claude Haiku helps the admin write puzzles (haiku.ts) once this is set.
+const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY ?? "";
 
 interface Puzzle {
   id: number;
@@ -549,6 +565,84 @@ async function adminStats() {
 }
 
 /**
+ * The admin page's Stage tab: every puzzle, published (with its games, and
+ * whether it has pushed) and staged, and what the page needs to say when
+ * they push.
+ */
+async function upcoming() {
+  const [published, staged, games, announced, [{ reach }]] = await Promise.all([
+    readPuzzles(),
+    readStaged(),
+    gamesByDate(),
+    announcedDates(),
+    sql`select count(*)::int as reach from push_subscriptions`,
+  ]);
+  return {
+    today: newYorkDate(),
+    announceAt: ANNOUNCE_AT,
+    published: published.map((p) => ({
+      ...p,
+      games: games.get(p.date) ?? 0,
+      pushed: announced.has(p.date),
+    })),
+    staged,
+    haiku: Boolean(ANTHROPIC_KEY),
+    reach: VAPID ? reach : 0,
+  };
+}
+
+/**
+ * The admin page: past runs, and staging and publishing puzzles as the puzzle
+ * CLI does (schedule.ts), with Claude Haiku's help. A refusal (a puzzle with
+ * problems, games that publishing would delete) comes back as its message.
+ */
+async function admin(path: string, data: Record<string, unknown>) {
+  const text = (value: unknown) => (typeof value === "string" ? value : "");
+  try {
+    switch (path) {
+      case "GET /admin":
+        return Response.json(await adminStats());
+      case "GET /admin/schedule":
+        return Response.json(await upcoming());
+      case "POST /admin/organize":
+      case "POST /admin/suggest": {
+        if (!ANTHROPIC_KEY) return fail(503, "No Anthropic key on the API");
+        // Each call costs money, so even the admin gets only a few a minute.
+        if (overLimit("haiku", LIMITS.haiku))
+          return fail(429, "Too many tries. Wait a minute");
+        const how = { key: ANTHROPIC_KEY };
+        return Response.json(
+          path === "POST /admin/organize"
+            ? await organize(text(data.paste), how)
+            : { push: await suggestPush(data.groups, how) },
+        );
+      }
+      case "POST /admin/stage": {
+        const [puzzle] = await stage([data.puzzle]);
+        const [tester, schedule] = await Promise.all([
+          toTester(puzzle),
+          upcoming(),
+        ]);
+        return Response.json({ tester, schedule });
+      }
+      case "POST /admin/unstage":
+        await unstage(text(data.date));
+        return Response.json(await upcoming());
+      case "POST /admin/publish":
+        await confirm(text(data.date), {
+          deleteGames: data.deleteGames === true,
+        });
+        return Response.json(await upcoming());
+      default:
+        return fail(404, "Not found");
+    }
+  } catch (error) {
+    if (!(error instanceof Stop)) throw error;
+    return fail(error instanceof Played ? 409 : 400, error.message);
+  }
+}
+
+/**
  * Today's link-preview card (card.ts), which the site's preview tags point at.
  * It's public, since chat apps fetch it signed out, and never cached, so each
  * fetch shows today's puzzle and takes the next border color. It reads only
@@ -579,6 +673,8 @@ async function route(req: Request): Promise<Response> {
 
   const user = await authenticate(req, data);
   if (!user) return fail(401, "Sign in first");
+  if (/^\w+ \/admin(\/|$)/.test(path))
+    return isAdmin(user.name) ? admin(path, data) : fail(404, "Not found");
   const userId = user.id;
   switch (path) {
     case "GET /today": {
@@ -602,9 +698,6 @@ async function route(req: Request): Promise<Response> {
       return Response.json(await pastGames(userId));
     case "POST /handoff":
       return handoff(user);
-    case "GET /admin":
-      if (!isAdmin(user.name)) return fail(404, "Not found");
-      return Response.json(await adminStats());
     case "GET /push/key":
       if (!VAPID) return fail(404, "Notifications are off");
       return Response.json({ key: VAPID.publicKey });
@@ -626,8 +719,9 @@ const HOST = process.env.HOST ?? "0.0.0.0";
 const BEHIND_TUNNEL = HOST === "127.0.0.1";
 
 // Requests per client per minute. Sign-in is tight so the shared password
-// can't be guessed at speed; a game makes about 15 a minute.
-const LIMITS = { login: 10, api: 180 };
+// can't be guessed at speed; a game makes about 15 a minute. Claude Haiku's
+// are for everyone at once.
+const LIMITS = { login: 10, api: 180, haiku: 10 };
 const windows = new Map<string, { start: number; count: number }>();
 
 function overLimit(key: string, limit: number) {

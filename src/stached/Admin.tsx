@@ -1,22 +1,21 @@
 import { type ReactNode, useState } from "react";
+import { dayName, plural } from "../../stached-api/puzzles";
 import {
   type AdminGame,
   type AdminPuzzle,
   type AdminStats,
   api,
-  formatDate,
   formatTime,
 } from "./api";
 import GuessGrid from "./GuessGrid";
-import Screen from "./Screen";
+import Screen, { Retry } from "./Screen";
 import { useLoad } from "./session";
 import styles from "./stached.module.css";
+import StageTab from "./stage/Stage";
+import x from "./stage/stage.module.css";
 
 const puzzleTitle = ({ number, date }: AdminPuzzle) =>
-  `#${number} · ${formatDate(date, { weekday: "short", month: "short", day: "numeric" })}`;
-
-export const plural = (n: number, word: string) =>
-  `${n} ${word}${n === 1 ? "" : "s"}`;
+  `#${number} · ${dayName(date)}`;
 
 /** The parts that apply, between dots. */
 const dotted = (...parts: (string | false)[]) =>
@@ -190,12 +189,73 @@ export const PastRuns = ({ stats }: { stats: AdminStats }) => {
   );
 };
 
-/** For the admin only: past runs, once they load. */
-const Admin = () => {
+/** The past runs tab, once they load. */
+const Runs = () => {
   const { data: stats, error, load } = useLoad(api.admin);
+  if (error)
+    return <Retry error={error} onRetry={load} className="text-left" />;
+  return stats ? (
+    <PastRuns stats={stats} />
+  ) : (
+    <p className={styles.label}>Loading…</p>
+  );
+};
+
+const TABS = [
+  ["runs", "Past runs"],
+  ["stage", "Stage"],
+] as const;
+
+type Tab = (typeof TABS)[number][0];
+
+const TAB_KEY = "stached.adminTab";
+
+/** The tab this device was on, so a reload stays on Stage. */
+function loadTab(): Tab {
+  try {
+    return localStorage.getItem(TAB_KEY) === "stage" ? "stage" : "runs";
+  } catch {
+    return "runs";
+  }
+}
+
+/** The admin's two tabs; the one you're on is a selected tile. */
+const Tabs = ({ tab, onTab }: { tab: Tab; onTab: (tab: Tab) => void }) => (
+  <div role="tablist" className={x.tabs}>
+    {TABS.map(([id, label]) => (
+      <button
+        key={id}
+        type="button"
+        role="tab"
+        aria-selected={tab === id}
+        data-on={tab === id || undefined}
+        onClick={() => onTab(id)}
+        className={x.tab}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+);
+
+/**
+ * For the admin only: past runs (how many play, and how each puzzle went),
+ * and staging and publishing puzzles.
+ */
+const Admin = () => {
+  const [tab, setTab] = useState(loadTab);
+  const pick = (next: Tab) => {
+    setTab(next);
+    try {
+      localStorage.setItem(TAB_KEY, next);
+    } catch {
+      // Private mode: the tab lasts as long as the page.
+    }
+  };
   return (
-    <Screen title="Admin" error={error} onRetry={load}>
-      {stats && <PastRuns stats={stats} />}
+    // Each tab loads, and retries, on its own.
+    <Screen title="Admin" subtitle={<Tabs tab={tab} onTab={pick} />}>
+      {tab === "runs" ? <Runs /> : <StageTab />}
     </Screen>
   );
 };
