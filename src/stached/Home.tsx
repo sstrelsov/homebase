@@ -50,8 +50,9 @@ const DaySquare = ({ date, mark, today }: WeekDay) => {
 
 /**
  * Your week under Play: the leaderboard's squares in a strip to swipe, ending
- * at today's, where it opens. A dashed square is still to play. Past the days
- * before are every game so far, then settings. Tap a day to open it.
+ * at today's, where it opens. A dashed square is still to play, and a striped
+ * one was played late. Past the days before are every game so far, then
+ * settings. Tap a day to open it.
  */
 const Week = ({
   week,

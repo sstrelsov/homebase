@@ -283,6 +283,7 @@ function playView(puzzle: Puzzle, play: Play) {
     stachedMs: play.stached_ms,
     finished,
     completed: play.completed,
+    late: play.late,
     // The answers and the colored guess grid only once the game is over.
     ...(finished && {
       answers: puzzle.groups.map((_, i) => groupView(puzzle, i)),
@@ -291,7 +292,10 @@ function playView(puzzle: Puzzle, play: Play) {
   };
 }
 
-/** Everything the game needs: the words, this player's game, the scoreboard. */
+/**
+ * Everything the game needs: the words, this player's game, the scoreboard.
+ * Late games go below the ones that counted.
+ */
 async function snapshot(userId: number, puzzle: Puzzle) {
   const [[play], board] = await Promise.all([
     sql`select * from plays where user_id = ${userId} and puzzle_id = ${puzzle.id}`,
@@ -300,7 +304,8 @@ async function snapshot(userId: number, puzzle: Puzzle) {
       from plays p join users u on u.id = p.user_id
       where p.puzzle_id = ${puzzle.id} and p.finished_at is not null
         and lower(u.name) <> ${ADMIN_NAME}
-      order by p.completed desc, p.stached_ms nulls last, p.mistakes, p.finished_at`,
+      order by p.late, p.completed desc, p.stached_ms nulls last, p.mistakes,
+               p.finished_at`,
   ]);
   return {
     puzzle: {

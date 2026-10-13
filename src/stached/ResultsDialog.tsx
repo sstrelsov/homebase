@@ -54,11 +54,13 @@ const ResultsDialog = ({
   const grid = play.grid ?? [];
 
   const share = async () => {
-    const text = [
-      `Stached #${puzzle.number} · ${formatDate(puzzle.date)}`,
+    const stache =
       play.stachedMs === null
         ? "No stache"
-        : `Stache time ${formatTime(play.stachedMs)}`,
+        : `Stache time ${formatTime(play.stachedMs)}`;
+    const text = [
+      `Stached #${puzzle.number} · ${formatDate(puzzle.date)}`,
+      play.late ? `${stache} · Played late` : stache,
       ...grid.map((row) => row.map((color) => SHARE_EMOJI[color]).join("")),
     ].join("\n");
     // Text only: a link would unfurl into a big preview card in Messages.
@@ -84,6 +86,7 @@ const ResultsDialog = ({
           <p className={`text-4xl ${styles.stacheText}`}>
             {formatTime(play.stachedMs)}
           </p>
+          {play.late && <p className="text-lg opacity-60">Played late</p>}
         </div>
         <div className={`${styles.panel} p-3`}>
           <p className={styles.label}>Board</p>
@@ -128,7 +131,8 @@ const ResultsDialog = ({
                 score.name === player ? styles.me : ""
               }`}
             >
-              <span className="w-6 opacity-50">{i + 1}</span>
+              {/* Late games come last, unranked: they didn't count. */}
+              <span className="w-6 opacity-50">{!score.late && i + 1}</span>
               <span className="flex-1 truncate">
                 {score.name}
                 {score.late && (

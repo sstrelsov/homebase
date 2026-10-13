@@ -847,9 +847,10 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* A day: green solved, red missed, Gerald on the day's fastest stache, a dot
-   for a day not finished in time, a dashed outline for one that still counts
-   until it's finished, and nothing for a day with no puzzle */
+/* A day: green solved, red missed, Gerald on the day's fastest stache,
+   striped for a day played late, a dot for a day not finished in time, a
+   dashed outline for one that still counts until it's finished, and nothing
+   for a day with no puzzle */
 .mark {
   display: grid;
   flex: none;
@@ -863,12 +864,14 @@
 }
 
 .mark[data-mark="won"],
-.mark[data-mark="solved"] {
+.mark[data-mark="solved"],
+.mark[data-mark="late-solved"] {
   --fill: var(--green);
 }
 
 .mark[data-mark="won-missed"],
-.mark[data-mark="missed"] {
+.mark[data-mark="missed"],
+.mark[data-mark="late-missed"] {
   --fill: var(--red);
 }
 
@@ -887,6 +890,18 @@
 .stached[data-look="light"] .mark[data-mark="solved"],
 .stached[data-look="light"] .mark[data-mark="missed"] {
   box-shadow: 0 2px 0 color-mix(in srgb, var(--fill) 62%, var(--ink));
+}
+
+/* Played late: its result's color, faded toward the page and slashed across,
+   with no glow or printed edge, since it didn't count. The stripes scale with
+   the square. */
+.mark[data-mark="late-solved"],
+.mark[data-mark="late-missed"] {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--fill) 85%, var(--bg)) 0 10%,
+    color-mix(in srgb, var(--fill) 45%, var(--bg)) 0 20%
+  );
 }
 
 .mark[data-mark="open"] {

@@ -16,6 +16,8 @@ const MARKS: Record<Mark, string> = {
   "won-missed": "Missed, with the fastest stache",
   solved: "Solved",
   missed: "Missed",
+  "late-solved": "Solved late",
+  "late-missed": "Missed late",
   none: "Not finished in time",
   open: "Still to play",
   gap: "No puzzle",
@@ -23,7 +25,7 @@ const MARKS: Record<Mark, string> = {
 
 /**
  * A day: green solved, red missed, Gerald on the day's fastest stache, and
- * nothing on a day with no puzzle.
+ * striped if it was played late, and nothing on a day with no puzzle.
  */
 export const Square = ({ mark }: { mark: Mark }) => (
   <span
