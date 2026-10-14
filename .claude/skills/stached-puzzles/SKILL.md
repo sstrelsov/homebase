@@ -19,7 +19,8 @@ today's puzzle on the tester, so Spencer plays it in the tester's home-screen
 app before anyone else), then **confirm** it (published, with one push
 notification). The CLI does all of it; never edit `puzzles.json` by hand.
 Puzzles are numbered in the order they go out, so a number sent in a push
-never changes.
+never changes, unless a puzzle is taken down (`remove` moves every number
+after it; putting it back puts them back).
 
 ## Where the data lives
 
@@ -44,7 +45,7 @@ puzzle file along. With no command it prints its help.
 | `stage <file>` | Checks the puzzles in the file (one, or a list), stages them, replacing what was staged, and makes the first one's day today's on the tester, with every puzzle that comes out with it. `-` reads stdin |
 | `preview [date]` | Makes a staged puzzle's day (the first's, or that date's) today's on the tester |
 | `confirm` | Publishes everything staged, and sends a push that's due right away. The API picks it up without a restart |
-| `remove <date>` | Takes a published puzzle down |
+| `remove <date>` | Takes a published puzzle down. Every puzzle after it moves down a number |
 | `vapid-keys` | Prints a new pair of push keys for `api.env` |
 | `push-again` | The tester only: sends today's push again, right away |
 
@@ -170,7 +171,9 @@ you add `--delete-games`. Never add it on your own: tell Spencer the number and
 let him decide. Changing a puzzle nobody has played yet is fine.
 
 To move a puzzle to another date: stage it on the new date, confirm, then
-`remove` the old date (which refuses if anyone has played it).
+`remove` the old date (which refuses if anyone has played it). Moving it
+changes the numbers between the two dates, so only move one that hasn't
+been pushed yet.
 
 ## Trying it without touching the live game
 

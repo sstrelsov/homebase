@@ -11,7 +11,7 @@
 // restarts.
 import { sql } from "bun";
 import QUOTES from "../src/stached/quotes.json";
-import { byDate, LIST, numbered } from "./puzzles";
+import { LIST, numbered } from "./puzzles";
 import {
   base64url,
   type Subscription,
@@ -169,33 +169,46 @@ export function notification(fresh: Announced[], earlier: Announced[] = []) {
   };
 }
 
+// Any number of ours: announcers take it in turn (announce).
+const ANNOUNCING = 1984;
+
 /**
- * Announces the puzzles out on a day (in number order) that haven't been, to
- * every subscription, in one push, if it's due. Each is claimed by its date
- * first, so a puzzle announced already (earlier that day, or by another
- * process just now) is never announced again. Drops the subscriptions whose
- * push service says they're gone. Returns whether this call sent a push.
+ * Announces the puzzles out on a day (from `day`, in number order) that
+ * haven't been, to every subscription, in one push, if it's due. Each is
+ * claimed by its date first, so a puzzle announced already (earlier that
+ * day, or by another process just now) is never announced again. Announcers
+ * (the API's minute check, `confirm`) take turns, and read the day's puzzles
+ * and their numbers only once it's theirs, so two at once can't number a
+ * push differently. Drops the subscriptions whose push service says they're
+ * gone. Returns whether this call sent a push.
  */
 export async function announce(
-  puzzles: Announced[],
+  day: () => Promise<Announced[]>,
   keys: VapidKeys,
   now = new Date(),
 ) {
-  const out = puzzles[0]?.out;
-  if (!out || !announceDue(out, now)) return false;
-  // One statement, in date order, so two claims at once can't split a push.
-  const claims = puzzles.map(({ date }) => ({ date })).sort(byDate);
-  const claimed = new Set(
-    (
-      await sql`
-        insert into announcements ${sql(claims)}
-        on conflict do nothing
-        returning to_char(date, 'YYYY-MM-DD') as date`
-    ).map((row: { date: string }) => row.date),
-  );
-  const fresh = puzzles.filter((p) => claimed.has(p.date));
-  if (!fresh.length) return false;
-  const earlier = puzzles.filter((p) => !claimed.has(p.date));
+  const claim = await sql.begin(async (tx) => {
+    await tx`select pg_advisory_xact_lock(${ANNOUNCING})`;
+    const puzzles = await day();
+    const out = puzzles[0]?.out;
+    if (!out || !announceDue(out, now)) return null;
+    // Stamped as claimed, in turn, so the push order is the numbers' order.
+    const claimed = new Set(
+      (
+        await tx`
+          insert into announcements (date, sent_at)
+          select value::date, clock_timestamp()
+          from jsonb_array_elements_text(${puzzles.map((p) => p.date)}::jsonb)
+          on conflict do nothing
+          returning to_char(date, 'YYYY-MM-DD') as date`
+      ).map((row: { date: string }) => row.date),
+    );
+    const fresh = puzzles.filter((p) => claimed.has(p.date));
+    const earlier = puzzles.filter((p) => !claimed.has(p.date));
+    return fresh.length ? { fresh, earlier } : null;
+  });
+  if (!claim) return false;
+  const { fresh, earlier } = claim;
 
   const subscriptions: Subscription[] =
     await sql`select endpoint, p256dh, auth from push_subscriptions`;

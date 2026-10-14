@@ -723,10 +723,7 @@ await syncPuzzles(puzzles);
 // Checking every minute catches a puzzle published after 9:12am, or a
 // restart then.
 if (VAPID) {
-  const announceToday = () =>
-    todays()
-      .then((today) => announce(today, VAPID))
-      .catch(console.error);
+  const announceToday = () => announce(todays, VAPID).catch(console.error);
   announceToday();
   setInterval(announceToday, 60_000);
 } else console.log("Push notifications are off: no VAPID keys");

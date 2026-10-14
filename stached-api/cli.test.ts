@@ -71,9 +71,9 @@ describe("confirming staged puzzles", () => {
   });
 });
 
-/** Pushes that went out on these dates, in turn. */
+/** Pushes that went out at 9:12am New York time on these dates. */
 const pushedOn = (...dates: string[]) =>
-  new Map(dates.map((date, i) => [date, new Date(Date.UTC(2026, 9, 1, i))]));
+  new Map(dates.map((date) => [date, new Date(`${date}T13:12:00Z`)]));
 
 describe("catching up on a missed day", () => {
   // Sunday, October 11, 8am in New York. Friday's push went out; Sunday's
@@ -173,6 +173,28 @@ describe("catching up on a missed day", () => {
     ).toEqual(["2026-10-08", "2026-10-11"]);
   });
 
+  test("puts a pushed missed day's back on the day it came out, so no number moves", () => {
+    // Saturday's was caught up Sunday evening, pushed at 8pm, then taken
+    // down; it comes back out on Sunday, after Sunday's.
+    const sundayEvening = new Date("2026-10-12T00:00:00Z");
+    const pushedBoth = new Map([
+      ...pushedOn("2026-10-09", "2026-10-11"),
+      ["2026-10-10", sundayEvening],
+    ]);
+    expect(
+      outs(
+        publish(published, [on("2026-10-10")], new Map(), {
+          pushed: pushedBoth,
+          now: new Date("2026-10-12T02:00:00Z"),
+        }),
+      ),
+    ).toEqual([
+      ["2026-10-09", undefined],
+      ["2026-10-10", "2026-10-11"],
+      ["2026-10-11", undefined],
+    ]);
+  });
+
   test("never catches up on a published day, when it's edited or its push line changes", () => {
     const fridayLine = { ...on("2026-10-09"), push: "New line" };
     for (const staged of [edited("2026-10-09"), fridayLine])
@@ -252,6 +274,12 @@ describe("timing", () => {
   test("a missed day's that joins today's after their push gets its own, as an extra puzzle", () => {
     expect(timing("2026-10-01", "new", { extra: true }, night)).toBe(
       "It goes live and pushes right away, as an extra puzzle: today's push went out already. It counts for a day from its own push.",
+    );
+  });
+
+  test("a puzzle put back after its push gets none", () => {
+    expect(timing("2026-10-01", "new", { pushed: true }, night)).toBe(
+      "It's back as it was, with no new push: its push went out already.",
     );
   });
 

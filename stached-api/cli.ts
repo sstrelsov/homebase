@@ -129,6 +129,8 @@ export function timing(
       : `Its push goes out at ${pushTime}.`;
   if (kind !== "new" && out <= current)
     return "It's out already, so the change is live right away. A puzzle never pushes twice.";
+  if (pushed)
+    return "It's back as it was, with no new push: its push went out already.";
   if (out > current)
     return `It goes live at midnight New York time on ${day(out)}, with its push at ${pushTime}.`;
   if (out < current) return "It's dated before today, so it gets no push.";
@@ -221,8 +223,9 @@ function guard(
  * ones replaced, identical ones left as they were. A new one dated before
  * today catches up on a missed day: it comes out today, numbered after any
  * of today's that have been pushed (`inOrder`), so no number people were
- * sent moves. One on a day that was pushed (and taken down since) wasn't
- * missed, so it's back on its own day.
+ * sent moves. One whose push went out (and was taken down since) comes back
+ * on the day it came out, the day of its push, so it takes its old number
+ * back and moves no other.
  */
 export function publish(
   published: DayPuzzle[],
@@ -237,12 +240,16 @@ export function publish(
   staged.forEach((puzzle, i) => {
     if (planned[i].kind === "same") return;
     const old = puzzles.get(puzzle.date);
-    const missed = !old && puzzle.date < current && !pushed.has(puzzle.date);
+    const sent = pushed.get(puzzle.date);
     // A published puzzle keeps the day it came out.
-    puzzles.set(
-      puzzle.date,
-      filed(puzzle, old ? old.out : missed ? current : undefined),
-    );
+    const out = old
+      ? old.out
+      : sent
+        ? today(sent)
+        : puzzle.date < current
+          ? current
+          : undefined;
+    puzzles.set(puzzle.date, filed(puzzle, out));
   });
   return [...puzzles.values()].sort(byDate);
 }
@@ -283,8 +290,8 @@ async function savePuzzles(puzzles: DayPuzzle[]) {
   await syncPuzzles(puzzles);
 }
 
-/** A puzzle as its push knows it, and whether that push has gone out. */
-type Numbered = DayPuzzle & Announced & { pushed: boolean };
+/** A puzzle as its push knows it, and when that push went out, if it has. */
+type Numbered = DayPuzzle & Announced & { pushed?: Date };
 
 /**
  * The puzzles with their numbers, in number order, as they'll be once these
@@ -295,7 +302,7 @@ const withNumbers = (puzzles: DayPuzzle[], pushed: Pushes): Numbered[] =>
     ...p,
     number: i + 1,
     out: outOf(p),
-    pushed: pushed.has(p.date),
+    pushed: pushed.get(p.date),
   }));
 
 /**
@@ -410,7 +417,7 @@ async function stage(source: string | undefined) {
     const copy = pushOf(merged, date);
     console.log(`#${puzzle.number} · ${day(date)} (${date})`);
     console.log(`  ${titles.join(" · ")}`);
-    if (change.kind === "new" && puzzle.date < puzzle.out) {
+    if (change.kind === "new" && puzzle.date < puzzle.out && !puzzle.pushed) {
       const before = outOn(merged, puzzle.out).filter(
         (p) => p.number < puzzle.number,
       );
@@ -441,7 +448,7 @@ async function stage(source: string | undefined) {
     if (change.kind === "push")
       console.log("  Changes only its push line, so its games stay.");
     console.log(
-      `  ${timing(puzzle.out, change.kind, { pushed: puzzle.pushed, extra: Boolean(copy?.extra) })}`,
+      `  ${timing(puzzle.out, change.kind, { pushed: Boolean(puzzle.pushed), extra: Boolean(copy?.extra) })}`,
     );
   }
   if (!TESTER) toTester(outWith(merged, staged[0].date));
@@ -450,8 +457,10 @@ async function stage(source: string | undefined) {
 
 /**
  * What the tester's `play` gets: the puzzles out on a day, by number, and the
- * dates of those already pushed on the live game, so the tester pushes the
- * rest on top of them as live will (none, when every one was).
+ * dates to count as pushed there first, without a push: those pushed on the
+ * live game before the rest. So the tester numbers them as live does, and
+ * pushes the rest on top, as live will (the last push again, when every one
+ * went out).
  */
 interface TesterDay {
   out: string;
@@ -470,11 +479,13 @@ function toTester(together: Numbered[]) {
     console.log("\nNo tester here to play it on: `make tester` sets one up.");
     return;
   }
-  const pushed = together.filter((p) => p.pushed).map((p) => p.date);
+  const last = Math.max(...together.map((p) => p.pushed?.getTime() ?? 0));
+  const before = (p: Numbered) =>
+    p.pushed && (together.some((q) => !q.pushed) || p.pushed.getTime() < last);
   const batch: TesterDay = {
     out: together[0].out,
     puzzles: together.map(plain),
-    pushed: pushed.length < together.length ? pushed : [],
+    pushed: together.filter(before).map((p) => p.date),
   };
   const played = spawnSync(
     "bun",
@@ -585,7 +596,7 @@ async function confirm(deleteGames: boolean) {
     console.log(
       kind === "same"
         ? `#${puzzle.number} · ${day(date)} was already published.`
-        : `Published #${puzzle.number} · ${day(date)}. ${timing(puzzle.out, kind, { pushed: puzzle.pushed, extra })}`,
+        : `Published #${puzzle.number} · ${day(date)}. ${timing(puzzle.out, kind, { pushed: Boolean(puzzle.pushed), extra })}`,
     );
   }
   for (const out of outs) await pushNow(puzzles, out);
@@ -600,7 +611,10 @@ async function confirm(deleteGames: boolean) {
 async function pushNow(puzzles: DayPuzzle[], out: string) {
   const keys = pushKeys();
   if (!keys) return;
-  await announce(outOn(withNumbers(puzzles, await pushes()), out), keys);
+  await announce(
+    async () => outOn(withNumbers(puzzles, await pushes()), out),
+    keys,
+  );
 }
 
 async function remove(date: string | undefined, deleteGames: boolean) {

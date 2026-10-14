@@ -16,6 +16,7 @@ import QUOTES from "../src/stached/quotes.json";
 import { addDays } from "./leaderboard";
 import { migrate } from "./migrate";
 import {
+  type Announced,
   announce,
   announceDue,
   newYorkTime,
@@ -150,6 +151,8 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
   const bin = (tool: string) => join(initdb as string, "..", tool);
   const port = 50_000 + Math.floor(Math.random() * 10_000);
   const puzzle = [{ number: 4, date: "2026-10-02", out: "2026-10-02" }];
+  /** A day's puzzles, as an announcer reads them. */
+  const day = (puzzles: Announced[]) => async () => puzzles;
   /** The puzzles claimed for a push, by date, from a date on. */
   const claimedSince = async (date: string) =>
     (
@@ -196,13 +199,13 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
 
   test("waits until the push is due, then announces it once", async () => {
     const keys = await generateVapidKeys();
-    expect(await announce(puzzle, keys, minutes(FRI_912, -1))).toBe(false);
+    expect(await announce(day(puzzle), keys, minutes(FRI_912, -1))).toBe(false);
     // Two API processes at once, say, or one restarting: one claim wins.
     const tries = await Promise.all(
-      [0, 1, 2, 3, 4].map(() => announce(puzzle, keys, FRI_912)),
+      [0, 1, 2, 3, 4].map(() => announce(day(puzzle), keys, FRI_912)),
     );
     expect(tries.filter(Boolean)).toHaveLength(1);
-    expect(await announce(puzzle, keys, minutes(FRI_912, 60))).toBe(false);
+    expect(await announce(day(puzzle), keys, minutes(FRI_912, 60))).toBe(false);
     const rows = await sql`select * from announcements`;
     expect(rows).toHaveLength(1);
   });
@@ -224,7 +227,7 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
         values (${`${pushService.url}${path.slice(1)}`}, 1, ${p256dh}, ${auth})`;
 
     const saturday = [{ number: 5, date: "2026-10-03", out: "2026-10-03" }];
-    expect(await announce(saturday, keys, minutes(FRI_912, 24 * 60))).toBe(
+    expect(await announce(day(saturday), keys, minutes(FRI_912, 24 * 60))).toBe(
       true,
     );
     expect(received.map((req) => req.path).sort()).toEqual([
@@ -254,13 +257,13 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
       { number: 6, date: "2026-10-05", out },
       { number: 7, date: out, out },
     ];
-    expect(await announce(both, keys, tuesday)).toBe(true);
+    expect(await announce(day(both), keys, tuesday)).toBe(true);
     expect(await claimedSince("2026-10-05")).toEqual(["2026-10-05", out]);
     // Neither is pushed again, together or alone.
-    expect(await announce(both, keys, minutes(tuesday, 60))).toBe(false);
-    expect(await announce(both.slice(0, 1), keys, tuesday)).toBe(false);
-    expect(await announce(both.slice(1), keys, tuesday)).toBe(false);
-    expect(await announce([], keys, tuesday)).toBe(false);
+    expect(await announce(day(both), keys, minutes(tuesday, 60))).toBe(false);
+    expect(await announce(day(both.slice(0, 1)), keys, tuesday)).toBe(false);
+    expect(await announce(day(both.slice(1)), keys, tuesday)).toBe(false);
+    expect(await announce(day([]), keys, tuesday)).toBe(false);
   });
 
   test("gives a missed day's added after the day's push a push of its own, and never re-announces one", async () => {
@@ -271,18 +274,60 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
     const out = "2026-10-08";
     const own = { number: 8, date: out, out };
     const caughtUp = { number: 9, date: "2026-10-07", out };
-    expect(await announce([own], keys, thursday)).toBe(true);
+    expect(await announce(day([own]), keys, thursday)).toBe(true);
     const logged = spyOn(console, "log");
-    expect(await announce([own, caughtUp], keys, minutes(thursday, 600))).toBe(
-      true,
-    );
+    expect(
+      await announce(day([own, caughtUp]), keys, minutes(thursday, 600)),
+    ).toBe(true);
     expect(logged.mock.calls[0][0]).toStartWith("Announced #9:");
     logged.mockRestore();
     expect(await claimedSince("2026-10-07")).toEqual(["2026-10-07", out]);
     // Every one of the day's is announced now: nothing goes out again.
-    expect(await announce([own, caughtUp], keys, minutes(thursday, 601))).toBe(
-      false,
-    );
+    expect(
+      await announce(day([own, caughtUp]), keys, minutes(thursday, 601)),
+    ).toBe(false);
+  });
+
+  test("takes turns with another announcer, which reads the day only once it's its turn", async () => {
+    const keys = await generateVapidKeys();
+    // Tuesday, October 20, just after 9:12: the API's check and a confirm at
+    // once, the confirm having just added Monday's.
+    const at = minutes(FRI_912, 18 * 24 * 60 + 5);
+    const out = "2026-10-20";
+    const own = { number: 20, date: out, out };
+    const caughtUp = { number: 21, date: "2026-10-19", out };
+    const said: string[] = [];
+    const reads = (who: string, puzzles: Announced[]) => async () => {
+      said.push(`${who} reads`);
+      await Bun.sleep(50);
+      said.push(`${who} has read`);
+      return puzzles;
+    };
+    const logged = spyOn(console, "log");
+    expect(
+      await Promise.all([
+        announce(reads("api", [own]), keys, at),
+        announce(reads("confirm", [own, caughtUp]), keys, at),
+      ]),
+    ).toEqual([true, true]);
+    expect(said).toEqual([
+      "api reads",
+      "api has read",
+      "confirm reads",
+      "confirm has read",
+    ]);
+    // The confirm saw today's claimed, so Monday's went out alone, after it.
+    expect(
+      logged.mock.calls
+        .map((call) => String(call[0]))
+        .filter((line) => line.startsWith("Announced"))
+        .map((line) => line.split(":")[0]),
+    ).toEqual(["Announced #20", "Announced #21"]);
+    logged.mockRestore();
+    const [first, second] = await sql`
+      select to_char(date, 'YYYY-MM-DD') as date from announcements
+      where date >= '2026-10-19' order by sent_at`;
+    expect([first.date, second.date]).toEqual([out, "2026-10-19"]);
   });
 
   test("changing a puzzle's push line keeps its games", async () => {
@@ -399,10 +444,10 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
         { date: ago(1), number: 3, today: true, nth: 2, of: 2, counts: true },
       ];
       expect(await releasedNow()).toEqual(after);
-      expect(await announce(await todays(), keys, evening)).toBe(true);
+      expect(await announce(todays, keys, evening)).toBe(true);
       expect(await claimedSince(ago(1))).toEqual([ago(1), today]);
       expect(await releasedNow()).toEqual(after);
-      expect(await announce(await todays(), keys, evening)).toBe(false);
+      expect(await announce(todays, keys, evening)).toBe(false);
     });
 
     test("and counts for a day from its own push, not the day's first", async () => {
@@ -443,7 +488,7 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
       expect(await todays()).toEqual([
         { number: 2, date: ago(1), out: ago(1), push: null },
       ]);
-      expect(await announce(await todays(), keys, evening)).toBe(false);
+      expect(await announce(todays, keys, evening)).toBe(false);
       expect(await claimedSince(ago(2))).toEqual([]);
     });
   });
