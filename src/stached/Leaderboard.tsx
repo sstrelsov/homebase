@@ -52,7 +52,7 @@ const FastestToday = ({
   day,
 }: {
   board: Board;
-  day: Board["days"][number];
+  day: Board["today"][number];
 }) => {
   const { session } = useStached();
   const tied = board.fastestToday.filter((f) => f.number === day.number);
@@ -186,12 +186,9 @@ const Leaderboard = () => {
     <Screen title="Leaderboard" error={error} onRetry={load}>
       {board && (
         <div className="flex flex-col gap-6">
-          {board.days
-            .filter((day) => day.today)
-            .sort((a, b) => Number(a.number) - Number(b.number))
-            .map((day) => (
-              <FastestToday key={day.date} board={board} day={day} />
-            ))}
+          {board.today.map((day) => (
+            <FastestToday key={day.date} board={board} day={day} />
+          ))}
           <Standings board={board} />
         </div>
       )}

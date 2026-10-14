@@ -2,6 +2,7 @@
 // real file lives on the Studio (PUZZLES_FILE), outside this public repo;
 // puzzles.example.json holds made-up ones. Postgres mirrors it.
 import { sql } from "bun";
+import type { Announced } from "./push";
 
 export interface Group {
   title: string;
@@ -107,13 +108,17 @@ export const numbered = (numbers: number[]) =>
 /** When each puzzle's push went out, by its date. */
 export type Pushes = Map<string, Date>;
 
+/** Whether it's a missed day's puzzle, out on a later day to catch up. */
+export const caughtUp = (puzzle: Pick<DayPuzzle, "date" | "out">) =>
+  puzzle.date < outOf(puzzle);
+
 /**
  * Puzzles in the order they're numbered (#1 first): the order they went out.
  * By the day each came out, then by push (one not pushed yet goes after
- * those that were), then by date. So a number that went out in a push never
- * moves: a missed day added after today's push goes after today's. Only
- * catching up before a push can move a number, and none has gone out yet.
- * `released()` numbers them the same way.
+ * those that were), then the day's own before a missed day's, then by date.
+ * So a number that went out in a push never moves, and a missed day's caught
+ * up on a later day comes after that day's own, before its push or after:
+ * Monday's is #14 after Tuesday's #13. `released()` numbers them the same way.
  */
 export function inOrder<T extends Pick<DayPuzzle, "date" | "out">>(
   puzzles: T[],
@@ -124,6 +129,7 @@ export function inOrder<T extends Pick<DayPuzzle, "date" | "out">>(
     (a, b) =>
       outOf(a).localeCompare(outOf(b)) ||
       pushed(a) - pushed(b) ||
+      Number(caughtUp(a)) - Number(caughtUp(b)) ||
       a.date.localeCompare(b.date),
   );
 }
@@ -183,28 +189,42 @@ export async function pushes(): Promise<Pushes> {
  * The puzzles out so far (New York time), numbered from #1 in the order they
  * went out (`inOrder`). A puzzle comes out on its date, or, for a missed
  * day's published later to catch up, on the day it was published (`out`).
- * Today's are the ones out on the newest day, in number order: a day without
- * a puzzle of its own keeps the last ones. A puzzle counts while it's today's
- * and for 24 hours after its own push (`pushed`), so one pushed late at night
- * still has a full day once the next one is out, and a missed day's added
- * after today's push has a full day from its own. Games started or guessed
- * after that are late.
+ * It counts while it's out on the newest day, and until 24 hours after its
+ * own push (`until`), so one pushed late at night still has a full day once
+ * the next one is out. Today's are the ones out on the newest day (`newest`:
+ * a day without a puzzle of its own keeps the last ones), and any extra
+ * (pushed after an earlier push on its day, like a missed day's caught up
+ * that evening) until its 24 hours are up, so it stays on home the next
+ * day. Games started or guessed once a puzzle stops counting are late.
+ * `now` is for tests.
  */
-export const released = () => sql`(
+export const released = (now = new Date()) => sql`(
   select id, to_char(date, 'YYYY-MM-DD') as date,
-         to_char(out, 'YYYY-MM-DD') as out, groups, push, pushed, number,
-         out = max(out) over () as today,
-         row_number() over (partition by out order by number)::int as nth,
-         count(*) over (partition by out)::int as "of",
-         out = max(out) over ()
-           or coalesce(pushed > now() - interval '24 hours', false) as counts
+         to_char(out, 'YYYY-MM-DD') as out, groups, push, until, number,
+         to_char(newest, 'YYYY-MM-DD') as newest,
+         out = newest or coalesce(extra and until > ${now}, false) as today,
+         out = newest or coalesce(until > ${now}, false) as counts
   from (
     select z.id, z.date, coalesce(z.out, z.date) as out, z.groups, z.push,
-           a.sent_at as pushed,
+           a.sent_at + interval '24 hours' as until,
            row_number() over (order by coalesce(z.out, z.date),
-                                       a.sent_at nulls last, z.date)::int
-             as number
+                                       a.sent_at nulls last,
+                                       z.out is not null, z.date)::int
+             as number,
+           max(coalesce(z.out, z.date)) over () as newest,
+           a.sent_at > min(a.sent_at)
+             over (partition by coalesce(z.out, z.date)) as extra
     from puzzles z left join announcements a on a.date = z.date
-    where coalesce(z.out, z.date) <= (now() at time zone 'America/New_York')::date
+    where coalesce(z.out, z.date)
+          <= (${now}::timestamptz at time zone 'America/New_York')::date
   ) numbered
 ) released`;
+
+/**
+ * The puzzles out on the newest day, by number, as their push and the card
+ * know them: not an extra from the day before that's still one of today's.
+ * The API's minute check and `confirm` both announce these (`announce`).
+ */
+export const todays = (now = new Date()): Promise<Announced[]> => sql`
+  select number, date, out, push from ${released(now)}
+  where out = newest order by number`;

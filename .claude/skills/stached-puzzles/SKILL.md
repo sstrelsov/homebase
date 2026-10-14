@@ -82,14 +82,15 @@ other, whichever they play first. What happens to the push depends on whether
 that day's push has gone out:
 
 - **Before it** (Saturday's, confirmed Sunday morning before 9:12): it shares
-  Sunday's push, numbered by date: Saturday's #17, Sunday's #18 ("Puzzles #17
-  and #18 are up", with the first one's own line). Sunday's number moves, but
-  no push has named it yet.
+  Sunday's push, numbered after the day's own: Sunday's #17 keeps its number,
+  and Saturday's is #18 ("Puzzles #17 and #18 are up", with Sunday's own
+  line).
 - **After it** (Monday's, confirmed Tuesday evening, once "Puzzle #13 is up"
   went out): `confirm` pushes it right away, on its own, as an extra: "Extra
   puzzle: #14 is up", with "Monday's missed puzzle. That makes 2 today: #13
   and #14." (or its own `push` line). Tuesday's stays #13; Monday's is #14 and
-  counts for 24 hours from its own push.
+  counts for 24 hours from its own push. It stays on home as one of today's
+  for all of them, even once Wednesday's is out.
 
 Stage it like any puzzle (with today's too, if that isn't published yet):
 

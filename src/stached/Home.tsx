@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { missedDay } from "../../stached-api/leaderboard";
 import {
   api,
   formatDate,
@@ -41,22 +42,24 @@ function timeOf(until: Date) {
 }
 
 /**
- * Which of today's it is: "Today's", or a missed day's by its weekday
- * ("Monday's"), out today to catch up.
+ * Which of today's it is: "Today's" (the newest day out), or another day's
+ * ("Monday's", or "Sep 28's" a week or more back).
  */
-const whose = ({ date, out }: TodayPuzzle) =>
-  date === out ? "Today's" : `${formatDate(date, { weekday: "long" })}'s`;
+const whose = ({ date }: TodayPuzzle, today: string) =>
+  date === today ? "Today's" : `${missedDay(date, today)}'s`;
 
 /**
- * Today's puzzles, when a missed day's is out too: a row each, with which
- * day it is and how you did, or until when it counts. Each opens its game,
- * and the one Play opens is lit.
+ * Today's puzzles, when there's more than one: a row each, with which day it
+ * is and how you did, or until when it counts. Each opens its game, and the
+ * one Play opens is lit.
  */
 const TodayList = ({
   puzzles,
+  today,
   next,
 }: {
   puzzles: TodayPuzzle[];
+  today: string;
   next: string | null;
 }) => {
   const done = puzzles.every((p) => p.play?.finished);
@@ -83,7 +86,7 @@ const TodayList = ({
                 <span className={styles.todayNumber}>#{puzzle.number}</span>
                 <span className="flex min-w-0 flex-1 flex-col gap-1">
                   <span className={`${styles.display} text-[14px]`}>
-                    {whose(puzzle)}
+                    {whose(puzzle, today)}
                   </span>
                   <span className={styles.label}>
                     {play?.finished ? stacheOf(play.stachedMs) : counts}
@@ -279,8 +282,11 @@ const Home = () => {
 
   const rise = intro ? styles.rise : "";
   // Today's puzzles, more than one when a missed day's is out too: Play says
-  // which is next, and once they're all done, it's your results.
+  // which is next, and once they're all done, it's your results. The last
+  // is out on the newest day, today's (an extra from the day before that
+  // still counts comes first).
   const puzzles = today?.puzzles ?? [];
+  const day = puzzles.at(-1)?.out;
   const several = puzzles.length > 1;
   const done = today?.play?.finished;
   const note = today ? !several && status(today.play) : "Loading…";
@@ -297,9 +303,7 @@ const Home = () => {
         style={{ animationDelay: "1.1s" }}
       >
         <h1 className={`${styles.title} text-[32px]`}>Stached</h1>
-        <p className={styles.label}>
-          {today ? formatDate(today.puzzle.out) : " "}
-        </p>
+        <p className={styles.label}>{day ? formatDate(day) : " "}</p>
       </div>
       <div className={`${rise} flex gap-3`} style={{ animationDelay: "1.3s" }}>
         {/* In a browser tab that can get pushes (desktop Chrome, Android),
@@ -343,8 +347,12 @@ const Home = () => {
         ) : (
           note && <p className={styles.label}>{note}</p>
         )}
-        {several && today && (
-          <TodayList puzzles={puzzles} next={done ? null : today.puzzle.date} />
+        {several && today && day && (
+          <TodayList
+            puzzles={puzzles}
+            today={day}
+            next={done ? null : today.puzzle.date}
+          />
         )}
         {session.admin && (
           <Link to="/stached/admin" className={styles.link}>
@@ -360,7 +368,7 @@ const Home = () => {
           <NotificationsDialog
             {...notifications}
             // The one after today's last
-            number={Math.max(...puzzles.map((p) => p.number)) + 1}
+            number={(puzzles.at(-1)?.number ?? 0) + 1}
           />
         )
       ) : (

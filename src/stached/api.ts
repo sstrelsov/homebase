@@ -43,8 +43,9 @@ export interface Score {
 }
 
 /** A puzzle so far, with how you did on it. */
-export interface PastGame
-  extends Pick<Day["puzzle"], "date" | "out" | "today"> {
+export interface PastGame extends Pick<Day["puzzle"], "date"> {
+  /** The day it came out: its date, or a later one for a missed day's. */
+  out: string;
   play: Pick<Play, "finished" | "completed" | "stachedMs" | "late"> | null;
 }
 
@@ -55,16 +56,14 @@ export interface Day {
     /** #1 is the first puzzle out; they're numbered in the order they went out. */
     number: number;
     date: string;
-    /** The day it came out: its date, or a later one for a missed day's. */
-    out: string;
     /**
      * One of today's: out on the newest day, with any missed day's puzzle
-     * caught up along with it.
+     * caught up along with it, or an extra pushed in the last day.
      */
     today: boolean;
-    /** Its place among the puzzles out on its day, by number: 1, 2, … */
+    /** On one of today's, its place among them, by number: 1, 2, … */
     nth: number;
-    /** How many came out on its day: 2 or more when catching up. */
+    /** On one of today's, how many there are: 2 or more when catching up. */
     of: number;
     /**
      * On one of today's, the date of the first of the others you haven't
@@ -81,8 +80,9 @@ export interface Day {
 }
 
 /** One of today's puzzles, as home lists them, with how you did on it. */
-export interface TodayPuzzle
-  extends Pick<Day["puzzle"], "number" | "date" | "out"> {
+export interface TodayPuzzle extends Pick<Day["puzzle"], "number" | "date"> {
+  /** The day it came out: its date, or a later one for a missed day's. */
+  out: string;
   /** It counts at least until then (a day after its push), if it's pushed. */
   until: string | null;
   play: Pick<Play, "finished" | "completed" | "stachedMs"> | null;

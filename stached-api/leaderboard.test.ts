@@ -25,6 +25,7 @@ const DAYS: Day[] = DATES.map((date, i) => ({
   id: i + 1,
   number: i + 1,
   date,
+  out: date,
   today: i + 1 === TODAY,
   counts: i + 1 === TODAY,
 }));
@@ -404,11 +405,13 @@ test("lists a player whose only games are older than the week, with their points
 test("is empty before anyone finishes, or any puzzle is out", () => {
   expect(board(playing("Vi", TODAY, 12))).toEqual({
     days: WEEK_DAYS,
+    today: [{ number: TODAY, date: DATES[7] }],
     fastestToday: [],
     players: [],
   });
   expect(leaderboardOf([], [solved("Vi", 1, 12)])).toEqual({
     days: [],
+    today: [],
     fastestToday: [],
     players: [],
   });
@@ -419,6 +422,7 @@ describe("catching up on a missed day", () => {
   // today too, with #8, so both are today's.
   const caughtUp = DAYS.map((day) => ({
     ...day,
+    out: day.id >= 7 ? DATES[7] : day.date,
     today: day.id >= 7,
     counts: day.id >= 7,
   }));
@@ -471,6 +475,64 @@ describe("catching up on a missed day", () => {
     expect(fastestToday.map((f) => [f.number, f.name])).toEqual([
       [7, "Bo"],
       [8, "Ada"],
+    ]);
+  });
+
+  const streakOf = (days: Day[], games: Game[]) =>
+    leaderboardOf(days, games).players[0].streak;
+
+  test("is in a streak by its date: open till it's played, then like any day", () => {
+    const solves = [1, 2, 3, 4, 5, 6, 8].map((id) => solved("Ada", id, 30));
+    // Before it's caught up, its day is a gap, which the streak runs over.
+    expect(
+      streakOf(
+        caughtUp.filter((day) => day.id !== 7),
+        solves,
+      ),
+    ).toBe(7);
+    // Caught up, it doesn't break it until it's played, or stops counting.
+    expect(streakOf(caughtUp, solves)).toBe(7);
+    expect(streakOf(caughtUp, [...solves, solved("Ada", 7, 30)])).toBe(8);
+    const over = caughtUp.map((day) =>
+      day.id === 7 ? { ...day, today: false, counts: false } : day,
+    );
+    expect(streakOf(over, solves)).toBe(1);
+    expect(streakOf(over, [...solves, late(solved("Ada", 7, 30))])).toBe(1);
+  });
+
+  test("more than a week later, gets today's gold box, though not a square in the week", () => {
+    // September 18 never had a puzzle; it's caught up today as #9.
+    const longAgo = {
+      id: 9,
+      number: 9,
+      date: "2026-09-18",
+      out: DATES[7],
+      today: true,
+      counts: true,
+    };
+    const { days, today, fastestToday } = leaderboardOf(
+      [longAgo, ...DAYS],
+      [solved("Ada", 9, 30)],
+    );
+    expect(days).toEqual(WEEK_DAYS);
+    expect(today).toEqual([
+      { number: TODAY, date: DATES[7] },
+      { number: 9, date: "2026-09-18" },
+    ]);
+    expect(fastestToday).toEqual([
+      { number: 9, name: "Ada", stachedMs: 30_000, solved: true },
+    ]);
+  });
+
+  test("ends the week on today when it's the only one out today", () => {
+    // Today, October 2, has no puzzle of its own yet; October 1's is caught
+    // up.
+    const days = DAYS.slice(0, 7).map((day) =>
+      day.id === 7 ? { ...day, out: DATES[7], today: true, counts: true } : day,
+    );
+    expect(weekOf(days, [], []).slice(-2)).toEqual([
+      { date: DATES[6], today: true, mark: "open" },
+      { date: DATES[7], today: false, mark: "gap" },
     ]);
   });
 });

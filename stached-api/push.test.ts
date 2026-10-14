@@ -24,7 +24,7 @@ import {
   parseSubscription,
   pushCopy,
 } from "./push";
-import { type DayPuzzle, released, syncPuzzles } from "./puzzles";
+import { type DayPuzzle, released, syncPuzzles, todays } from "./puzzles";
 import examples from "./puzzles.example.json";
 import { base64url, generateVapidKeys } from "./webpush";
 
@@ -102,6 +102,13 @@ describe("a puzzle's push", () => {
     expect(pushCopy([friday(13)], [thursday(12)]).line).toBe(
       "Today's puzzle. That makes 2 today: #12 and #13.",
     );
+    // A week or more back, it goes by its date, not "Friday's".
+    expect(
+      pushCopy([{ ...thursday(13), date: "2026-09-25" }], [friday(12)]).line,
+    ).toBe("Sep 25's missed puzzle. That makes 2 today: #12 and #13.");
+    expect(
+      pushCopy([{ ...thursday(13), date: "2026-09-26" }], [friday(12)]).line,
+    ).toStartWith("Saturday's missed puzzle.");
     // Its own line wins, and the title still says it's extra.
     expect(notification([thursday(13, "Better late")], [friday(12)])).toEqual({
       title: "Extra puzzle: #13 is up",
@@ -297,8 +304,11 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
     const own = { number: 20, date: out, out };
     const caughtUp = { number: 21, date: "2026-10-19", out };
     const said: string[] = [];
+    // The confirm starts once the API's check has its turn and is reading.
+    const { promise: apiReading, resolve } = Promise.withResolvers<void>();
     const reads = (who: string, puzzles: Announced[]) => async () => {
       said.push(`${who} reads`);
+      resolve();
       await Bun.sleep(50);
       said.push(`${who} has read`);
       return puzzles;
@@ -307,7 +317,9 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
     expect(
       await Promise.all([
         announce(reads("api", [own]), keys, at),
-        announce(reads("confirm", [own, caughtUp]), keys, at),
+        apiReading.then(() =>
+          announce(reads("confirm", [own, caughtUp]), keys, at),
+        ),
       ]),
     ).toEqual([true, true]);
     expect(said).toEqual([
@@ -352,143 +364,270 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
 
   describe("released puzzles", () => {
     const sample = examples[0] as DayPuzzle;
-    const today = newYorkTime().slice(0, 10);
-    const ago = (days: number) => addDays(today, -days);
-    // This evening in New York, when a push is due today.
-    const evening = new Date(`${today}T20:00:00-04:00`);
     const puzzle = (date: string, out?: string): DayPuzzle => ({
       ...sample,
       date,
       ...(out && { out }),
     });
-    const releasedNow = () => sql`
-      select date, number, today, nth, "of", counts
-      from ${released()} order by number`;
-    /** Each puzzle out: its date, number, and whether it counts. */
-    const counting = async () =>
-      (await releasedNow()).map(
-        (p: { date: string; number: number; counts: boolean }) => [
-          p.date,
-          p.number,
-          p.counts,
-        ],
+    const keys = generateVapidKeys();
+    /** A time in New York, daylight time unless it says otherwise. */
+    const ny = (time: string, offset = "-04:00") =>
+      new Date(`${time}${offset}`);
+    /** Each puzzle out then: its date, number, whether it's today's and counts. */
+    const state = async (now = new Date()) =>
+      (
+        await sql`
+          select date, number, today, counts from ${released(now)}
+          order by number`
+      ).map(
+        (p: {
+          date: string;
+          number: number;
+          today: boolean;
+          counts: boolean;
+        }) => [p.date, p.number, p.today, p.counts],
       );
-    const pushedAgo = (date: string, hours: number) => sql`
-      insert into announcements (date, sent_at)
-      values (${date}, now() - ${`${hours} hours`}::interval)
+    const pushedAt = (date: string, sentAt: Date) => sql`
+      insert into announcements (date, sent_at) values (${date}, ${sentAt})
       on conflict (date) do update set sent_at = excluded.sent_at`;
-    // Today's, as the API announces them (todays() in server.ts).
-    const todays = () => sql`
-      select number, date, out, push from ${released()}
-      where today order by number`;
+    /** Announces the day's puzzles then, and says which it claimed. */
+    const announced = async (now: Date) => {
+      const logged = spyOn(console, "log");
+      await announce(() => todays(now), await keys, now);
+      const lines = logged.mock.calls
+        .map((call) => String(call[0]))
+        .filter((line) => line.startsWith("Announced"));
+      logged.mockRestore();
+      return lines.map((line) => line.split(":")[0]);
+    };
     // The pushes the tests above made, on dates that may be these.
     beforeEach(async () => {
       await sql`delete from announcements`;
     });
 
-    test("a missed day's caught up before the push is today's, numbered by date", async () => {
+    test("numbers the live game's puzzles as before, and Monday's caught up after Tuesday's push #14", async () => {
+      // Shaped like the live game on Tuesday, October 13, made up: a puzzle
+      // a day from September 29 but October 9 and 12, #1 and #2 from before
+      // pushes, and #3 on pushed at 9:12am on their day.
+      const dates = [
+        ..."29 30".split(" ").map((d) => `2026-09-${d}`),
+        ..."01 02 03 04 05 06 07 08 10 11 13"
+          .split(" ")
+          .map((d) => `2026-10-${d}`),
+      ];
+      await syncPuzzles(dates.map((date) => puzzle(date)));
+      for (const date of dates.slice(2))
+        await pushedAt(date, ny(`${date}T09:12:00`));
+      const evening = ny("2026-10-13T20:30:00");
+      const live = dates.map((date, i) => [date, i + 1, i === 12, i === 12]);
+      expect(await state(evening)).toEqual(live);
+      // Monday's comes out that evening, after Tuesday's push, with its own.
+      await syncPuzzles([
+        ...dates.map((date) => puzzle(date)),
+        puzzle("2026-10-12", "2026-10-13"),
+      ]);
+      const withMonday = [...live, ["2026-10-12", 14, true, true]];
+      expect(await state(evening)).toEqual(withMonday);
+      expect(await announced(evening)).toEqual(["Announced #14"]);
+      expect(await state(evening)).toEqual(withMonday);
+      expect(await announced(evening)).toEqual([]);
+    });
+
+    test("a missed day's caught up in the evening stays one of today's for its 24 hours, though the next day's is out", async () => {
+      // Tuesday's went out at 9:12 as #2, Monday's at 8:30pm as #3, and
+      // Wednesday's was published ahead.
+      await syncPuzzles([
+        puzzle("2026-10-11"),
+        puzzle("2026-10-12", "2026-10-13"),
+        puzzle("2026-10-13"),
+        puzzle("2026-10-14"),
+      ]);
+      await pushedAt("2026-10-11", ny("2026-10-11T09:12:00"));
+      await pushedAt("2026-10-13", ny("2026-10-13T09:12:00"));
+      await pushedAt("2026-10-12", ny("2026-10-13T20:30:00"));
+      expect(await state(ny("2026-10-13T21:00:00"))).toEqual([
+        ["2026-10-11", 1, false, false],
+        ["2026-10-13", 2, true, true],
+        ["2026-10-12", 3, true, true],
+      ]);
+      // Wednesday, before its push: Tuesday's counts till 9:12, as ever,
+      // and Monday's till 8:30pm, on home.
+      expect(await state(ny("2026-10-14T08:00:00"))).toEqual([
+        ["2026-10-11", 1, false, false],
+        ["2026-10-13", 2, false, true],
+        ["2026-10-12", 3, true, true],
+        ["2026-10-14", 4, true, true],
+      ]);
+      // Wednesday's push names Wednesday's alone, and not as an extra.
+      const nineTwelve = ny("2026-10-14T09:12:00");
+      expect(await todays(nineTwelve)).toEqual([
+        { number: 4, date: "2026-10-14", out: "2026-10-14", push: null },
+      ]);
+      expect(await announced(nineTwelve)).toEqual(["Announced #4"]);
+      await pushedAt("2026-10-14", nineTwelve);
+      expect(await state(ny("2026-10-14T20:29:00"))).toEqual([
+        ["2026-10-11", 1, false, false],
+        ["2026-10-13", 2, false, false],
+        ["2026-10-12", 3, true, true],
+        ["2026-10-14", 4, true, true],
+      ]);
+      expect(await state(ny("2026-10-14T20:31:00"))).toEqual([
+        ["2026-10-11", 1, false, false],
+        ["2026-10-13", 2, false, false],
+        ["2026-10-12", 3, false, false],
+        ["2026-10-14", 4, true, true],
+      ]);
+      const [{ until }] = await sql`
+        select until from ${released(nineTwelve)} where date = '2026-10-12'`;
+      expect(until).toEqual(ny("2026-10-14T20:30:00"));
+    });
+
+    test("a day's own pushed late, alone, counts its 24 hours but isn't today's once the next is out", async () => {
+      await syncPuzzles([puzzle("2026-10-13"), puzzle("2026-10-14")]);
+      await pushedAt("2026-10-13", ny("2026-10-13T15:00:00"));
+      expect(await state(ny("2026-10-14T12:00:00"))).toEqual([
+        ["2026-10-13", 1, false, true],
+        ["2026-10-14", 2, true, true],
+      ]);
+    });
+
+    test("two missed days caught up at once after the push share an extra push; one at a time, each gets its own", async () => {
+      const own = puzzle("2026-10-12");
+      const saturday = puzzle("2026-10-10", "2026-10-12");
+      const sunday = puzzle("2026-10-11", "2026-10-12");
+      await syncPuzzles([puzzle("2026-10-09"), own, saturday, sunday]);
+      await pushedAt("2026-10-09", ny("2026-10-09T09:12:00"));
+      await pushedAt("2026-10-12", ny("2026-10-12T09:12:00"));
+      expect(await announced(ny("2026-10-12T18:00:00"))).toEqual([
+        "Announced #3 and #4",
+      ]);
+      // One at a time: Saturday's at 6pm, then Sunday's at 8pm.
+      await sql`delete from announcements where date in ('2026-10-10', '2026-10-11')`;
+      await syncPuzzles([puzzle("2026-10-09"), own, saturday]);
+      expect(await announced(ny("2026-10-12T18:00:00"))).toEqual([
+        "Announced #3",
+      ]);
+      await pushedAt("2026-10-10", ny("2026-10-12T18:00:00"));
+      await syncPuzzles([puzzle("2026-10-09"), own, saturday, sunday]);
+      expect(await announced(ny("2026-10-12T20:00:00"))).toEqual([
+        "Announced #4",
+      ]);
+      await pushedAt("2026-10-11", ny("2026-10-12T20:00:00"));
+      // The next day, before its own is out, each still counts till its
+      // own push's hour.
+      await syncPuzzles([
+        puzzle("2026-10-09"),
+        own,
+        saturday,
+        sunday,
+        puzzle("2026-10-13"),
+      ]);
+      expect(await state(ny("2026-10-13T19:00:00"))).toEqual([
+        ["2026-10-09", 1, false, false],
+        ["2026-10-12", 2, false, false],
+        ["2026-10-10", 3, false, false],
+        ["2026-10-11", 4, true, true],
+        ["2026-10-13", 5, true, true],
+      ]);
+    });
+
+    test("a push's puzzles are claimed at one time, so none is an extra, and numbered as they were", async () => {
+      // Saturday's and Sunday's caught up Monday morning, before the push.
+      await syncPuzzles([
+        puzzle("2026-10-09"),
+        puzzle("2026-10-10", "2026-10-12"),
+        puzzle("2026-10-11", "2026-10-12"),
+        puzzle("2026-10-12"),
+      ]);
+      expect(await state(ny("2026-10-12T09:00:00"))).toEqual([
+        ["2026-10-09", 1, false, false],
+        ["2026-10-12", 2, true, true],
+        ["2026-10-10", 3, true, true],
+        ["2026-10-11", 4, true, true],
+      ]);
+      expect(await announced(ny("2026-10-12T09:12:00"))).toEqual([
+        "Announced #2, #3, and #4",
+      ]);
+      const stamps = await sql`
+        select distinct sent_at from announcements
+        where date >= '2026-10-10'`;
+      expect(stamps).toHaveLength(1);
+      // As the push really went out at 9:12: the next day, once Tuesday's
+      // is out, they count till 9:12, and none stays today's.
+      await sql`update announcements set sent_at = ${ny("2026-10-12T09:12:00")}`;
+      await syncPuzzles([
+        puzzle("2026-10-09"),
+        puzzle("2026-10-10", "2026-10-12"),
+        puzzle("2026-10-11", "2026-10-12"),
+        puzzle("2026-10-12"),
+        puzzle("2026-10-13"),
+      ]);
+      expect(await state(ny("2026-10-13T09:00:00"))).toEqual([
+        ["2026-10-09", 1, false, false],
+        ["2026-10-12", 2, false, true],
+        ["2026-10-10", 3, false, true],
+        ["2026-10-11", 4, false, true],
+        ["2026-10-13", 5, true, true],
+      ]);
+    });
+
+    test("counts 24 hours from the push across the end of daylight time", async () => {
+      // Friday, October 30, caught up Saturday at 8:30pm daylight time; the
+      // clocks go back that night.
+      await syncPuzzles([
+        puzzle("2026-10-30", "2026-10-31"),
+        puzzle("2026-10-31"),
+        puzzle("2026-11-01"),
+      ]);
+      await pushedAt("2026-10-31", ny("2026-10-31T09:12:00"));
+      await pushedAt("2026-10-30", ny("2026-10-31T20:30:00"));
+      const [{ until }] = await sql`
+        select until from ${released(ny("2026-11-01T12:00:00", "-05:00"))}
+        where date = '2026-10-30'`;
+      // 7:30pm standard time, a full 24 hours on.
+      expect(until).toEqual(ny("2026-11-01T19:30:00", "-05:00"));
+      expect(await state(ny("2026-11-01T19:29:00", "-05:00"))).toEqual([
+        ["2026-10-31", 1, false, false],
+        ["2026-10-30", 2, true, true],
+        ["2026-11-01", 3, true, true],
+      ]);
+      expect((await state(ny("2026-11-01T19:31:00", "-05:00")))[1]).toEqual([
+        "2026-10-30",
+        2,
+        false,
+        false,
+      ]);
+    });
+
+    test("a missed day's caught up before the push is today's, after the day's own", async () => {
+      const today = newYorkTime().slice(0, 10);
+      const ago = (days: number) => addDays(today, -days);
       await syncPuzzles([puzzle(ago(3)), puzzle(ago(2), today), puzzle(today)]);
       const outs = await sql`
         select to_char(out, 'YYYY-MM-DD') as out from puzzles order by date`;
       expect(outs).toEqual([{ out: null }, { out: today }, { out: null }]);
-      expect(await releasedNow()).toEqual([
-        { date: ago(3), number: 1, today: false, nth: 1, of: 1, counts: false },
-        { date: ago(2), number: 2, today: true, nth: 1, of: 2, counts: true },
-        { date: today, number: 3, today: true, nth: 2, of: 2, counts: true },
-      ]);
-    });
-
-    test("it counts for a day after that push, though the next day's is out", async () => {
-      // Caught up yesterday, with yesterday's, in one push.
-      await syncPuzzles([
-        puzzle(ago(3)),
-        puzzle(ago(2), ago(1)),
-        puzzle(ago(1)),
-        puzzle(today),
-      ]);
-      const pushed = async (hours: number) => {
-        await pushedAgo(ago(2), hours);
-        await pushedAgo(ago(1), hours);
-        return counting();
-      };
-      expect(await pushed(20)).toEqual([
-        [ago(3), 1, false],
-        [ago(2), 2, true],
-        [ago(1), 3, true],
-        [today, 4, true],
-      ]);
-      expect(await pushed(25)).toEqual([
-        [ago(3), 1, false],
-        [ago(2), 2, false],
-        [ago(1), 3, false],
-        [today, 4, true],
-      ]);
-    });
-
-    test("a missed day's added after today's push takes the next number and gets its own push", async () => {
-      const keys = await generateVapidKeys();
-      // Today's went out this morning, as #2.
-      await syncPuzzles([puzzle(ago(2)), puzzle(today)]);
-      await pushedAgo(ago(2), 48);
-      await pushedAgo(today, 10);
-      expect(await counting()).toEqual([
-        [ago(2), 1, false],
-        [today, 2, true],
-      ]);
-      // Then yesterday's is caught up: today's stays #2, before and after
-      // the new one's push, and both are today's.
-      await syncPuzzles([puzzle(ago(2)), puzzle(ago(1), today), puzzle(today)]);
-      const after = [
-        { date: ago(2), number: 1, today: false, nth: 1, of: 1, counts: false },
-        { date: today, number: 2, today: true, nth: 1, of: 2, counts: true },
-        { date: ago(1), number: 3, today: true, nth: 2, of: 2, counts: true },
-      ];
-      expect(await releasedNow()).toEqual(after);
-      expect(await announce(todays, keys, evening)).toBe(true);
-      expect(await claimedSince(ago(1))).toEqual([ago(1), today]);
-      expect(await releasedNow()).toEqual(after);
-      expect(await announce(todays, keys, evening)).toBe(false);
-    });
-
-    test("and counts for a day from its own push, not the day's first", async () => {
-      // Yesterday's went out 30 hours ago; the day before's was caught up
-      // after it, pushed 20 hours ago. Today's is out now.
-      await syncPuzzles([
-        puzzle(ago(3)),
-        puzzle(ago(2), ago(1)),
-        puzzle(ago(1)),
-        puzzle(today),
-      ]);
-      await pushedAgo(ago(1), 30);
-      await pushedAgo(ago(2), 20);
-      expect(await counting()).toEqual([
-        [ago(3), 1, false],
-        [ago(1), 2, false],
-        [ago(2), 3, true],
-        [today, 4, true],
-      ]);
-      await pushedAgo(ago(2), 25);
-      expect(await counting()).toEqual([
-        [ago(3), 1, false],
-        [ago(1), 2, false],
-        [ago(2), 3, false],
-        [today, 4, true],
+      expect(await state()).toEqual([
+        [ago(3), 1, false, false],
+        [today, 2, true, true],
+        [ago(2), 3, true, true],
       ]);
     });
 
     test("a puzzle dated before today that came out on its own day isn't a catch-up", async () => {
       // No puzzle today yet, so yesterday's is still today's. Its push never
       // went out (push was off, say): it isn't pushed today as a catch-up.
-      const keys = await generateVapidKeys();
+      const today = newYorkTime().slice(0, 10);
+      const ago = (days: number) => addDays(today, -days);
+      const evening = new Date(`${today}T20:00:00-04:00`);
       await syncPuzzles([puzzle(ago(2)), puzzle(ago(1))]);
-      expect(await releasedNow()).toEqual([
-        { date: ago(2), number: 1, today: false, nth: 1, of: 1, counts: false },
-        { date: ago(1), number: 2, today: true, nth: 1, of: 1, counts: true },
+      expect(await state()).toEqual([
+        [ago(2), 1, false, false],
+        [ago(1), 2, true, true],
       ]);
       expect(await todays()).toEqual([
         { number: 2, date: ago(1), out: ago(1), push: null },
       ]);
-      expect(await announce(todays, keys, evening)).toBe(false);
+      expect(await announced(evening)).toEqual([]);
       expect(await claimedSince(ago(2))).toEqual([]);
     });
   });

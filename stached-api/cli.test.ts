@@ -282,10 +282,4 @@ describe("timing", () => {
       "It's back as it was, with no new push: its push went out already.",
     );
   });
-
-  test("a puzzle back on a day before today gets none", () => {
-    expect(timing("2026-09-30", "new", {}, night)).toBe(
-      "It's dated before today, so it gets no push.",
-    );
-  });
 });

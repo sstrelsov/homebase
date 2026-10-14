@@ -108,6 +108,31 @@ test("puzzles out together show together", () => {
   expect(line(both)).not.toBe(line(single));
 });
 
+test("four or more out together show as a run, so every day's line fits", () => {
+  expect(dayLine({ numbers: [17, 18, 19, 20], date: "2026-10-14" })).toBe(
+    "#17 TO #20 · WED, OCT 14",
+  );
+  const width = (line: string) =>
+    [...line].reduce(
+      (sum, char) => sum + glyphs.advances[glyphs.chars.indexOf(char)],
+      0,
+    );
+  for (const numbers of [
+    [997, 998, 999],
+    [996, 997, 998, 999, 1000],
+  ])
+    for (
+      let day = Date.UTC(2026, 0, 1);
+      day < Date.UTC(2027, 0, 1);
+      day += 864e5
+    )
+      expect(
+        width(
+          dayLine({ numbers, date: new Date(day).toISOString().slice(0, 10) }),
+        ),
+      ).toBeLessThan(1200 - 2 * 60);
+});
+
 test("the border takes the colors in turn, never the same twice running", () => {
   const turns = Array.from({ length: COLORS.length * 2 }, nextColor);
   expect(new Set(turns.slice(0, COLORS.length)).size).toBe(COLORS.length);

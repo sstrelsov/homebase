@@ -11,7 +11,8 @@
 // restarts.
 import { sql } from "bun";
 import QUOTES from "../src/stached/quotes.json";
-import { LIST, numbered } from "./puzzles";
+import { missedDay } from "./leaderboard";
+import { caughtUp, LIST, numbered } from "./puzzles";
 import {
   base64url,
   type Subscription,
@@ -121,12 +122,9 @@ export interface Announced {
   push?: string | null;
 }
 
-/** "Monday" */
-const weekday = (date: string) =>
-  new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
-    weekday: "long",
-    timeZone: "UTC",
-  });
+/** Whose puzzle it is, out with today's: "today's", "Monday's", "Sep 28's". */
+const whose = (puzzle: Announced) =>
+  caughtUp(puzzle) ? `${missedDay(puzzle.date, puzzle.out)}'s` : "today's";
 
 /**
  * A push's copy, for the puzzles it announces (in number order) and the ones
@@ -145,10 +143,8 @@ export function pushCopy(fresh: Announced[], earlier: Announced[] = []) {
     ? `Extra puzzle${s}: ${numbered(numbers)} ${is} up`
     : `Puzzle${s} ${numbered(numbers)} ${is} up`;
   if (fresh[0]?.push || !extra) return { title, line: fresh[0]?.push ?? null };
-  const days = LIST.format(
-    fresh.map((p) => (p.date === p.out ? "today's" : `${weekday(p.date)}'s`)),
-  );
-  const missed = fresh.every((p) => p.date < p.out) ? " missed" : "";
+  const days = LIST.format(fresh.map(whose));
+  const missed = fresh.every(caughtUp) ? " missed" : "";
   const all = [...earlier, ...fresh].map((p) => p.number).sort((a, b) => a - b);
   return {
     title,
@@ -192,12 +188,15 @@ export async function announce(
     const puzzles = await day();
     const out = puzzles[0]?.out;
     if (!out || !announceDue(out, now)) return null;
-    // Stamped as claimed, in turn, so the push order is the numbers' order.
+    // Stamped with when this claim ran: the same for every puzzle in it, so
+    // they keep their order by date, and later than any claim before it, so
+    // a later push numbers after it. To the millisecond, as JavaScript reads
+    // it, so the CLI numbers them as Postgres does.
     const claimed = new Set(
       (
         await tx`
           insert into announcements (date, sent_at)
-          select value::date, clock_timestamp()
+          select value::date, date_trunc('milliseconds', statement_timestamp())
           from jsonb_array_elements_text(${puzzles.map((p) => p.date)}::jsonb)
           on conflict do nothing
           returning to_char(date, 'YYYY-MM-DD') as date`

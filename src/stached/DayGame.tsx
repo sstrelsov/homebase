@@ -38,8 +38,8 @@ const DayGame = () => {
   if (!day?.play)
     return <p className={`${styles.label} pt-24 text-center`}>Loading…</p>;
 
-  // Today's come out together, played back to back.
-  const { today, next } = day.puzzle;
+  // Today's are played back to back: next is set only on one of them.
+  const { next } = day.puzzle;
   return (
     <Game
       token={session.token}
@@ -50,7 +50,7 @@ const DayGame = () => {
       onDay={setDay}
       onHome={() => navigate({ to: "/stached" })}
       onNext={
-        today && next
+        next
           ? () => navigate({ to: "/stached/$date", params: { date: next } })
           : undefined
       }

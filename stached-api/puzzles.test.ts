@@ -88,21 +88,61 @@ describe("numbering, in the order puzzles go out", () => {
     ]);
   });
 
-  test("puts a missed day caught up before the push by its date, in that push", () => {
+  test("puts a missed day caught up before the push after the day's own, in that push", () => {
+    // Tuesday's has been out since midnight as #2, and players may have
+    // shared it: Monday's, caught up that morning, comes after it.
     const pushed = new Map([["2026-10-11", at(-24)]]);
     expect(numbers([sunday, monday, tuesday], pushed)).toEqual([
       "#1 2026-10-11",
-      "#2 2026-10-12",
-      "#3 2026-10-13",
+      "#2 2026-10-13",
+      "#3 2026-10-12",
     ]);
     // The push claims both at once, and nothing moves.
     pushed.set("2026-10-12", at(13));
     pushed.set("2026-10-13", at(13));
     expect(numbers([sunday, monday, tuesday], pushed)).toEqual([
       "#1 2026-10-11",
-      "#2 2026-10-12",
-      "#3 2026-10-13",
+      "#2 2026-10-13",
+      "#3 2026-10-12",
     ]);
+  });
+
+  test("puts several missed days by date, after the day's own", () => {
+    const saturday = day("2026-10-10", "2026-10-12");
+    const sunday = day("2026-10-11", "2026-10-12");
+    const monday = day("2026-10-12");
+    expect(numbers([saturday, sunday, monday], new Map())).toEqual([
+      "#1 2026-10-12",
+      "#2 2026-10-10",
+      "#3 2026-10-11",
+    ]);
+  });
+});
+
+describe("numbering the live game's puzzles", () => {
+  // Shaped like the live game on Tuesday, October 13, made up: a puzzle a
+  // day from September 29 but October 9 and 12, #1 and #2 from before
+  // pushes, and #3 on pushed at 9:12am on their day.
+  const dates = [
+    ..."29 30".split(" ").map((d) => `2026-09-${d}`),
+    ..."01 02 03 04 05 06 07 08 10 11 13".split(" ").map((d) => `2026-10-${d}`),
+  ];
+  const nineTwelve = (date: string) => new Date(`${date}T09:12:00-04:00`);
+  const pushed = new Map(dates.slice(2).map((d) => [d, nineTwelve(d)]));
+  const numbers = (puzzles: DayPuzzle[]) =>
+    inOrder(puzzles, pushed).map((p) => p.date);
+
+  test("numbers every one by date, as before", () => {
+    const live = dates.map((date) => ({ date }) as DayPuzzle);
+    expect(numbers(live.toReversed())).toEqual(dates);
+  });
+
+  test("gives Monday's, caught up after Tuesday's push, #14", () => {
+    const monday = { date: "2026-10-12", out: "2026-10-13" } as DayPuzzle;
+    const live = [...dates.map((date) => ({ date }) as DayPuzzle), monday];
+    expect(numbers(live)).toEqual([...dates, monday.date]);
+    pushed.set(monday.date, new Date("2026-10-13T20:30:00-04:00"));
+    expect(numbers(live)).toEqual([...dates, monday.date]);
   });
 });
 

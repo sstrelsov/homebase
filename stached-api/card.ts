@@ -45,10 +45,12 @@ const DAY = new Intl.DateTimeFormat("en-US", {
 
 /**
  * The card's line of text, as the game labels a puzzle: "#12 · WED, SEP 30",
- * or "#17 AND #18 · SUN, OCT 11" on a day with two.
+ * "#17 AND #18 · SUN, OCT 11" on a day with two, and "#17 TO #20 · …" on a
+ * day with four or more, which wouldn't fit one by one (a day's numbers run
+ * on).
  */
 export const dayLine = ({ numbers, date }: CardDay) =>
-  `${numbered(numbers)} · ${DAY.format(new Date(date))}`.toUpperCase();
+  `${numbers.length > 3 ? `#${numbers[0]} to #${numbers.at(-1)}` : numbered(numbers)} · ${DAY.format(new Date(date))}`.toUpperCase();
 
 let turn = 0;
 /** The border colors in turn, so each fetch of a card gets the next one. */

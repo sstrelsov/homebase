@@ -131,8 +131,8 @@ const Game = ({
   onRules,
 }: GameProps) => {
   const [bars, setBars] = useState(() => barsFor(play));
-  // One of today's, out with a missed day's.
-  const together = puzzle.today && puzzle.of > 1;
+  // One of today's, when there's more than one.
+  const together = puzzle.of > 1;
   const [order, setOrder] = useState(() =>
     shuffle(puzzle.words.filter((w) => !bars.some((g) => g.words.includes(w)))),
   );

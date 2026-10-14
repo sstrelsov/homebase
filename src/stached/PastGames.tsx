@@ -23,16 +23,16 @@ function daysAgo(date: string) {
 
 /**
  * "Today", "Yesterday", then the weekday; the date sits right under it. A
- * missed day's puzzle out today says so: it's one of today's, under its own
+ * missed day's puzzle out today (the newest day out) says so, under its own
  * date.
  */
-function dayName(game: PastGame) {
-  if (game.today) return game.date === game.out ? "Today" : "Out today";
+function dayName(game: PastGame, newest: string) {
+  if (game.out === newest) return game.date === newest ? "Today" : "Out today";
   if (daysAgo(game.date) === 1) return "Yesterday";
   return formatDate(game.date, { weekday: "long" });
 }
 
-const Tile = ({ game }: { game: PastGame }) => {
+const Tile = ({ game, newest }: { game: PastGame; newest: string }) => {
   const { play } = game;
   const state = stateOf(game);
   return (
@@ -42,7 +42,7 @@ const Tile = ({ game }: { game: PastGame }) => {
       className={styles.dayTile}
       data-state={state}
     >
-      <span className={styles.label}>{dayName(game)}</span>
+      <span className={styles.label}>{dayName(game, newest)}</span>
       <span className={`${styles.display} text-[17px]`}>
         {formatDate(game.date, { month: "short", day: "numeric" })}
       </span>
@@ -75,7 +75,8 @@ const PastGames = () => {
         <ul className="grid grid-cols-2 gap-3">
           {games.map((game) => (
             <li key={game.date}>
-              <Tile game={game} />
+              {/* The last out leads, out on the newest day */}
+              <Tile game={game} newest={games[0].out} />
             </li>
           ))}
         </ul>

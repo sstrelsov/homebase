@@ -12,12 +12,17 @@ const PINNED = "cat";
 /** A puzzle out so far (dated today or earlier). */
 export interface Day {
   id: number;
-  /** #1 is the first puzzle, by date. */
+  /** #1 is the first puzzle out; they're numbered in the order they went out. */
   number: number;
   date: string;
-  /** One of today's: out on the newest day, a missed day's caught up too. */
+  /** The day it came out: its date, or a later one for a missed day's. */
+  out: string;
+  /**
+   * One of today's: out on the newest day (a missed day's caught up too), or
+   * an extra pushed in the last day.
+   */
   today: boolean;
-  /** Today's, or pushed in the last day: its games still count. */
+  /** Out on the newest day, or pushed in the last day: its games still count. */
   counts: boolean;
 }
 
@@ -94,8 +99,13 @@ export interface Fastest {
 }
 
 export interface Leaderboard {
-  /** The last WEEK days, oldest first, up to the newest puzzle's. */
+  /** The last WEEK days, oldest first, up to the newest day one came out. */
   days: WeekDay[];
+  /**
+   * Today's puzzles, by number: a gold box each, even one from a missed day
+   * too long ago for the week.
+   */
+  today: Pick<Day, "number" | "date">[];
   /** Everyone tied for the fastest stache on each of today's puzzles. */
   fastestToday: Fastest[];
   /**
@@ -140,13 +150,29 @@ export function addDays(date: string, days: number) {
 }
 
 /**
- * The last WEEK days up to the newest puzzle's, oldest first, each with its
- * puzzle, if it has one. It starts no earlier than the first puzzle. The
- * puzzles can come in any order.
+ * Whose a missed day's puzzle is, out on a later day: "Monday", or "Sep 28"
+ * a week or more back, since "Friday" would read as the last Friday.
  */
-export function lastWeek<T extends Pick<Day, "date">>(days: T[]) {
+export const missedDay = (date: string, out: string) =>
+  new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
+    ...(addDays(date, WEEK) > out
+      ? { weekday: "long" }
+      : { month: "short", day: "numeric" }),
+    timeZone: "UTC",
+  });
+
+/**
+ * The last WEEK days, oldest first, each with its puzzle, if it has one. It
+ * ends on the newest day a puzzle came out, so on today when only a missed
+ * day's is out, and starts no earlier than the first puzzle. The puzzles can
+ * come in any order.
+ */
+export function lastWeek<T extends Pick<Day, "date" | "out">>(days: T[]) {
   const dates = days.map((day) => day.date).sort();
-  const last = dates.at(-1);
+  const last = days
+    .map((day) => day.out)
+    .sort()
+    .at(-1);
   if (!last) return [];
   const byDate = new Map(days.map((day) => [day.date, day]));
   return Array.from({ length: WEEK }, (_, i) => addDays(last, i - (WEEK - 1)))
@@ -162,6 +188,9 @@ export function lastWeek<T extends Pick<Day, "date">>(days: T[]) {
  */
 export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
   const week = lastWeek(days);
+  const today = days
+    .filter((day) => day.today)
+    .sort((a, b) => a.number - b.number);
   const { isFastest, mark } = marker(games);
 
   const standings = [...Map.groupBy(games, (game) => game.name)].flatMap(
@@ -200,21 +229,19 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
       number: day?.number ?? null,
       today: day?.today ?? false,
     })),
-    fastestToday: days
-      .filter((day) => day.today)
-      .sort((a, b) => a.number - b.number)
-      .flatMap(({ id, number }) =>
-        games
-          .filter((game) => game.puzzleId === id)
-          .filter(isFastest)
-          .map(({ name, stachedMs, completed }) => ({
-            number,
-            name,
-            stachedMs,
-            solved: completed,
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name)),
-      ),
+    today: today.map(({ number, date }) => ({ number, date })),
+    fastestToday: today.flatMap(({ id, number }) =>
+      games
+        .filter((game) => game.puzzleId === id)
+        .filter(isFastest)
+        .map(({ name, stachedMs, completed }) => ({
+          number,
+          name,
+          stachedMs,
+          solved: completed,
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    ),
     players: ranked(standings),
   };
 }
