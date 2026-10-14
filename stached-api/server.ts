@@ -38,6 +38,8 @@ const PASSWORD = env("STACHE_PASSWORD");
 const SECRET = env("SESSION_SECRET");
 const ORIGINS = env("ALLOWED_ORIGINS").split(",");
 const CLOCK_GRACE_MS = 15_000;
+// How long a puzzle counts after its push, at least (released()).
+const DAY_MS = 24 * 3600_000;
 // The real puzzles live outside this public repo (on the Studio, next to the
 // password); puzzles.example.json holds made-up ones for local testing.
 const puzzles = await readPuzzles(env("PUZZLES_FILE"));
@@ -54,19 +56,19 @@ const isAdmin = (name: string) => name.toLowerCase() === ADMIN_NAME;
 
 interface Puzzle {
   id: number;
-  /** #1 is the first puzzle, by date. */
+  /** #1 is the first puzzle out; they're numbered in the order they went out. */
   number: number;
   date: string;
   /** The day it came out: its date, or a later one for a missed day's. */
   out: string;
   /** Whether it's one of today's: out on the newest day. */
   today: boolean;
-  /** Its place among the puzzles out on its day, oldest first: 1, 2, … */
+  /** Its place among the puzzles out on its day, by number: 1, 2, … */
   nth: number;
   /** How many puzzles came out on its day: 2 or more when catching up. */
   of: number;
-  /** The date of the next puzzle out on its day, which Next opens. */
-  next: string | null;
+  /** When its push went out, if it has. */
+  pushed: Date | null;
   /** Its games count: it's today's, or pushed in the last day. */
   counts: boolean;
   groups: Group[];
@@ -161,30 +163,30 @@ const puzzleById = async (id: unknown) =>
 const puzzleByDate = async (date: unknown) =>
   typeof date === "string" ? findPuzzle(sql`date = ${date}`) : undefined;
 
-/** Today's puzzles, oldest first, with how this player is doing on each. */
-const todayFor = (
-  userId: number,
-): Promise<
-  (Puzzle & {
-    started: Date | null;
-    finished: boolean;
-    completed: boolean | null;
-    stachedMs: number | null;
-  })[]
-> => sql`
+/** One of today's puzzles, with how this player is doing on it. */
+type TodayPuzzle = Puzzle & {
+  started: Date | null;
+  finished: boolean;
+  completed: boolean | null;
+  stachedMs: number | null;
+};
+
+/** Today's puzzles, by number, with how this player is doing on each. */
+const todayFor = (userId: number): Promise<TodayPuzzle[]> => sql`
   select released.*, p.started_at as started,
          p.finished_at is not null as finished, p.completed,
          p.stached_ms as "stachedMs"
   from ${released()}
   left join plays p on p.puzzle_id = released.id and p.user_id = ${userId}
   where today
-  order by date`;
+  order by number`;
 
-/** Today's puzzles, oldest first, as their push and card know them. */
-const todays = (): Promise<Announced[]> =>
-  sql`select number, out, push from ${released()} where today order by date`;
+/** Today's puzzles, by number, as their push and card know them. */
+const todays = (): Promise<Announced[]> => sql`
+  select number, date, out, push from ${released()}
+  where today order by number`;
 
-/** Every puzzle so far, newest first, with how this player did on each. */
+/** Every puzzle so far, last out first, with how this player did on each. */
 async function pastGames(userId: number) {
   const rows = await sql`
     select released.date, released.out, released.number, released.today,
@@ -193,7 +195,7 @@ async function pastGames(userId: number) {
            p.stached_ms as "stachedMs", p.late
     from ${released()}
     left join plays p on p.puzzle_id = released.id and p.user_id = ${userId}
-    order by released.date desc`;
+    order by released.number desc`;
   return rows.map(
     ({
       play,
@@ -294,10 +296,12 @@ function playView(puzzle: Puzzle, play: Play) {
 
 /**
  * Everything the game needs: the words, this player's game, the scoreboard.
- * Late games go below the ones that counted.
+ * Late games go below the ones that counted. On one of today's, Next opens
+ * the first of the others this player hasn't finished, so whichever they
+ * play first, the board points them at the other.
  */
-async function snapshot(userId: number, puzzle: Puzzle) {
-  const [[play], board] = await Promise.all([
+async function snapshot(userId: number, puzzle: Puzzle, today?: TodayPuzzle[]) {
+  const [[play], board, others] = await Promise.all([
     sql`select * from plays where user_id = ${userId} and puzzle_id = ${puzzle.id}`,
     sql`
       select u.name, p.completed, p.stached_ms as "stachedMs", p.late
@@ -306,7 +310,9 @@ async function snapshot(userId: number, puzzle: Puzzle) {
         and lower(u.name) <> ${ADMIN_NAME}
       order by p.late, p.completed desc, p.stached_ms nulls last, p.mistakes,
                p.finished_at`,
+    today ?? (puzzle.today ? todayFor(userId) : []),
   ]);
+  const next = others.find((p) => p.id !== puzzle.id && !p.finished);
   return {
     puzzle: {
       id: puzzle.id,
@@ -316,7 +322,7 @@ async function snapshot(userId: number, puzzle: Puzzle) {
       today: puzzle.today,
       nth: puzzle.nth,
       of: puzzle.of,
-      next: puzzle.next,
+      next: next?.date ?? null,
       // Sorted so the order gives nothing away; the game shuffles them.
       words: puzzle.groups.flatMap((g) => g.words).sort(),
       groupCount: puzzle.groups.length,
@@ -515,7 +521,7 @@ async function adminStats() {
     }[],
     { players: number; notifications: number }[],
   ] = await Promise.all([
-    sql`select * from ${released()} order by date desc`,
+    sql`select * from ${released()} order by number desc`,
     sql`
       select p.puzzle_id, u.name, p.guesses, p.completed, p.mistakes,
              p.stached_ms, p.late, p.finished_at is not null as finished,
@@ -532,7 +538,7 @@ async function adminStats() {
                as after_push
       from plays p join users u on u.id = p.user_id
         join puzzles z on z.id = p.puzzle_id
-        left join announcements a on a.date = coalesce(z.out, z.date)
+        left join announcements a on a.date = z.date
       where lower(u.name) <> ${ADMIN_NAME}
       order by p.finished_at`,
     sql`
@@ -616,29 +622,30 @@ async function route(req: Request): Promise<Response> {
   const userId = user.id;
   switch (path) {
     case "GET /today": {
-      // Play opens the oldest of today's not finished yet, or the last once
-      // they all are. Home's note stays on the game started last, so a
-      // finished one's result shows until the next one starts.
+      // Play opens the first of today's not finished yet, or the last once
+      // they all are. Home lists them all, with how this player did on each
+      // and until when each is sure to count: a day after its push.
       const today = await todayFor(userId);
       const puzzle = today.find((p) => !p.finished) ?? today.at(-1);
       if (!puzzle) return fail(404, "No puzzle yet");
-      const latest = today
-        .filter((p) => p.started)
-        .sort((a, b) => Number(b.started) - Number(a.started))[0];
       const [day, squares] = await Promise.all([
-        snapshot(userId, puzzle),
+        snapshot(userId, puzzle, today),
         week(userId),
       ]);
       return Response.json({
         ...day,
         week: squares,
-        latest: latest
-          ? {
-              finished: latest.finished,
-              completed: latest.completed,
-              stachedMs: latest.stachedMs,
-            }
-          : null,
+        puzzles: today.map((p) => ({
+          number: p.number,
+          date: p.date,
+          out: p.out,
+          until: p.pushed && new Date(p.pushed.getTime() + DAY_MS),
+          play: p.started && {
+            finished: p.finished,
+            completed: p.completed,
+            stachedMs: p.stachedMs,
+          },
+        })),
       });
     }
     case "POST /start":

@@ -14,8 +14,7 @@ export interface DayPuzzle {
   date: string;
   /**
    * The day it came out, when that's after its date: a missed day's puzzle,
-   * published with a later day's to catch up. `confirm` sets it, so it's never
-   * staged. A day's puzzles come out together, with one push.
+   * published later to catch up. `confirm` sets it, so it's never staged.
    */
   out?: string;
   groups: Group[];
@@ -88,7 +87,7 @@ export function puzzleProblems(puzzles: unknown): string[] {
 // "Snow" and " snow" are the same word on the board.
 const fold = (text: string) => text.trim().toLowerCase();
 
-export const byDate = (a: DayPuzzle, b: DayPuzzle) =>
+export const byDate = (a: { date: string }, b: { date: string }) =>
   a.date.localeCompare(b.date);
 
 /** A puzzles file, checked, in date order. Throws everything wrong at once. */
@@ -99,11 +98,35 @@ export async function readPuzzles(file: string): Promise<DayPuzzle[]> {
   return (puzzles as DayPuzzle[]).sort(byDate);
 }
 
-const LIST = new Intl.ListFormat("en-US", { type: "conjunction" });
+export const LIST = new Intl.ListFormat("en-US", { type: "conjunction" });
 
 /** "#12", "#17 and #18", "#17, #18, and #19": puzzles out together. */
 export const numbered = (numbers: number[]) =>
   LIST.format(numbers.map((n) => `#${n}`));
+
+/** When each puzzle's push went out, by its date. */
+export type Pushes = Map<string, Date>;
+
+/**
+ * Puzzles in the order they're numbered (#1 first): the order they went out.
+ * By the day each came out, then by push (one not pushed yet goes after
+ * those that were), then by date. So a number that went out in a push never
+ * moves: a missed day added after today's push goes after today's. Only
+ * catching up before a push can move a number, and none has gone out yet.
+ * `released()` numbers them the same way.
+ */
+export function inOrder<T extends Pick<DayPuzzle, "date" | "out">>(
+  puzzles: T[],
+  pushes: Pushes,
+) {
+  const pushed = (p: T) => pushes.get(p.date)?.getTime() ?? Infinity;
+  return puzzles.toSorted(
+    (a, b) =>
+      outOf(a).localeCompare(outOf(b)) ||
+      pushed(a) - pushed(b) ||
+      a.date.localeCompare(b.date),
+  );
+}
 
 /**
  * Makes Postgres match the puzzles file. Editing or dropping a puzzle that
@@ -149,29 +172,39 @@ export async function gamesByDate(): Promise<Map<string, number>> {
   return new Map(rows.map(({ date, games }) => [date, games]));
 }
 
+/** When each puzzle's push went out, by its date (`announcements`). */
+export async function pushes(): Promise<Pushes> {
+  const rows: { date: string; sent_at: Date }[] = await sql`
+    select to_char(date, 'YYYY-MM-DD') as date, sent_at from announcements`;
+  return new Map(rows.map(({ date, sent_at }) => [date, sent_at]));
+}
+
 /**
- * The puzzles out so far (New York time), numbered by date from #1. A puzzle
- * comes out on its date, or, for a missed day's published later to catch up,
- * on the day it was published (`out`). Today's are the ones out on the
- * newest day, oldest first: a day without a puzzle of its own keeps the last
- * ones. A puzzle counts while it's today's and for 24 hours after its day's
- * push (one for every puzzle out that day, even one published after it), so
- * one pushed late at night still has a full day once the next one is out.
- * Games started or guessed after that are late.
+ * The puzzles out so far (New York time), numbered from #1 in the order they
+ * went out (`inOrder`). A puzzle comes out on its date, or, for a missed
+ * day's published later to catch up, on the day it was published (`out`).
+ * Today's are the ones out on the newest day, in number order: a day without
+ * a puzzle of its own keeps the last ones. A puzzle counts while it's today's
+ * and for 24 hours after its own push (`pushed`), so one pushed late at night
+ * still has a full day once the next one is out, and a missed day's added
+ * after today's push has a full day from its own. Games started or guessed
+ * after that are late.
  */
 export const released = () => sql`(
-  select z.id, to_char(z.date, 'YYYY-MM-DD') as date,
-         to_char(z.out, 'YYYY-MM-DD') as out, z.groups, z.push,
-         row_number() over (order by z.date)::int as number,
-         z.out = max(z.out) over () as today,
-         row_number() over (partition by z.out order by z.date)::int as nth,
-         count(*) over (partition by z.out)::int as "of",
-         to_char(lead(z.date) over (partition by z.out order by z.date),
-                 'YYYY-MM-DD') as next,
-         z.out = max(z.out) over ()
-           or coalesce(a.sent_at > now() - interval '24 hours', false) as counts
-  from (select id, date, coalesce(out, date) as out, groups, push
-        from puzzles) z
-    left join announcements a on a.date = z.out
-  where z.out <= (now() at time zone 'America/New_York')::date
+  select id, to_char(date, 'YYYY-MM-DD') as date,
+         to_char(out, 'YYYY-MM-DD') as out, groups, push, pushed, number,
+         out = max(out) over () as today,
+         row_number() over (partition by out order by number)::int as nth,
+         count(*) over (partition by out)::int as "of",
+         out = max(out) over ()
+           or coalesce(pushed > now() - interval '24 hours', false) as counts
+  from (
+    select z.id, z.date, coalesce(z.out, z.date) as out, z.groups, z.push,
+           a.sent_at as pushed,
+           row_number() over (order by coalesce(z.out, z.date),
+                                       a.sent_at nulls last, z.date)::int
+             as number
+    from puzzles z left join announcements a on a.date = z.date
+    where coalesce(z.out, z.date) <= (now() at time zone 'America/New_York')::date
+  ) numbered
 ) released`;

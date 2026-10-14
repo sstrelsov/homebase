@@ -71,15 +71,19 @@ describe("confirming staged puzzles", () => {
   });
 });
 
+/** Pushes that went out on these dates, in turn. */
+const pushedOn = (...dates: string[]) =>
+  new Map(dates.map((date, i) => [date, new Date(Date.UTC(2026, 9, 1, i))]));
+
 describe("catching up on a missed day", () => {
   // Sunday, October 11, 8am in New York. Friday's push went out; Sunday's
   // puzzle was confirmed the night before, and Saturday's was missed.
   const now = new Date("2026-10-11T12:00:00Z");
   const published = [on("2026-10-09"), on("2026-10-11")];
-  const pushed = new Set(["2026-10-09"]);
+  const pushed = pushedOn("2026-10-09");
   const outs = (puzzles: DayPuzzle[]) => puzzles.map((p) => [p.date, p.out]);
 
-  test("brings a missed day's puzzle out today, numbered by its date", () => {
+  test("brings a missed day's puzzle out today", () => {
     expect(
       outs(publish(published, [on("2026-10-10")], new Map(), { pushed, now })),
     ).toEqual([
@@ -91,7 +95,7 @@ describe("catching up on a missed day", () => {
 
   test("catches up on several days at once, with today's", () => {
     const staged = ["2026-10-07", "2026-10-08", "2026-10-11"].map((d) => on(d));
-    const pushedTuesday = new Set(["2026-10-06"]);
+    const pushedTuesday = pushedOn("2026-10-06");
     expect(
       outs(
         publish([on("2026-10-06")], staged, new Map(), {
@@ -144,25 +148,37 @@ describe("catching up on a missed day", () => {
     ]);
   });
 
-  test("refuses once a later day's push has gone out, since it would renumber", () => {
-    expect(() =>
-      publish(published, [on("2026-10-10")], new Map(), {
-        pushed: new Set(["2026-10-09", "2026-10-11"]),
-        now,
-      }),
-    ).toThrow(
-      /^Too late to catch up on Sat, Oct 10 \(2026-10-10\): Sun, Oct 11's push has gone out/,
-    );
-    expect(() =>
-      publish(published, [on("2026-10-08")], new Map(), { pushed, now }),
-    ).toThrow(/Too late to catch up on Thu, Oct 8 .*Fri, Oct 9's push/);
-    // Editing a puzzle that's out never renumbers anything.
-    expect(() =>
-      publish(published, [edited("2026-10-09")], new Map(), {
-        pushed: new Set(["2026-10-09", "2026-10-11"]),
-        now,
-      }),
-    ).not.toThrow();
+  test("still brings it out today after today's push, and leaves the days pushed alone", () => {
+    const sundayPushed = pushedOn("2026-10-09", "2026-10-11");
+    expect(
+      outs(
+        publish(published, [on("2026-10-10")], new Map(), {
+          pushed: sundayPushed,
+          now,
+        }),
+      ),
+    ).toEqual([
+      ["2026-10-09", undefined],
+      ["2026-10-10", "2026-10-11"],
+      ["2026-10-11", undefined],
+    ]);
+    // Even a missed day from before Friday's push comes out today.
+    expect(
+      outs(
+        publish(published, [on("2026-10-08")], new Map(), {
+          pushed: sundayPushed,
+          now,
+        }),
+      )[0],
+    ).toEqual(["2026-10-08", "2026-10-11"]);
+  });
+
+  test("never catches up on a published day, when it's edited or its push line changes", () => {
+    const fridayLine = { ...on("2026-10-09"), push: "New line" };
+    for (const staged of [edited("2026-10-09"), fridayLine])
+      expect(
+        outs(publish(published, [staged], new Map(), { pushed, now }))[0],
+      ).toEqual(["2026-10-09", undefined]);
   });
 });
 
@@ -200,49 +216,47 @@ describe("timing", () => {
   const night = new Date("2026-10-02T03:00:00Z");
 
   test("a puzzle confirmed the night before goes live at midnight, its push at 9:12", () => {
-    expect(timing("2026-10-02", "new", false, night)).toBe(
+    expect(timing("2026-10-02", "new", {}, night)).toBe(
       "It goes live at midnight New York time on Fri, Oct 2, with its push at 9:12am.",
     );
   });
 
   test("a puzzle for today goes live now, and pushes at 9:12 or right away", () => {
     expect(
-      timing("2026-10-01", "new", false, new Date("2026-10-01T12:00:00Z")),
+      timing("2026-10-01", "new", {}, new Date("2026-10-01T12:00:00Z")),
     ).toBe("It goes live right away, with its push at 9:12am.");
-    expect(timing("2026-10-01", "new", false, night)).toBe(
+    expect(timing("2026-10-01", "new", {}, night)).toBe(
       "It goes live and pushes right away.",
     );
   });
 
   test("changing a puzzle that's out never pushes again", () => {
-    expect(timing("2026-10-01", "edit", true, night)).toBe(
+    expect(timing("2026-10-01", "edit", { pushed: true }, night)).toBe(
       "It's out already, so the change is live right away. A puzzle never pushes twice.",
     );
-    expect(timing("2026-10-02", "edit", false, night)).toContain(
-      "push at 9:12am",
-    );
+    expect(timing("2026-10-02", "edit", {}, night)).toContain("push at 9:12am");
   });
 
   test("a new push line for today goes out if its push hasn't", () => {
     expect(
-      timing("2026-10-01", "push", false, new Date("2026-10-01T12:00:00Z")),
+      timing("2026-10-01", "push", {}, new Date("2026-10-01T12:00:00Z")),
     ).toBe("Its push goes out at 9:12am.");
-    expect(timing("2026-10-01", "push", false, night)).toBe(
+    expect(timing("2026-10-01", "push", {}, night)).toBe(
       "Its push goes out right away.",
     );
-    expect(timing("2026-10-01", "push", true, night)).toContain(
+    expect(timing("2026-10-01", "push", { pushed: true }, night)).toContain(
       "A puzzle never pushes twice.",
     );
   });
 
-  test("a puzzle that joins today's after their push gets none", () => {
-    expect(timing("2026-10-01", "new", true, night)).toBe(
-      "It goes live right away, with no push: today's went out already.",
+  test("a missed day's that joins today's after their push gets its own, as an extra puzzle", () => {
+    expect(timing("2026-10-01", "new", { extra: true }, night)).toBe(
+      "It goes live and pushes right away, as an extra puzzle: today's push went out already. It counts for a day from its own push.",
     );
   });
 
   test("a puzzle back on a day before today gets none", () => {
-    expect(timing("2026-09-30", "new", true, night)).toBe(
+    expect(timing("2026-09-30", "new", {}, night)).toBe(
       "It's dated before today, so it gets no push.",
     );
   });

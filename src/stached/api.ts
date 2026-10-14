@@ -52,7 +52,7 @@ export interface PastGame
 export interface Day {
   puzzle: {
     id: number;
-    /** #1 is the first puzzle, by date. */
+    /** #1 is the first puzzle out; they're numbered in the order they went out. */
     number: number;
     date: string;
     /** The day it came out: its date, or a later one for a missed day's. */
@@ -62,11 +62,14 @@ export interface Day {
      * caught up along with it.
      */
     today: boolean;
-    /** Its place among the puzzles out on its day, oldest first: 1, 2, … */
+    /** Its place among the puzzles out on its day, by number: 1, 2, … */
     nth: number;
     /** How many came out on its day: 2 or more when catching up. */
     of: number;
-    /** The date of the next puzzle out on its day, which Next opens. */
+    /**
+     * On one of today's, the date of the first of the others you haven't
+     * finished, which Next opens.
+     */
     next: string | null;
     words: string[];
     groupCount: number;
@@ -77,14 +80,22 @@ export interface Day {
   board: Score[];
 }
 
+/** One of today's puzzles, as home lists them, with how you did on it. */
+export interface TodayPuzzle
+  extends Pick<Day["puzzle"], "number" | "date" | "out"> {
+  /** It counts at least until then (a day after its push), if it's pushed. */
+  until: string | null;
+  play: Pick<Play, "finished" | "completed" | "stachedMs"> | null;
+}
+
 /**
- * Today's game (the oldest of today's you haven't finished, or the last), and
- * your squares for the week, as on the leaderboard.
+ * Today's game (the first of today's you haven't finished, or the last), all
+ * of today's puzzles, and your squares for the week, as on the leaderboard.
  */
 export interface Today extends Day {
   week: (Pick<WeekDay, "date" | "today"> & { mark: Mark })[];
-  /** Your game started last among today's, for home's note. */
-  latest: PastGame["play"];
+  /** Today's puzzles, by number: more than one when a missed day's is out. */
+  puzzles: TodayPuzzle[];
 }
 
 // The leaderboard's shape comes with its rules, so the two can't drift apart.

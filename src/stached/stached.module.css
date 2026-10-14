@@ -1055,6 +1055,61 @@
   }
 }
 
+/* Today's puzzles on home, when a missed day's is out too: a row each, ruled
+   like the leaderboard's. The one Play opens is lit in gold. */
+.todayList {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  text-align: left;
+}
+
+.todayList li + li {
+  border-top: 1px solid var(--line);
+}
+
+.todayRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  color: var(--ink);
+  transition: transform 0.08s;
+}
+
+.todayRow:active {
+  transform: translateY(1px);
+}
+
+.todayRow[data-next] {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.todayNumber {
+  composes: display;
+  flex: none;
+  min-width: 44px;
+  font-size: 20px;
+}
+
+/* Play, Resume, or how it went: Play's a small gold button on the lit row */
+.todayStatus {
+  composes: display;
+  flex: none;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.todayRow[data-next] .todayStatus {
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--gold);
+  color: var(--on-gold);
+  box-shadow: 0 3px 0 var(--c2);
+}
+
 .pointKeyStache {
   width: 26px;
   height: 8px;

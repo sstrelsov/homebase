@@ -2,14 +2,16 @@
 // (src/stached/push.ts), and each browser's subscription is kept, tied to
 // that player, until its push service says it's gone (the app was deleted,
 // say). There's no off switch in Stached; iOS Settings has one.
-// The puzzles that come out on a day (that day's, and any missed day's
-// published with it to catch up) are announced once, together, in one push:
-// at 9:12am New York time, or as soon as they go live after that. The day
-// goes into announcements first and only the first claim sends, so no day is
-// announced twice, even across restarts.
+// Each puzzle is announced once, on the day it comes out: at 9:12am New York
+// time, or as soon as it goes live after that. The puzzles out on a day with
+// no push yet (that day's, and any missed day's published with it to catch
+// up) share one; a missed day's published after today's push gets its own,
+// as an extra puzzle. Each puzzle's date goes into announcements first and
+// only the first claim sends, so none is announced twice, even across
+// restarts.
 import { sql } from "bun";
 import QUOTES from "../src/stached/quotes.json";
-import { numbered } from "./puzzles";
+import { byDate, LIST, numbered } from "./puzzles";
 import {
   base64url,
   type Subscription,
@@ -113,34 +115,66 @@ const TTL = 12 * 3600;
 /** A puzzle as its push announces it. */
 export interface Announced {
   number: number;
+  date: string;
   /** The day it comes out: its date, or a later one for a catch-up. */
   out: string;
   push?: string | null;
 }
 
+/** "Monday" */
+const weekday = (date: string) =>
+  new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
+    weekday: "long",
+    timeZone: "UTC",
+  });
+
 /**
- * The puzzles out together, oldest first, as the title ("Puzzle #12 is up",
- * or "Puzzles #17 and #18 are up"; iOS adds "from Stached" under it, and
- * fills in an empty title with "Stached"), then the oldest one's own line, or
- * a random one of the quotes on home. Tapping it opens home, not the game, so
- * the clock waits for Play (public/stached/sw.js).
+ * A push's copy, for the puzzles it announces (in number order) and the ones
+ * out the same day that were announced before. The title says which are up:
+ * "Puzzle #12 is up", "Puzzles #17 and #18 are up", or, after an earlier push
+ * that day, "Extra puzzle: #14 is up" (iOS adds "from Stached" under it). The
+ * line is the first one's own; without one, an extra push says what it is
+ * and how many that makes ("Monday's missed puzzle. That makes 2 today: #13
+ * and #14."), and any other gets a random quote from home (null here).
  */
-export const notification = (puzzles: Announced[]) => ({
-  title: pushTitle(puzzles.map((p) => p.number)),
-  body: puzzles[0]?.push ?? QUOTES[Math.floor(Math.random() * QUOTES.length)],
-});
-
-/** "Puzzle #12 is up", or "Puzzles #17 and #18 are up". */
-export const pushTitle = (numbers: number[]) =>
-  numbers.length === 1
-    ? `Puzzle ${numbered(numbers)} is up`
-    : `Puzzles ${numbered(numbers)} are up`;
+export function pushCopy(fresh: Announced[], earlier: Announced[] = []) {
+  const numbers = fresh.map((p) => p.number);
+  const [s, is] = numbers.length === 1 ? ["", "is"] : ["s", "are"];
+  const extra = earlier.length > 0;
+  const title = extra
+    ? `Extra puzzle${s}: ${numbered(numbers)} ${is} up`
+    : `Puzzle${s} ${numbered(numbers)} ${is} up`;
+  if (fresh[0]?.push || !extra) return { title, line: fresh[0]?.push ?? null };
+  const days = LIST.format(
+    fresh.map((p) => (p.date === p.out ? "today's" : `${weekday(p.date)}'s`)),
+  );
+  const missed = fresh.every((p) => p.date < p.out) ? " missed" : "";
+  const all = [...earlier, ...fresh].map((p) => p.number).sort((a, b) => a - b);
+  return {
+    title,
+    line: `${days[0].toUpperCase()}${days.slice(1)}${missed} puzzle${s}. That makes ${all.length} today: ${numbered(all)}.`,
+  };
+}
 
 /**
- * Announces the puzzles out on a day (oldest first) to every subscription, in
- * one push, if it's due and nobody has claimed the day yet. Drops the
- * subscriptions whose push service says they're gone. Returns whether this
- * call announced them.
+ * The push itself: its copy, with a random quote for a line it doesn't have.
+ * Tapping it opens home, not the game, so the clock waits for Play
+ * (public/stached/sw.js).
+ */
+export function notification(fresh: Announced[], earlier: Announced[] = []) {
+  const { title, line } = pushCopy(fresh, earlier);
+  return {
+    title,
+    body: line ?? QUOTES[Math.floor(Math.random() * QUOTES.length)],
+  };
+}
+
+/**
+ * Announces the puzzles out on a day (in number order) that haven't been, to
+ * every subscription, in one push, if it's due. Each is claimed by its date
+ * first, so a puzzle announced already (earlier that day, or by another
+ * process just now) is never announced again. Drops the subscriptions whose
+ * push service says they're gone. Returns whether this call sent a push.
  */
 export async function announce(
   puzzles: Announced[],
@@ -149,15 +183,23 @@ export async function announce(
 ) {
   const out = puzzles[0]?.out;
   if (!out || !announceDue(out, now)) return false;
-  const [claimed] = await sql`
-    insert into announcements (date) values (${out})
-    on conflict do nothing
-    returning date`;
-  if (!claimed) return false;
+  // One statement, in date order, so two claims at once can't split a push.
+  const claims = puzzles.map(({ date }) => ({ date })).sort(byDate);
+  const claimed = new Set(
+    (
+      await sql`
+        insert into announcements ${sql(claims)}
+        on conflict do nothing
+        returning to_char(date, 'YYYY-MM-DD') as date`
+    ).map((row: { date: string }) => row.date),
+  );
+  const fresh = puzzles.filter((p) => claimed.has(p.date));
+  if (!fresh.length) return false;
+  const earlier = puzzles.filter((p) => !claimed.has(p.date));
 
   const subscriptions: Subscription[] =
     await sql`select endpoint, p256dh, auth from push_subscriptions`;
-  const message = JSON.stringify(notification(puzzles));
+  const message = JSON.stringify(notification(fresh, earlier));
   const results = await Promise.all(
     subscriptions.map(async (subscription) => {
       const status = await sendPush(subscription, message, {
@@ -180,7 +222,7 @@ export async function announce(
       delete from push_subscriptions
       where endpoint in ${sql(gone.map((r) => r.endpoint))}`;
   console.log(
-    `Announced ${numbered(puzzles.map((p) => p.number))}: ${count("sent")} sent, ${count("gone")} gone, ${count("failed")} failed`,
+    `Announced ${numbered(fresh.map((p) => p.number))}: ${count("sent")} sent, ${count("gone")} gone, ${count("failed")} failed`,
   );
   for (const { endpoint, status, outcome } of results)
     if (outcome === "failed")

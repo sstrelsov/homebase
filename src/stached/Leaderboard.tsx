@@ -44,8 +44,8 @@ export const Square = ({ mark }: { mark: Mark }) => (
 );
 
 /**
- * A puzzle's fastest stache today, in a gold box: one for each of today's (a
- * missed day's caught up with today's has its own). Ties share it.
+ * A puzzle's fastest stache today, in a gold box: one for each of today's, by
+ * number (a missed day's out today has its own). Ties share it.
  */
 const FastestToday = ({
   board,
@@ -188,6 +188,7 @@ const Leaderboard = () => {
         <div className="flex flex-col gap-6">
           {board.days
             .filter((day) => day.today)
+            .sort((a, b) => Number(a.number) - Number(b.number))
             .map((day) => (
               <FastestToday key={day.date} board={board} day={day} />
             ))}

@@ -141,16 +141,16 @@ export function addDays(date: string, days: number) {
 
 /**
  * The last WEEK days up to the newest puzzle's, oldest first, each with its
- * puzzle, if it has one. It starts no earlier than the first puzzle.
+ * puzzle, if it has one. It starts no earlier than the first puzzle. The
+ * puzzles can come in any order.
  */
 export function lastWeek<T extends Pick<Day, "date">>(days: T[]) {
-  const last = days.at(-1);
+  const dates = days.map((day) => day.date).sort();
+  const last = dates.at(-1);
   if (!last) return [];
   const byDate = new Map(days.map((day) => [day.date, day]));
-  return Array.from({ length: WEEK }, (_, i) =>
-    addDays(last.date, i - (WEEK - 1)),
-  )
-    .filter((date) => date >= days[0].date)
+  return Array.from({ length: WEEK }, (_, i) => addDays(last, i - (WEEK - 1)))
+    .filter((date) => date >= dates[0])
     .map((date) => ({ date, day: byDate.get(date) }));
 }
 
@@ -202,6 +202,7 @@ export function leaderboardOf(days: Day[], games: Game[]): Leaderboard {
     })),
     fastestToday: days
       .filter((day) => day.today)
+      .sort((a, b) => a.number - b.number)
       .flatMap(({ id, number }) =>
         games
           .filter((game) => game.puzzleId === id)

@@ -1,5 +1,11 @@
 import { describe, expect, test } from "bun:test";
-import { type Day, type Game, leaderboardOf, weekOf } from "./leaderboard";
+import {
+  type Day,
+  type Game,
+  lastWeek,
+  leaderboardOf,
+  weekOf,
+} from "./leaderboard";
 
 // Eight made-up puzzles out so far, #1 to #8; #8 is today's, the only one that
 // still counts. The week is the last seven, #2 to #8. Every name here is made
@@ -447,6 +453,26 @@ describe("catching up on a missed day", () => {
       { date: DATES[7], today: true, mark: "open" },
     ]);
   });
+
+  test("after today's push, keeps each under its own day, with today's gold box first", () => {
+    // The day before is caught up after today's push, so it's #8 and
+    // today's stays #7.
+    const afterPush = caughtUp.map((day) =>
+      day.id >= 7 ? { ...day, number: 15 - day.id } : day,
+    );
+    const { days, fastestToday } = leaderboardOf(afterPush, [
+      solved("Ada", 7, 30),
+      solved("Bo", TODAY, 20),
+    ]);
+    expect(days.slice(-2)).toEqual([
+      { date: DATES[6], number: 8, today: true },
+      { date: DATES[7], number: 7, today: true },
+    ]);
+    expect(fastestToday.map((f) => [f.number, f.name])).toEqual([
+      [7, "Bo"],
+      [8, "Ada"],
+    ]);
+  });
 });
 
 describe("a missed day never caught up", () => {
@@ -501,5 +527,9 @@ describe("a missed day never caught up", () => {
   test("starts the week no earlier than the first puzzle", () => {
     expect(leaderboardOf(DAYS.slice(-2), []).days).toHaveLength(2);
     expect(weekOf(DAYS.slice(-2), [], [])).toHaveLength(2);
+  });
+
+  test("is the same week whatever order the puzzles come in", () => {
+    expect(lastWeek(gap.toReversed())).toEqual(lastWeek(gap));
   });
 });

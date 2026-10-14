@@ -1,6 +1,13 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { api, formatDate, formatTime, type Today, weekday } from "./api";
+import {
+  api,
+  formatDate,
+  formatTime,
+  type Today,
+  type TodayPuzzle,
+  weekday,
+} from "./api";
 import HomeScreen, { isHomeScreenApp } from "./HomeScreen";
 import { Square } from "./Leaderboard";
 import Logo from "./Logo";
@@ -11,15 +18,94 @@ import { Retry } from "./Screen";
 import { useLoad, useStached } from "./session";
 import styles from "./stached.module.css";
 
-function status(play: Today["latest"]) {
+const stacheOf = (stachedMs: number | null) =>
+  stachedMs === null ? "No stache" : `Stached in ${formatTime(stachedMs)}`;
+
+function status(play: Today["play"]) {
   if (!play) return null;
   if (!play.finished) return "Game in progress";
-  const stache =
-    play.stachedMs === null
-      ? "No stache"
-      : `Stached in ${formatTime(play.stachedMs)}`;
-  return `${stache} · ${play.completed ? "Solved" : "Missed"}`;
+  return `${stacheOf(play.stachedMs)} · ${play.completed ? "Solved" : "Missed"}`;
 }
+
+/** "7:30pm tomorrow", on this device's clock. */
+function timeOf(until: Date) {
+  const time = until
+    .toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+    .replace(/\s/g, "")
+    .toLowerCase();
+  const midnight = (date: Date) => new Date(date).setHours(0, 0, 0, 0);
+  const days = Math.round(
+    (midnight(until) - midnight(new Date())) / 86_400_000,
+  );
+  return `${time} ${days === 0 ? "today" : days === 1 ? "tomorrow" : formatDate(until.toLocaleDateString("en-CA"), { weekday: "long" })}`;
+}
+
+/**
+ * Which of today's it is: "Today's", or a missed day's by its weekday
+ * ("Monday's"), out today to catch up.
+ */
+const whose = ({ date, out }: TodayPuzzle) =>
+  date === out ? "Today's" : `${formatDate(date, { weekday: "long" })}'s`;
+
+/**
+ * Today's puzzles, when a missed day's is out too: a row each, with which
+ * day it is and how you did, or until when it counts. Each opens its game,
+ * and the one Play opens is lit.
+ */
+const TodayList = ({
+  puzzles,
+  next,
+}: {
+  puzzles: TodayPuzzle[];
+  next: string | null;
+}) => {
+  const done = puzzles.every((p) => p.play?.finished);
+  return (
+    <section className="flex w-full flex-col gap-2">
+      <h2 className={`${styles.label} text-center`}>
+        {puzzles.length} puzzles today{done && " · All done"}
+      </h2>
+      <ul className={styles.todayList}>
+        {puzzles.map((puzzle) => {
+          const { play, until } = puzzle;
+          const counts =
+            until && Date.parse(until) > Date.now()
+              ? `Counts till ${timeOf(new Date(until))}`
+              : "Counts today";
+          return (
+            <li key={puzzle.date}>
+              <Link
+                to="/stached/$date"
+                params={{ date: puzzle.date }}
+                className={styles.todayRow}
+                data-next={puzzle.date === next || undefined}
+              >
+                <span className={styles.todayNumber}>#{puzzle.number}</span>
+                <span className="flex min-w-0 flex-1 flex-col gap-1">
+                  <span className={`${styles.display} text-[14px]`}>
+                    {whose(puzzle)}
+                  </span>
+                  <span className={styles.label}>
+                    {play?.finished ? stacheOf(play.stachedMs) : counts}
+                  </span>
+                </span>
+                <span className={styles.todayStatus}>
+                  {!play
+                    ? "Play"
+                    : !play.finished
+                      ? "Resume"
+                      : play.completed
+                        ? "✓ Solved"
+                        : "✗ Missed"}
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+};
 
 // The logo powers on once per visit, not every time you come back home.
 let introShown = false;
@@ -192,11 +278,12 @@ const Home = () => {
     );
 
   const rise = intro ? styles.rise : "";
-  const note = today ? status(today.latest) : "Loading…";
-  // Today's puzzles, more than one when a missed day's came out with today's:
-  // Play says which is next until they're all done.
-  const { nth, of } = today?.puzzle ?? { nth: 1, of: 1 };
-  const left = of > 1 && !today?.play?.finished;
+  // Today's puzzles, more than one when a missed day's is out too: Play says
+  // which is next, and once they're all done, it's your results.
+  const puzzles = today?.puzzles ?? [];
+  const several = puzzles.length > 1;
+  const done = today?.play?.finished;
+  const note = today ? !several && status(today.play) : "Loading…";
 
   return (
     // At least the screen, less the page's padding, with the quotes in
@@ -237,7 +324,11 @@ const Home = () => {
           disabled={!today}
           className={`${styles.button} ${styles.primary} flex-1`}
         >
-          {left ? `Play ${nth} of ${of}` : "Play"}
+          {done
+            ? "Results"
+            : several
+              ? `Play ${today?.puzzle.nth} of ${puzzles.length}`
+              : "Play"}
         </button>
       </div>
       <div className={rise} style={{ animationDelay: "1.4s" }}>
@@ -251,6 +342,9 @@ const Home = () => {
           <Retry error={error} onRetry={load} />
         ) : (
           note && <p className={styles.label}>{note}</p>
+        )}
+        {several && today && (
+          <TodayList puzzles={puzzles} next={done ? null : today.puzzle.date} />
         )}
         {session.admin && (
           <Link to="/stached/admin" className={styles.link}>
@@ -266,7 +360,7 @@ const Home = () => {
           <NotificationsDialog
             {...notifications}
             // The one after today's last
-            number={today.puzzle.number + of - nth + 1}
+            number={Math.max(...puzzles.map((p) => p.number)) + 1}
           />
         )
       ) : (

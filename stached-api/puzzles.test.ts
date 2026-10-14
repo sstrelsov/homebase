@@ -1,5 +1,11 @@
-import { expect, test } from "bun:test";
-import { type DayPuzzle, numbered, outOf, puzzleProblems } from "./puzzles";
+import { describe, expect, test } from "bun:test";
+import {
+  type DayPuzzle,
+  inOrder,
+  numbered,
+  outOf,
+  puzzleProblems,
+} from "./puzzles";
 import examples from "./puzzles.example.json";
 
 // The made-up sample, and one change to it at a time.
@@ -39,6 +45,65 @@ test("names puzzles out together, by number", () => {
   expect(numbered([12])).toBe("#12");
   expect(numbered([17, 18])).toBe("#17 and #18");
   expect(numbered([17, 18, 19])).toBe("#17, #18, and #19");
+});
+
+describe("numbering, in the order puzzles go out", () => {
+  // Made-up days: Sunday, October 11, out and pushed; Tuesday the 13th's
+  // pushed at 9:12; Monday the 12th missed.
+  const day = (date: string, out?: string) => ({ date, ...(out && { out }) });
+  const at = (hour: number) => new Date(Date.UTC(2026, 9, 13, hour));
+  const numbers = (puzzles: { date: string }[], pushes: Map<string, Date>) =>
+    inOrder(puzzles, pushes).map((p, i) => `#${i + 1} ${p.date}`);
+  const sunday = day("2026-10-11");
+  const tuesday = day("2026-10-13");
+  const monday = day("2026-10-12", "2026-10-13");
+
+  test("is by date, day by day", () => {
+    expect(numbers([tuesday, sunday], new Map())).toEqual([
+      "#1 2026-10-11",
+      "#2 2026-10-13",
+    ]);
+  });
+
+  test("never moves a number sent in a push: a missed day added after it comes next", () => {
+    const pushed = new Map([
+      ["2026-10-11", at(-24)],
+      ["2026-10-13", at(13)],
+    ]);
+    expect(numbers([sunday, tuesday], pushed)).toEqual([
+      "#1 2026-10-11",
+      "#2 2026-10-13",
+    ]);
+    // Monday's, caught up Tuesday evening: before its own push, and after.
+    expect(numbers([sunday, monday, tuesday], pushed)).toEqual([
+      "#1 2026-10-11",
+      "#2 2026-10-13",
+      "#3 2026-10-12",
+    ]);
+    pushed.set("2026-10-12", at(23));
+    expect(numbers([sunday, monday, tuesday], pushed)).toEqual([
+      "#1 2026-10-11",
+      "#2 2026-10-13",
+      "#3 2026-10-12",
+    ]);
+  });
+
+  test("puts a missed day caught up before the push by its date, in that push", () => {
+    const pushed = new Map([["2026-10-11", at(-24)]]);
+    expect(numbers([sunday, monday, tuesday], pushed)).toEqual([
+      "#1 2026-10-11",
+      "#2 2026-10-12",
+      "#3 2026-10-13",
+    ]);
+    // The push claims both at once, and nothing moves.
+    pushed.set("2026-10-12", at(13));
+    pushed.set("2026-10-13", at(13));
+    expect(numbers([sunday, monday, tuesday], pushed)).toEqual([
+      "#1 2026-10-11",
+      "#2 2026-10-12",
+      "#3 2026-10-13",
+    ]);
+  });
 });
 
 test("every group needs a title and four words", () => {

@@ -23,10 +23,11 @@ function daysAgo(date: string) {
 
 /**
  * "Today", "Yesterday", then the weekday; the date sits right under it. A
- * missed day's puzzle caught up today goes by its own day.
+ * missed day's puzzle out today says so: it's one of today's, under its own
+ * date.
  */
 function dayName(game: PastGame) {
-  if (game.today && game.date === game.out) return "Today";
+  if (game.today) return game.date === game.out ? "Today" : "Out today";
   if (daysAgo(game.date) === 1) return "Yesterday";
   return formatDate(game.date, { weekday: "long" });
 }
@@ -61,7 +62,10 @@ const Tile = ({ game }: { game: PastGame }) => {
   );
 };
 
-/** Every puzzle so far: your result and answers, or a way to play a missed day. */
+/**
+ * Every puzzle so far, the last out first, so today's lead: your result and
+ * answers, or a way to play a missed day.
+ */
 const PastGames = () => {
   const { data: games, error, load } = useLoad(api.pastGames);
 
