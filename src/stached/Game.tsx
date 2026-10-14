@@ -114,6 +114,8 @@ interface GameProps {
   play: Play;
   onDay: (day: Day) => void;
   onHome: () => void;
+  /** Opens its date's next puzzle, if it has one. */
+  onNext?: () => void;
   onRules: () => void;
 }
 
@@ -125,9 +127,12 @@ const Game = ({
   play,
   onDay,
   onHome,
+  onNext,
   onRules,
 }: GameProps) => {
   const [bars, setBars] = useState(() => barsFor(play));
+  // One of today's, when there's more than one.
+  const together = puzzle.of > 1;
   const [order, setOrder] = useState(() =>
     shuffle(puzzle.words.filter((w) => !bars.some((g) => g.words.includes(w)))),
   );
@@ -260,9 +265,19 @@ const Game = ({
         >
           Stached
         </button>
-        {/* Today's game needs no date; a past one does. */}
-        {!puzzle.today && (
-          <span className={styles.label}>{formatDate(puzzle.date)}</span>
+        {/* Today's game needs no date; a past one does, and so does each
+            of today's when a missed day came out with it, with which it is. */}
+        {(!puzzle.today || together) && (
+          <span
+            className={`${styles.label} flex flex-col items-center gap-1 text-center`}
+          >
+            <span>{formatDate(puzzle.date)}</span>
+            {together && (
+              <span>
+                Puzzle {puzzle.nth} of {puzzle.of}
+              </span>
+            )}
+          </span>
         )}
         <button
           type="button"
@@ -375,17 +390,26 @@ const Game = ({
       </div>
 
       {over ? (
-        <div className="grid grid-cols-2 gap-3">
+        <div className={`grid gap-2 ${onNext ? "grid-cols-3" : "grid-cols-2"}`}>
           <button type="button" onClick={onHome} className={styles.button}>
             Home
           </button>
           <button
             type="button"
             onClick={() => setResultsOpen(true)}
-            className={`${styles.button} ${styles.primary}`}
+            className={`${styles.button} ${onNext ? "" : styles.primary}`}
           >
             Results
           </button>
+          {onNext && (
+            <button
+              type="button"
+              onClick={onNext}
+              className={`${styles.button} ${styles.primary}`}
+            >
+              Next
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-3 gap-2">
@@ -420,6 +444,7 @@ const Game = ({
         open={resultsOpen}
         onClose={() => setResultsOpen(false)}
         onHome={onHome}
+        onNext={onNext}
         puzzle={puzzle}
         play={play}
         board={board}

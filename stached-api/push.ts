@@ -2,12 +2,17 @@
 // (src/stached/push.ts), and each browser's subscription is kept, tied to
 // that player, until its push service says it's gone (the app was deleted,
 // say). There's no off switch in Stached; iOS Settings has one.
-// Each puzzle is announced once, on its day: at 9:12am New York time, or as
-// soon as it goes live after that. Its date goes into announcements first and
-// only the first claim sends, so no puzzle is announced twice, even across
+// Each puzzle is announced once, on the day it comes out: at 9:12am New York
+// time, or as soon as it goes live after that. The puzzles out on a day with
+// no push yet (that day's, and any missed day's published with it to catch
+// up) share one; a missed day's published after today's push gets its own,
+// as an extra puzzle. Each puzzle's date goes into announcements first and
+// only the first claim sends, so none is announced twice, even across
 // restarts.
 import { sql } from "bun";
 import QUOTES from "../src/stached/quotes.json";
+import { missedDay } from "./leaderboard";
+import { caughtUp, LIST, numbered } from "./puzzles";
 import {
   base64url,
   type Subscription,
@@ -16,8 +21,9 @@ import {
 } from "./webpush";
 
 /**
- * When a puzzle's push goes out on its date, New York time. `make phone` sets
- * it to midnight, so a test push goes out as soon as its puzzle is live.
+ * When a puzzle's push goes out on the day it comes out, New York time.
+ * `make phone` sets it to midnight, so a test push goes out as soon as its
+ * puzzle is live.
  */
 export const ANNOUNCE_AT = process.env.ANNOUNCE_AT ?? "09:12";
 
@@ -39,7 +45,10 @@ export function newYorkTime(now = new Date()) {
   return `${part.year}-${part.month}-${part.day} ${part.hour}:${part.minute}`;
 }
 
-/** Whether a puzzle's push is due: on its date, from 9:12am New York time. */
+/**
+ * Whether a push is due: on the day its puzzles come out (out), from 9:12am
+ * New York time.
+ */
 export function announceDue(date: string, now = new Date()) {
   const time = newYorkTime(now);
   return time.startsWith(date) && time >= `${date} ${ANNOUNCE_AT}`;
@@ -104,37 +113,105 @@ const SUBJECT = "https://spencerstrelsov.com";
 // A phone that's off for longer than this misses the news.
 const TTL = 12 * 3600;
 
-/**
- * The puzzle as the title (iOS adds "from Stached" under it, and fills in an
- * empty title with "Stached"), then the puzzle's own line, or a random one
- * of the quotes on home. Tapping it opens home, not the game, so the clock
- * waits for Play (public/stached/sw.js).
- */
-export const notification = (number: number, push?: string | null) => ({
-  title: `Puzzle #${number} is up`,
-  body: push ?? QUOTES[Math.floor(Math.random() * QUOTES.length)],
-});
+/** A puzzle as its push announces it. */
+export interface Announced {
+  number: number;
+  date: string;
+  /** The day it comes out: its date, or a later one for a catch-up. */
+  out: string;
+  push?: string | null;
+}
+
+/** Whose puzzle it is, out with today's: "today's", "Monday's", "Sep 28's". */
+const whose = (puzzle: Announced) =>
+  caughtUp(puzzle) ? `${missedDay(puzzle.date, puzzle.out)}'s` : "today's";
 
 /**
- * Announces a puzzle to every subscription, if its push is due and nobody has
- * claimed it yet. Drops the subscriptions whose push service says they're
- * gone. Returns whether this call announced it.
+ * A push's copy, for the puzzles it announces (in number order) and the ones
+ * out the same day that were announced before. The title says which are up:
+ * "Puzzle #12 is up", "Puzzles #17 and #18 are up", or, after an earlier push
+ * that day, "Extra puzzle: #14 is up" (iOS adds "from Stached" under it). The
+ * line is the first one's own; without one, an extra push says what it is
+ * and how many that makes ("Monday's missed puzzle. That makes 2 today: #13
+ * and #14."), and any other gets a random quote from home (null here).
+ */
+export function pushCopy(fresh: Announced[], earlier: Announced[] = []) {
+  const numbers = fresh.map((p) => p.number);
+  const [s, is] = numbers.length === 1 ? ["", "is"] : ["s", "are"];
+  const extra = earlier.length > 0;
+  const title = extra
+    ? `Extra puzzle${s}: ${numbered(numbers)} ${is} up`
+    : `Puzzle${s} ${numbered(numbers)} ${is} up`;
+  if (fresh[0]?.push || !extra) return { title, line: fresh[0]?.push ?? null };
+  const days = LIST.format(fresh.map(whose));
+  const missed = fresh.every(caughtUp) ? " missed" : "";
+  const all = [...earlier, ...fresh].map((p) => p.number).sort((a, b) => a - b);
+  return {
+    title,
+    line: `${days[0].toUpperCase()}${days.slice(1)}${missed} puzzle${s}. That makes ${all.length} today: ${numbered(all)}.`,
+  };
+}
+
+/**
+ * The push itself: its copy, with a random quote for a line it doesn't have.
+ * Tapping it opens home, not the game, so the clock waits for Play
+ * (public/stached/sw.js).
+ */
+export function notification(fresh: Announced[], earlier: Announced[] = []) {
+  const { title, line } = pushCopy(fresh, earlier);
+  return {
+    title,
+    body: line ?? QUOTES[Math.floor(Math.random() * QUOTES.length)],
+  };
+}
+
+// Any number of ours: announcers take it in turn (announce).
+const ANNOUNCING = 1984;
+
+/**
+ * Announces the puzzles out on a day (from `day`, in number order) that
+ * haven't been, to every subscription, in one push, if it's due. Each is
+ * claimed by its date first, so a puzzle announced already (earlier that
+ * day, or by another process just now) is never announced again. Announcers
+ * (the API's minute check, `confirm`) take turns, and read the day's puzzles
+ * and their numbers only once it's theirs, so two at once can't number a
+ * push differently. Drops the subscriptions whose push service says they're
+ * gone. Returns whether this call sent a push.
  */
 export async function announce(
-  puzzle: { number: number; date: string; push?: string | null },
+  day: () => Promise<Announced[]>,
   keys: VapidKeys,
   now = new Date(),
 ) {
-  if (!announceDue(puzzle.date, now)) return false;
-  const [claimed] = await sql`
-    insert into announcements (date) values (${puzzle.date})
-    on conflict do nothing
-    returning date`;
-  if (!claimed) return false;
+  const claim = await sql.begin(async (tx) => {
+    await tx`select pg_advisory_xact_lock(${ANNOUNCING})`;
+    const puzzles = await day();
+    const out = puzzles[0]?.out;
+    if (!out || !announceDue(out, now)) return null;
+    // Stamped with when this claim ran: the same for every puzzle in it, so
+    // they keep their order by date, and later than any claim before it, so
+    // a later push numbers after it. To the millisecond, as JavaScript reads
+    // it, so the CLI numbers them as Postgres does.
+    const claimed = new Set(
+      (
+        await tx`
+          insert into announcements (date, sent_at)
+          select value::date, date_trunc('milliseconds', statement_timestamp())
+          from jsonb_array_elements_text(${puzzles.map((p) => p.date)}::jsonb)
+          on conflict do nothing
+          returning to_char(date, 'YYYY-MM-DD') as date`
+      ).map((row: { date: string }) => row.date),
+    );
+    const fresh = puzzles.filter((p) => claimed.has(p.date));
+    const earlier = puzzles.filter((p) => !claimed.has(p.date));
+    return fresh.length ? { fresh, earlier } : null;
+  });
+  if (!claim) return false;
+  const { fresh, earlier } = claim;
 
   const subscriptions: Subscription[] =
     await sql`select endpoint, p256dh, auth from push_subscriptions`;
-  const message = JSON.stringify(notification(puzzle.number, puzzle.push));
+  const message = JSON.stringify(notification(fresh, earlier));
   const results = await Promise.all(
     subscriptions.map(async (subscription) => {
       const status = await sendPush(subscription, message, {
@@ -157,7 +234,7 @@ export async function announce(
       delete from push_subscriptions
       where endpoint in ${sql(gone.map((r) => r.endpoint))}`;
   console.log(
-    `Announced #${puzzle.number}: ${count("sent")} sent, ${count("gone")} gone, ${count("failed")} failed`,
+    `Announced ${numbered(fresh.map((p) => p.number))}: ${count("sent")} sent, ${count("gone")} gone, ${count("failed")} failed`,
   );
   for (const { endpoint, status, outcome } of results)
     if (outcome === "failed")

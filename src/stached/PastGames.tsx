@@ -21,14 +21,18 @@ function daysAgo(date: string) {
   return Math.round((Date.parse(today) - Date.parse(date)) / 86_400_000);
 }
 
-/** "Today", "Yesterday", then the weekday; the date sits right under it. */
-function dayName(game: PastGame) {
-  if (game.today) return "Today";
+/**
+ * "Today", "Yesterday", then the weekday; the date sits right under it. A
+ * missed day's puzzle out today (the newest day out) says so, under its own
+ * date.
+ */
+function dayName(game: PastGame, newest: string) {
+  if (game.out === newest) return game.date === newest ? "Today" : "Out today";
   if (daysAgo(game.date) === 1) return "Yesterday";
   return formatDate(game.date, { weekday: "long" });
 }
 
-const Tile = ({ game }: { game: PastGame }) => {
+const Tile = ({ game, newest }: { game: PastGame; newest: string }) => {
   const { play } = game;
   const state = stateOf(game);
   return (
@@ -38,7 +42,7 @@ const Tile = ({ game }: { game: PastGame }) => {
       className={styles.dayTile}
       data-state={state}
     >
-      <span className={styles.label}>{dayName(game)}</span>
+      <span className={styles.label}>{dayName(game, newest)}</span>
       <span className={`${styles.display} text-[17px]`}>
         {formatDate(game.date, { month: "short", day: "numeric" })}
       </span>
@@ -58,7 +62,10 @@ const Tile = ({ game }: { game: PastGame }) => {
   );
 };
 
-/** Every puzzle so far: your result and answers, or a way to play a missed day. */
+/**
+ * Every puzzle so far, the last out first, so today's lead: your result and
+ * answers, or a way to play a missed day.
+ */
 const PastGames = () => {
   const { data: games, error, load } = useLoad(api.pastGames);
 
@@ -68,7 +75,8 @@ const PastGames = () => {
         <ul className="grid grid-cols-2 gap-3">
           {games.map((game) => (
             <li key={game.date}>
-              <Tile game={game} />
+              {/* The last out leads, out on the newest day */}
+              <Tile game={game} newest={games[0].out} />
             </li>
           ))}
         </ul>

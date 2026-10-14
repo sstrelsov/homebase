@@ -23,6 +23,7 @@
   },
   {
     "date": "2026-10-02",
+    "out": "2026-10-03",
     "groups": [
       {
         "title": "Kitchen tools",
@@ -43,5 +44,27 @@
       }
     ],
     "push": "Four famous upper lips walk into a bar"
+  },
+  {
+    "date": "2026-10-03",
+    "groups": [
+      {
+        "title": "Garden birds",
+        "words": ["Robin", "Wren", "Finch", "Sparrow"]
+      },
+      {
+        "title": "Chess pieces",
+        "words": ["Rook", "Bishop", "Knight", "Pawn"]
+      },
+      {
+        "title": "Shades of green",
+        "words": ["Olive", "Lime", "Jade", "Mint"]
+      },
+      {
+        "title": "Grow a stache",
+        "words": ["Whisker", "Bristle", "Fuzz", "Stubble"],
+        "stache": true
+      }
+    ]
   }
 ]

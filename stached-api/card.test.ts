@@ -12,7 +12,7 @@ import examples from "./puzzles.example.json";
 
 const COLORS = Object.keys(CARD_COLORS) as CardColor[];
 // The made-up sample puzzle, as its card sees it: #1, Thu, Jan 1.
-const PUZZLE = { number: 1, date: examples[0].date };
+const PUZZLE = { numbers: [1], date: examples[0].date };
 
 /** A box of a card's pixels, as one string to compare. */
 function box(card: Picture, x0: number, y0: number, x1: number, y1: number) {
@@ -60,7 +60,7 @@ describe("a card", () => {
 
   test("sets the puzzle's number and date, and only there", () => {
     const next = decodePng(
-      renderCard({ number: 2, date: "2026-01-02" }, "gold"),
+      renderCard({ numbers: [2], date: "2026-01-02" }, "gold"),
     );
     const line = (card: Picture) => box(card, 300, 440, 900, 530);
     expect(line(next)).not.toBe(line(cards.gold));
@@ -79,7 +79,7 @@ describe("a card", () => {
       day += 864e5
     )
       for (const char of dayLine({
-        number: 1234567890,
+        numbers: [1234567890, 1234567891, 1234567892],
         date: new Date(day).toISOString().slice(0, 10),
       }))
         needed.add(char);
@@ -89,7 +89,48 @@ describe("a card", () => {
 
 test("the day's line reads like the game's labels", () => {
   expect(dayLine(PUZZLE)).toBe("#1 · THU, JAN 1");
-  expect(dayLine({ number: 12, date: "2026-09-30" })).toBe("#12 · WED, SEP 30");
+  expect(dayLine({ numbers: [12], date: "2026-09-30" })).toBe(
+    "#12 · WED, SEP 30",
+  );
+});
+
+test("puzzles out together show together", () => {
+  expect(dayLine({ numbers: [17, 18], date: "2026-10-11" })).toBe(
+    "#17 AND #18 · SUN, OCT 11",
+  );
+  const line = (card: Picture) => box(card, 0, 440, 1200, 530);
+  const both = decodePng(
+    renderCard({ numbers: [17, 18], date: "2026-10-11" }, "blue"),
+  );
+  const single = decodePng(
+    renderCard({ numbers: [17], date: "2026-10-11" }, "blue"),
+  );
+  expect(line(both)).not.toBe(line(single));
+});
+
+test("four or more out together show as a run, so every day's line fits", () => {
+  expect(dayLine({ numbers: [17, 18, 19, 20], date: "2026-10-14" })).toBe(
+    "#17 TO #20 · WED, OCT 14",
+  );
+  const width = (line: string) =>
+    [...line].reduce(
+      (sum, char) => sum + glyphs.advances[glyphs.chars.indexOf(char)],
+      0,
+    );
+  for (const numbers of [
+    [997, 998, 999],
+    [996, 997, 998, 999, 1000],
+  ])
+    for (
+      let day = Date.UTC(2026, 0, 1);
+      day < Date.UTC(2027, 0, 1);
+      day += 864e5
+    )
+      expect(
+        width(
+          dayLine({ numbers, date: new Date(day).toISOString().slice(0, 10) }),
+        ),
+      ).toBeLessThan(1200 - 2 * 60);
 });
 
 test("the border takes the colors in turn, never the same twice running", () => {

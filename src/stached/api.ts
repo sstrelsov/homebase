@@ -1,7 +1,7 @@
 // Client for the Stached API (stached-api/ at the repo root, on the Studio). In
 // dev it goes through Vite's proxy to a local API, unless VITE_STACHED_API
 // points somewhere else.
-import type { Leaderboard, Mark } from "../../stached-api/leaderboard";
+import type { Leaderboard, Mark, WeekDay } from "../../stached-api/leaderboard";
 
 const API =
   import.meta.env.VITE_STACHED_API ??
@@ -43,7 +43,9 @@ export interface Score {
 }
 
 /** A puzzle so far, with how you did on it. */
-export interface PastGame extends Pick<Day["puzzle"], "date" | "today"> {
+export interface PastGame extends Pick<Day["puzzle"], "date"> {
+  /** The day it came out: its date, or a later one for a missed day's. */
+  out: string;
   play: Pick<Play, "finished" | "completed" | "stachedMs" | "late"> | null;
 }
 
@@ -51,11 +53,23 @@ export interface PastGame extends Pick<Day["puzzle"], "date" | "today"> {
 export interface Day {
   puzzle: {
     id: number;
-    /** #1 is the first puzzle, by date. */
+    /** #1 is the first puzzle out; they're numbered in the order they went out. */
     number: number;
     date: string;
-    /** Today's puzzle: the newest one out. */
+    /**
+     * One of today's: out on the newest day, with any missed day's puzzle
+     * caught up along with it, or an extra pushed in the last day.
+     */
     today: boolean;
+    /** On one of today's, its place among them, by number: 1, 2, … */
+    nth: number;
+    /** On one of today's, how many there are: 2 or more when catching up. */
+    of: number;
+    /**
+     * On one of today's, the date of the first of the others you haven't
+     * finished, which Next opens.
+     */
+    next: string | null;
     words: string[];
     groupCount: number;
     /** Before any bonus life (Play.bonusLife). */
@@ -65,9 +79,23 @@ export interface Day {
   board: Score[];
 }
 
-/** Today's game, and your squares for the week, as on the leaderboard. */
+/** One of today's puzzles, as home lists them, with how you did on it. */
+export interface TodayPuzzle extends Pick<Day["puzzle"], "number" | "date"> {
+  /** The day it came out: its date, or a later one for a missed day's. */
+  out: string;
+  /** It counts at least until then (a day after its push), if it's pushed. */
+  until: string | null;
+  play: Pick<Play, "finished" | "completed" | "stachedMs"> | null;
+}
+
+/**
+ * Today's game (the first of today's you haven't finished, or the last), all
+ * of today's puzzles, and your squares for the week, as on the leaderboard.
+ */
 export interface Today extends Day {
-  week: { date: string; mark: Mark }[];
+  week: (Pick<WeekDay, "date" | "today"> & { mark: Mark })[];
+  /** Today's puzzles, by number: more than one when a missed day's is out. */
+  puzzles: TodayPuzzle[];
 }
 
 // The leaderboard's shape comes with its rules, so the two can't drift apart.

@@ -25,6 +25,8 @@ interface ResultsDialogProps {
   open: boolean;
   onClose: () => void;
   onHome: () => void;
+  /** Opens its date's next puzzle, if it has one. */
+  onNext?: () => void;
   puzzle: Day["puzzle"];
   play: Play;
   board: Score[];
@@ -42,6 +44,7 @@ const ResultsDialog = ({
   open,
   onClose,
   onHome,
+  onNext,
   puzzle,
   play,
   board,
@@ -96,13 +99,25 @@ const ResultsDialog = ({
 
       <GuessGrid grid={grid} className="items-center" />
 
-      <button
-        type="button"
-        onClick={share}
-        className={`${styles.button} ${styles.primary} w-full`}
-      >
-        {shared ? "Copied!" : "Share"}
-      </button>
+      {/* On a date with more than one puzzle, the next is a tap away. */}
+      <div className={`grid gap-3 ${onNext ? "grid-cols-2" : ""}`}>
+        <button
+          type="button"
+          onClick={share}
+          className={`${styles.button} ${onNext ? "" : styles.primary}`}
+        >
+          {shared ? "Copied!" : "Share"}
+        </button>
+        {onNext && (
+          <button
+            type="button"
+            onClick={onNext}
+            className={`${styles.button} ${styles.primary}`}
+          >
+            Next puzzle
+          </button>
+        )}
+      </div>
 
       <section className="space-y-2">
         <h3 className={styles.label}>
