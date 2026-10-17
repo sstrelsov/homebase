@@ -5,13 +5,14 @@
 // Each puzzle is announced once, on the day it comes out: at 9:12am New York
 // time, or as soon as it goes live after that. The puzzles out on a day with
 // no push yet (that day's, and any missed day's published with it to catch
-// up) share one; a missed day's published after today's push gets its own,
-// as an extra puzzle. Each puzzle's date goes into announcements first and
-// only the first claim sends, so none is announced twice, even across
-// restarts.
+// up) share one; one out after its day's push gets its own, right away,
+// while that push still counts (a missed day's caught up just after
+// midnight, with yesterday's, comes the next day). Each puzzle's date goes
+// into announcements first and only the first claim sends, so none is
+// announced twice, even across restarts.
 import { sql } from "bun";
 import QUOTES from "../src/stached/quotes.json";
-import { missedDay } from "./leaderboard";
+import { dayName } from "./leaderboard";
 import { caughtUp, LIST, numbered } from "./puzzles";
 import {
   base64url,
@@ -45,13 +46,27 @@ export function newYorkTime(now = new Date()) {
   return `${part.year}-${part.month}-${part.day} ${part.hour}:${part.minute}`;
 }
 
+/** How long a puzzle counts after its push: a day. */
+export const COUNTS_MS = 24 * 3600_000;
+
+/** When the last of these puzzles' pushes went out, if one has. */
+export const lastPush = (puzzles: { pushed?: Date | null }[]) =>
+  puzzles
+    .flatMap(({ pushed }) => (pushed ? [pushed] : []))
+    .sort((a, b) => a.getTime() - b.getTime())
+    .at(-1);
+
 /**
- * Whether a push is due: on the day its puzzles come out (out), from 9:12am
- * New York time.
+ * Whether a push is due for puzzles out on a day (`out`): from 9:12am New
+ * York time that day, or right away once that day has had a push (`last`,
+ * the latest), while it still counts, for one out after it.
  */
-export function announceDue(date: string, now = new Date()) {
+export function announceDue(out: string, now = new Date(), last?: Date) {
   const time = newYorkTime(now);
-  return time.startsWith(date) && time >= `${date} ${ANNOUNCE_AT}`;
+  return (
+    (time.startsWith(out) && time >= `${out} ${ANNOUNCE_AT}`) ||
+    (last !== undefined && now.getTime() < last.getTime() + COUNTS_MS)
+  );
 }
 
 /** The API's VAPID keys, from its environment. Without them, push is off. */
@@ -120,36 +135,44 @@ export interface Announced {
   /** The day it comes out: its date, or a later one for a catch-up. */
   out: string;
   push?: string | null;
+  /** When its push went out, if it has. */
+  pushed?: Date | null;
 }
 
-/** Whose puzzle it is, out with today's: "today's", "Monday's", "Sep 28's". */
-const whose = (puzzle: Announced) =>
-  caughtUp(puzzle) ? `${missedDay(puzzle.date, puzzle.out)}'s` : "today's";
+/** Whose puzzles these are, by their own days: "Friday's", "Monday's and Sep 28's". */
+const whose = (puzzles: Announced[]) =>
+  LIST.format(puzzles.map((p) => `${dayName(p.date, p.out)}'s`));
 
 /**
  * A push's copy, for the puzzles it announces (in number order) and the ones
  * out the same day that were announced before. The title says which are up:
- * "Puzzle #12 is up", "Puzzles #17 and #18 are up", or, after an earlier push
- * that day, "Extra puzzle: #14 is up" (iOS adds "from Stached" under it). The
- * line is the first one's own; without one, an extra push says what it is
- * and how many that makes ("Monday's missed puzzle. That makes 2 today: #13
- * and #14."), and any other gets a random quote from home (null here).
+ * "Puzzle #12 is up", "Puzzles #17 and #18 are up", or, when they're all
+ * missed days' caught up, "Extra puzzle: #14 is up" (iOS adds "from Stached"
+ * under it). A day's own is never an extra, even after an earlier push. The
+ * line is the first one's own. Without one, a day's own puzzle alone gets a
+ * random quote from home (null here), and any other push names each by its
+ * own day, and the ones still up from before: "Monday's missed puzzle.
+ * Tuesday's is still up too.", "Friday's puzzle. Wednesday's is still up
+ * too." Never "today's": a missed day's is its own day's.
  */
 export function pushCopy(fresh: Announced[], earlier: Announced[] = []) {
   const numbers = fresh.map((p) => p.number);
   const [s, is] = numbers.length === 1 ? ["", "is"] : ["s", "are"];
-  const extra = earlier.length > 0;
-  const title = extra
+  const title = fresh.every(caughtUp)
     ? `Extra puzzle${s}: ${numbered(numbers)} ${is} up`
     : `Puzzle${s} ${numbered(numbers)} ${is} up`;
-  if (fresh[0]?.push || !extra) return { title, line: fresh[0]?.push ?? null };
-  const days = LIST.format(fresh.map(whose));
-  const missed = fresh.every(caughtUp) ? " missed" : "";
-  const all = [...earlier, ...fresh].map((p) => p.number).sort((a, b) => a - b);
-  return {
-    title,
-    line: `${days[0].toUpperCase()}${days.slice(1)}${missed} puzzle${s}. That makes ${all.length} today: ${numbered(all)}.`,
-  };
+  if (fresh[0]?.push || (!fresh.some(caughtUp) && !earlier.length))
+    return { title, line: fresh[0]?.push ?? null };
+  const own = fresh.filter((p) => !caughtUp(p));
+  const late = fresh.filter(caughtUp);
+  const these = [
+    own.length && `${whose(own)} puzzle`,
+    late.length && `${whose(late)} missed puzzle${late.length > 1 ? "s" : ""}`,
+  ].filter(Boolean) as string[];
+  const still = earlier.length
+    ? ` ${whose(earlier)} ${earlier.length === 1 ? "is" : "are"} still up too.`
+    : "";
+  return { title, line: `${LIST.format(these)}.${still}` };
 }
 
 /**
@@ -187,7 +210,7 @@ export async function announce(
     await tx`select pg_advisory_xact_lock(${ANNOUNCING})`;
     const puzzles = await day();
     const out = puzzles[0]?.out;
-    if (!out || !announceDue(out, now)) return null;
+    if (!out || !announceDue(out, now, lastPush(puzzles))) return null;
     // Stamped with when this claim ran: the same for every puzzle in it, so
     // they keep their order by date, and later than any claim before it, so
     // a later push numbers after it. To the millisecond, as JavaScript reads
@@ -211,7 +234,8 @@ export async function announce(
 
   const subscriptions: Subscription[] =
     await sql`select endpoint, p256dh, auth from push_subscriptions`;
-  const message = JSON.stringify(notification(fresh, earlier));
+  const push = notification(fresh, earlier);
+  const message = JSON.stringify(push);
   const results = await Promise.all(
     subscriptions.map(async (subscription) => {
       const status = await sendPush(subscription, message, {
@@ -236,6 +260,7 @@ export async function announce(
   console.log(
     `Announced ${numbered(fresh.map((p) => p.number))}: ${count("sent")} sent, ${count("gone")} gone, ${count("failed")} failed`,
   );
+  console.log(`  ${push.title} · ${push.body}`);
   for (const { endpoint, status, outcome } of results)
     if (outcome === "failed")
       console.log(`  ${new URL(endpoint).host} said ${status || "nothing"}`);

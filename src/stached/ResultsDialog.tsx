@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { dayName } from "../../stached-api/leaderboard";
 import {
   type Color,
   type Day,
@@ -121,7 +122,10 @@ const ResultsDialog = ({
 
       <section className="space-y-2">
         <h3 className={styles.label}>
-          {puzzle.today ? "Today's scoreboard" : "Scoreboard"}
+          {/* By its own day: a missed day's is never today's. */}
+          {puzzle.today
+            ? `${dayName(puzzle.date, puzzle.out)}'s scoreboard`
+            : "Scoreboard"}
         </h3>
         <ol className="text-[19px] leading-tight">
           {board.map((score, i) => (

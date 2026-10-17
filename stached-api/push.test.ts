@@ -49,6 +49,20 @@ describe("a puzzle's push", () => {
     expect(announceDue("2026-10-01", FRI_912)).toBe(false);
   });
 
+  test("is due right away after its day's push, while that still counts", () => {
+    // Thursday's went out at 11:31pm; Wednesday's joins it at 12:21am.
+    const thursdayPush = new Date("2026-10-02T03:31:00Z");
+    const after = new Date("2026-10-02T04:21:00Z");
+    expect(announceDue("2026-10-01", after)).toBe(false);
+    expect(announceDue("2026-10-01", after, thursdayPush)).toBe(true);
+    expect(announceDue("2026-10-01", minutes(thursdayPush, 24 * 60))).toBe(
+      false,
+    );
+    expect(
+      announceDue("2026-10-01", minutes(thursdayPush, 24 * 60), thursdayPush),
+    ).toBe(false);
+  });
+
   // A puzzle out on Friday, October 2, and Thursday's, caught up with it.
   const friday = (number: number, push?: string | null) => ({
     number,
@@ -78,34 +92,36 @@ describe("a puzzle's push", () => {
     expect(notification([thursday(17, "Catch up"), friday(18, "New")])).toEqual(
       { title: "Puzzles #17 and #18 are up", body: "Catch up" },
     );
-    // The oldest has no line of its own, so it's a quote, not the next one's.
-    expect(QUOTES).toContain(
-      notification([thursday(17), friday(18, "New")]).body,
+    // The oldest has no line of its own, so they're named by their days,
+    // not by the next one's line.
+    expect(notification([thursday(17), friday(18, "New")]).body).toBe(
+      "Friday's puzzle and Thursday's missed puzzle.",
     );
     expect(notification([thursday(17), thursday(18), friday(19)]).title).toBe(
       "Puzzles #17, #18, and #19 are up",
     );
   });
 
-  test("calls a missed day's an extra puzzle after the day's push, and says how many that makes", () => {
+  test("calls a missed day's an extra puzzle, by its own day, with the ones still up", () => {
     // Friday's went out at 9:12 as #12; Thursday's comes out that evening.
     expect(pushCopy([thursday(13)], [friday(12)])).toEqual({
       title: "Extra puzzle: #13 is up",
-      line: "Thursday's missed puzzle. That makes 2 today: #12 and #13.",
+      line: "Thursday's missed puzzle. Friday's is still up too.",
     });
     const wednesday = { ...thursday(13), date: "2026-09-30" };
     expect(pushCopy([wednesday, { ...thursday(14) }], [friday(12)])).toEqual({
       title: "Extra puzzles: #13 and #14 are up",
-      line: "Wednesday's and Thursday's missed puzzles. That makes 3 today: #12, #13, and #14.",
+      line: "Wednesday's and Thursday's missed puzzles. Friday's is still up too.",
     });
-    // Thursday's went out first, alone; Friday's own comes later.
-    expect(pushCopy([friday(13)], [thursday(12)]).line).toBe(
-      "Today's puzzle. That makes 2 today: #12 and #13.",
-    );
+    // Alone, before a day's own is out: still an extra, never today's.
+    expect(pushCopy([thursday(12)])).toEqual({
+      title: "Extra puzzle: #12 is up",
+      line: "Thursday's missed puzzle.",
+    });
     // A week or more back, it goes by its date, not "Friday's".
     expect(
       pushCopy([{ ...thursday(13), date: "2026-09-25" }], [friday(12)]).line,
-    ).toBe("Sep 25's missed puzzle. That makes 2 today: #12 and #13.");
+    ).toBe("Sep 25's missed puzzle. Friday's is still up too.");
     expect(
       pushCopy([{ ...thursday(13), date: "2026-09-26" }], [friday(12)]).line,
     ).toStartWith("Saturday's missed puzzle.");
@@ -113,6 +129,28 @@ describe("a puzzle's push", () => {
     expect(notification([thursday(13, "Better late")], [friday(12)])).toEqual({
       title: "Extra puzzle: #13 is up",
       body: "Better late",
+    });
+  });
+
+  test("never calls a day's own an extra, even after a missed day's push that day", () => {
+    // Wednesday's went out first, as #16; Friday's own comes that evening.
+    const wednesday = { ...thursday(16), date: "2026-09-30" };
+    expect(pushCopy([friday(17)], [wednesday])).toEqual({
+      title: "Puzzle #17 is up",
+      line: "Friday's puzzle. Wednesday's is still up too.",
+    });
+    expect(pushCopy([friday(17)], [{ ...thursday(15) }, wednesday]).line).toBe(
+      "Friday's puzzle. Thursday's and Wednesday's are still up too.",
+    );
+    // Its own line wins.
+    expect(notification([friday(17, "Back on track")], [wednesday])).toEqual({
+      title: "Puzzle #17 is up",
+      body: "Back on track",
+    });
+    // Out with a missed day's, it names both by their days.
+    expect(pushCopy([friday(17), thursday(18)])).toEqual({
+      title: "Puzzles #17 and #18 are up",
+      line: "Friday's puzzle and Thursday's missed puzzle.",
     });
   });
 });
@@ -373,20 +411,17 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
     /** A time in New York, daylight time unless it says otherwise. */
     const ny = (time: string, offset = "-04:00") =>
       new Date(`${time}${offset}`);
-    /** Each puzzle out then: its date, number, whether it's today's and counts. */
+    /** Each puzzle out then: its date, number, and whether it's today's. */
     const state = async (now = new Date()) =>
       (
         await sql`
-          select date, number, today, counts from ${released(now)}
+          select date, number, today from ${released(now)}
           order by number`
-      ).map(
-        (p: {
-          date: string;
-          number: number;
-          today: boolean;
-          counts: boolean;
-        }) => [p.date, p.number, p.today, p.counts],
-      );
+      ).map((p: { date: string; number: number; today: boolean }) => [
+        p.date,
+        p.number,
+        p.today,
+      ]);
     const pushedAt = (date: string, sentAt: Date) => sql`
       insert into announcements (date, sent_at) values (${date}, ${sentAt})
       on conflict (date) do update set sent_at = excluded.sent_at`;
@@ -399,6 +434,14 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
         .filter((line) => line.startsWith("Announced"));
       logged.mockRestore();
       return lines.map((line) => line.split(":")[0]);
+    };
+    /** Announces the day's puzzles then, and says the push's copy. */
+    const copyOf = async (now: Date) => {
+      const logged = spyOn(console, "log");
+      await announce(() => todays(now), await keys, now);
+      const lines = logged.mock.calls.map((call) => String(call[0]));
+      logged.mockRestore();
+      return lines[lines.findIndex((l) => l.startsWith("Announced")) + 1];
     };
     // The pushes the tests above made, on dates that may be these.
     beforeEach(async () => {
@@ -419,14 +462,14 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
       for (const date of dates.slice(2))
         await pushedAt(date, ny(`${date}T09:12:00`));
       const evening = ny("2026-10-13T20:30:00");
-      const live = dates.map((date, i) => [date, i + 1, i === 12, i === 12]);
+      const live = dates.map((date, i) => [date, i + 1, i === 12]);
       expect(await state(evening)).toEqual(live);
       // Monday's comes out that evening, after Tuesday's push, with its own.
       await syncPuzzles([
         ...dates.map((date) => puzzle(date)),
         puzzle("2026-10-12", "2026-10-13"),
       ]);
-      const withMonday = [...live, ["2026-10-12", 14, true, true]];
+      const withMonday = [...live, ["2026-10-12", 14, true]];
       expect(await state(evening)).toEqual(withMonday);
       expect(await announced(evening)).toEqual(["Announced #14"]);
       expect(await state(evening)).toEqual(withMonday);
@@ -446,49 +489,152 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
       await pushedAt("2026-10-13", ny("2026-10-13T09:12:00"));
       await pushedAt("2026-10-12", ny("2026-10-13T20:30:00"));
       expect(await state(ny("2026-10-13T21:00:00"))).toEqual([
-        ["2026-10-11", 1, false, false],
-        ["2026-10-13", 2, true, true],
-        ["2026-10-12", 3, true, true],
+        ["2026-10-11", 1, false],
+        ["2026-10-13", 2, true],
+        ["2026-10-12", 3, true],
       ]);
       // Wednesday, before its push: Tuesday's counts till 9:12, as ever,
-      // and Monday's till 8:30pm, on home.
+      // and Monday's till 8:30pm, all on home.
       expect(await state(ny("2026-10-14T08:00:00"))).toEqual([
-        ["2026-10-11", 1, false, false],
-        ["2026-10-13", 2, false, true],
-        ["2026-10-12", 3, true, true],
-        ["2026-10-14", 4, true, true],
+        ["2026-10-11", 1, false],
+        ["2026-10-13", 2, true],
+        ["2026-10-12", 3, true],
+        ["2026-10-14", 4, true],
       ]);
       // Wednesday's push names Wednesday's alone, and not as an extra.
       const nineTwelve = ny("2026-10-14T09:12:00");
       expect(await todays(nineTwelve)).toEqual([
-        { number: 4, date: "2026-10-14", out: "2026-10-14", push: null },
+        {
+          number: 4,
+          date: "2026-10-14",
+          out: "2026-10-14",
+          push: null,
+          pushed: null,
+        },
       ]);
       expect(await announced(nineTwelve)).toEqual(["Announced #4"]);
       await pushedAt("2026-10-14", nineTwelve);
       expect(await state(ny("2026-10-14T20:29:00"))).toEqual([
-        ["2026-10-11", 1, false, false],
-        ["2026-10-13", 2, false, false],
-        ["2026-10-12", 3, true, true],
-        ["2026-10-14", 4, true, true],
+        ["2026-10-11", 1, false],
+        ["2026-10-13", 2, false],
+        ["2026-10-12", 3, true],
+        ["2026-10-14", 4, true],
       ]);
       expect(await state(ny("2026-10-14T20:31:00"))).toEqual([
-        ["2026-10-11", 1, false, false],
-        ["2026-10-13", 2, false, false],
-        ["2026-10-12", 3, false, false],
-        ["2026-10-14", 4, true, true],
+        ["2026-10-11", 1, false],
+        ["2026-10-13", 2, false],
+        ["2026-10-12", 3, false],
+        ["2026-10-14", 4, true],
       ]);
       const [{ until }] = await sql`
         select until from ${released(nineTwelve)} where date = '2026-10-12'`;
       expect(until).toEqual(ny("2026-10-14T20:30:00"));
     });
 
-    test("a day's own pushed late, alone, counts its 24 hours but isn't today's once the next is out", async () => {
+    test("a day's own pushed late, alone, stays one of today's for its 24 hours, once the next is out", async () => {
       await syncPuzzles([puzzle("2026-10-13"), puzzle("2026-10-14")]);
       await pushedAt("2026-10-13", ny("2026-10-13T15:00:00"));
       expect(await state(ny("2026-10-14T12:00:00"))).toEqual([
-        ["2026-10-13", 1, false, true],
-        ["2026-10-14", 2, true, true],
+        ["2026-10-13", 1, true],
+        ["2026-10-14", 2, true],
       ]);
+    });
+
+    test("a missed day's caught up just after midnight pairs with yesterday's, and the next day's own is no extra", async () => {
+      // Shaped like Thursday, October 15, made up: Thursday's own went out
+      // at 11:31pm as #2. At 12:21am Wednesday's is caught up, with
+      // Thursday's (catchUpDay), as #3.
+      const before = [puzzle("2026-10-13"), puzzle("2026-10-15")];
+      const wednesday = puzzle("2026-10-14", "2026-10-15");
+      await syncPuzzles([...before, wednesday]);
+      await pushedAt("2026-10-13", ny("2026-10-13T09:12:00"));
+      await pushedAt("2026-10-15", ny("2026-10-15T23:31:00"));
+      // It pushes right away, though its day has passed, as an extra.
+      const midnight = ny("2026-10-16T00:21:00");
+      expect(await copyOf(midnight)).toBe(
+        "  Extra puzzle: #3 is up · Wednesday's missed puzzle. Thursday's is still up too.",
+      );
+      await pushedAt("2026-10-14", midnight);
+      // A double header on home, and nothing new at 9:12.
+      expect(await state(ny("2026-10-16T09:12:00"))).toEqual([
+        ["2026-10-13", 1, false],
+        ["2026-10-15", 2, true],
+        ["2026-10-14", 3, true],
+      ]);
+      expect(await announced(ny("2026-10-16T09:12:00"))).toEqual([]);
+      // Friday's own, published at 9pm, is #4, alone on its day: a plain
+      // push, with a quote.
+      await syncPuzzles([...before, wednesday, puzzle("2026-10-16")]);
+      const evening = ny("2026-10-16T21:00:00");
+      expect(await copyOf(evening)).toStartWith("  Puzzle #4 is up · ");
+      await pushedAt("2026-10-16", evening);
+      // All three are on home till Thursday's 24 hours are up, then
+      // Wednesday's till 12:21am.
+      expect(await state(ny("2026-10-16T23:30:00"))).toEqual([
+        ["2026-10-13", 1, false],
+        ["2026-10-15", 2, true],
+        ["2026-10-14", 3, true],
+        ["2026-10-16", 4, true],
+      ]);
+      expect(await state(ny("2026-10-16T23:32:00"))).toEqual([
+        ["2026-10-13", 1, false],
+        ["2026-10-15", 2, false],
+        ["2026-10-14", 3, true],
+        ["2026-10-16", 4, true],
+      ]);
+      expect(await state(ny("2026-10-17T00:22:00"))).toEqual([
+        ["2026-10-13", 1, false],
+        ["2026-10-15", 2, false],
+        ["2026-10-14", 3, false],
+        ["2026-10-16", 4, true],
+      ]);
+    });
+
+    test("filed as live has it, a missed day's out with the day's own is no extra, and moving it to yesterday keeps every number, push and game", async () => {
+      // As it went live: Wednesday's, caught up at 12:21am, came out Friday
+      // and took Friday's 9:12 push as #3. Friday's own comes at 9pm.
+      const before = [puzzle("2026-10-13"), puzzle("2026-10-15")];
+      const friday = puzzle("2026-10-16");
+      await syncPuzzles([
+        ...before,
+        puzzle("2026-10-14", "2026-10-16"),
+        friday,
+      ]);
+      await pushedAt("2026-10-13", ny("2026-10-13T09:12:00"));
+      await pushedAt("2026-10-15", ny("2026-10-15T23:31:00"));
+      await pushedAt("2026-10-14", ny("2026-10-16T09:12:00"));
+      await sql`insert into plays (user_id, puzzle_id) select 1, id from puzzles`;
+      const evening = ny("2026-10-16T21:00:00");
+      expect(await state(evening)).toEqual([
+        ["2026-10-13", 1, false],
+        ["2026-10-15", 2, true],
+        ["2026-10-14", 3, true],
+        ["2026-10-16", 4, true],
+      ]);
+      expect(await copyOf(evening)).toBe(
+        "  Puzzle #4 is up · Friday's puzzle. Wednesday's is still up too.",
+      );
+      await sql`delete from announcements where date = '2026-10-16'`;
+      // Moved to Thursday (`stached out`), with Friday's not yet pushed.
+      const moved = [...before, puzzle("2026-10-14", "2026-10-15"), friday];
+      const announcements =
+        await sql`select * from announcements order by date`;
+      for (const _ of [1, 2]) {
+        await syncPuzzles(moved);
+        expect(await state(evening)).toEqual([
+          ["2026-10-13", 1, false],
+          ["2026-10-15", 2, true],
+          ["2026-10-14", 3, true],
+          ["2026-10-16", 4, true],
+        ]);
+        expect(await sql`select * from announcements order by date`).toEqual(
+          announcements,
+        );
+        expect((await sql`select * from plays`).length).toBe(4);
+      }
+      // Friday's own is alone on its day now: a plain push, no extra.
+      expect(await copyOf(evening)).toStartWith("  Puzzle #4 is up · ");
+      await sql`delete from plays`;
     });
 
     test("two missed days caught up at once after the push share an extra push; one at a time, each gets its own", async () => {
@@ -523,11 +669,11 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
         puzzle("2026-10-13"),
       ]);
       expect(await state(ny("2026-10-13T19:00:00"))).toEqual([
-        ["2026-10-09", 1, false, false],
-        ["2026-10-12", 2, false, false],
-        ["2026-10-10", 3, false, false],
-        ["2026-10-11", 4, true, true],
-        ["2026-10-13", 5, true, true],
+        ["2026-10-09", 1, false],
+        ["2026-10-12", 2, false],
+        ["2026-10-10", 3, false],
+        ["2026-10-11", 4, true],
+        ["2026-10-13", 5, true],
       ]);
     });
 
@@ -540,10 +686,10 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
         puzzle("2026-10-12"),
       ]);
       expect(await state(ny("2026-10-12T09:00:00"))).toEqual([
-        ["2026-10-09", 1, false, false],
-        ["2026-10-12", 2, true, true],
-        ["2026-10-10", 3, true, true],
-        ["2026-10-11", 4, true, true],
+        ["2026-10-09", 1, false],
+        ["2026-10-12", 2, true],
+        ["2026-10-10", 3, true],
+        ["2026-10-11", 4, true],
       ]);
       expect(await announced(ny("2026-10-12T09:12:00"))).toEqual([
         "Announced #2, #3, and #4",
@@ -553,7 +699,7 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
         where date >= '2026-10-10'`;
       expect(stamps).toHaveLength(1);
       // As the push really went out at 9:12: the next day, once Tuesday's
-      // is out, they count till 9:12, and none stays today's.
+      // is out, they stay today's till 9:12.
       await sql`update announcements set sent_at = ${ny("2026-10-12T09:12:00")}`;
       await syncPuzzles([
         puzzle("2026-10-09"),
@@ -563,11 +709,11 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
         puzzle("2026-10-13"),
       ]);
       expect(await state(ny("2026-10-13T09:00:00"))).toEqual([
-        ["2026-10-09", 1, false, false],
-        ["2026-10-12", 2, false, true],
-        ["2026-10-10", 3, false, true],
-        ["2026-10-11", 4, false, true],
-        ["2026-10-13", 5, true, true],
+        ["2026-10-09", 1, false],
+        ["2026-10-12", 2, true],
+        ["2026-10-10", 3, true],
+        ["2026-10-11", 4, true],
+        ["2026-10-13", 5, true],
       ]);
     });
 
@@ -587,14 +733,13 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
       // 7:30pm standard time, a full 24 hours on.
       expect(until).toEqual(ny("2026-11-01T19:30:00", "-05:00"));
       expect(await state(ny("2026-11-01T19:29:00", "-05:00"))).toEqual([
-        ["2026-10-31", 1, false, false],
-        ["2026-10-30", 2, true, true],
-        ["2026-11-01", 3, true, true],
+        ["2026-10-31", 1, false],
+        ["2026-10-30", 2, true],
+        ["2026-11-01", 3, true],
       ]);
       expect((await state(ny("2026-11-01T19:31:00", "-05:00")))[1]).toEqual([
         "2026-10-30",
         2,
-        false,
         false,
       ]);
     });
@@ -607,9 +752,9 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
         select to_char(out, 'YYYY-MM-DD') as out from puzzles order by date`;
       expect(outs).toEqual([{ out: null }, { out: today }, { out: null }]);
       expect(await state()).toEqual([
-        [ago(3), 1, false, false],
-        [today, 2, true, true],
-        [ago(2), 3, true, true],
+        [ago(3), 1, false],
+        [today, 2, true],
+        [ago(2), 3, true],
       ]);
     });
 
@@ -621,11 +766,11 @@ describe.skipIf(!initdb)("announcing, with Postgres", () => {
       const evening = new Date(`${today}T20:00:00-04:00`);
       await syncPuzzles([puzzle(ago(2)), puzzle(ago(1))]);
       expect(await state()).toEqual([
-        [ago(2), 1, false, false],
-        [ago(1), 2, true, true],
+        [ago(2), 1, false],
+        [ago(1), 2, true],
       ]);
       expect(await todays()).toEqual([
-        { number: 2, date: ago(1), out: ago(1), push: null },
+        { number: 2, date: ago(1), out: ago(1), push: null, pushed: null },
       ]);
       expect(await announced(evening)).toEqual([]);
       expect(await claimedSince(ago(2))).toEqual([]);
