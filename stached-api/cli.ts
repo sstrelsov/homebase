@@ -778,13 +778,15 @@ async function moveOut(
     return;
   }
   const puzzles = refile(published, date, out, pushed, now);
+  // refile found it.
+  const from = outOf(old as DayPuzzle);
   const was = withNumbers(published, pushed);
   const will = withNumbers(puzzles, pushed);
   const [statusWas, statusWill] = [statusOf(was, now), statusOf(will, now)];
   // The puzzles out on the day it leaves, and on the day it joins.
-  const days = new Set([outOf(old as DayPuzzle), out]);
+  const days = new Set([from, out]);
   const rows = will
-    .filter((p) => days.has(p.out) || p.date === date)
+    .filter((p) => days.has(p.out))
     .map((p) => {
       const before = was.find((q) => q.date === p.date) as Numbered;
       const change = (a: string, b: string) => (a === b ? a : `${a} → ${b}`);
@@ -798,7 +800,7 @@ async function moveOut(
       ];
     });
   console.log(
-    `${day(date)}'s puzzle came out on ${day(outOf(old as DayPuzzle))}; it would come out on ${day(out)}:`,
+    `${day(date)}'s puzzle came out on ${day(from)}; ${apply ? "now" : "with --apply"} it comes out on ${day(out)}:`,
   );
   table([["", "DATE", "", "STATUS", "GAMES", "PUSH"], ...rows], 4);
   console.log(
@@ -809,7 +811,7 @@ async function moveOut(
     return;
   }
   await savePuzzles(puzzles);
-  console.log(`Written: ${day(date)}'s came out on ${day(out)}.`);
+  console.log("Written.");
 }
 
 /**
