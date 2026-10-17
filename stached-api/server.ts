@@ -60,14 +60,12 @@ interface Puzzle {
   /** The day it came out: its date, or a later one for a missed day's. */
   out: string;
   /**
-   * Whether it's one of today's: out on the newest day, or an extra pushed
-   * in the last day.
+   * Whether it's one of today's, so its games count: out on the newest day,
+   * or before `until`.
    */
   today: boolean;
   /** A day after its push, if it's been pushed: it counts at least till then. */
   until: Date | null;
-  /** Its games count: it's out on the newest day, or before `until`. */
-  counts: boolean;
   groups: Group[];
   /** Its push notification's line, or null for a random one. */
   push: string | null;
@@ -212,11 +210,11 @@ async function pastGames(userId: number) {
 
 /**
  * The puzzles out so far as the leaderboard reads them: each one's number,
- * date and whether it's today's and still counts, never the words or a
+ * date and whether it's today's (so it still counts), never the words or a
  * puzzle still to come.
  */
 const boardDays = (): Promise<Day[]> =>
-  sql`select id, number, date, out, today, counts from ${released()} order by date`;
+  sql`select id, number, date, out, today from ${released()} order by date`;
 
 /** Games as the leaderboard reads them: by default, all but the admin's. */
 const boardGames = (
@@ -317,6 +315,7 @@ async function snapshot(userId: number, puzzle: Puzzle, today?: TodayPuzzle[]) {
       id: puzzle.id,
       number: puzzle.number,
       date: puzzle.date,
+      out: puzzle.out,
       today: puzzle.today,
       nth: together.findIndex((p) => p.id === puzzle.id) + 1,
       of: together.length,
@@ -382,13 +381,13 @@ async function start(
     ? puzzleByDate(date)
     : puzzleById(puzzleId));
   if (!puzzle) return fail(404, "No puzzle for that day");
-  // A game started once its puzzle stops counting is late: it's yours, but
-  // it doesn't count.
+  // A game started once its puzzle stops counting (it's no longer one of
+  // today's) is late: it's yours, but it doesn't count.
   // How it started, for the admin page, is kept from that first start.
   const flag = (value: unknown) => (typeof value === "boolean" ? value : null);
   await sql`
     insert into plays (user_id, puzzle_id, active_since, late, home_screen, dark)
-    values (${userId}, ${puzzle.id}, ${new Date()}, ${!puzzle.counts},
+    values (${userId}, ${puzzle.id}, ${new Date()}, ${!puzzle.today},
             ${flag(homeScreen)}, ${flag(dark)})
     on conflict (user_id, puzzle_id) do nothing`;
   return Response.json(await snapshot(userId, puzzle));
@@ -485,7 +484,7 @@ async function guess(
         completed = ${completed},
         finished_at = ${completed === null ? null : now},
         -- A guess once its puzzle stops counting makes the game late.
-        late = ${play.late || !puzzle.counts}
+        late = ${play.late || !puzzle.today}
       where id = ${play.id}`;
     return correct ? "correct" : best.hits === 3 ? "one_away" : "wrong";
   });

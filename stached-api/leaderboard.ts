@@ -18,12 +18,10 @@ export interface Day {
   /** The day it came out: its date, or a later one for a missed day's. */
   out: string;
   /**
-   * One of today's: out on the newest day (a missed day's caught up too), or
-   * an extra pushed in the last day.
+   * One of today's, so its games still count: out on the newest day (a
+   * missed day's caught up too), or pushed in the last day.
    */
   today: boolean;
-  /** Out on the newest day, or pushed in the last day: its games still count. */
-  counts: boolean;
 }
 
 /** A player's game, as the database keeps it. */
@@ -134,7 +132,7 @@ function marker(games: Game[]) {
   const mark = (day: Day | undefined, byDay: Map<number, Game>): Mark => {
     if (!day) return "gap";
     const game = byDay.get(day.id);
-    if (!game || game.completed === null) return day.counts ? "open" : "none";
+    if (!game || game.completed === null) return day.today ? "open" : "none";
     if (game.late) return game.completed ? "late-solved" : "late-missed";
     if (isFastest(game)) return game.completed ? "won" : "won-missed";
     return game.completed ? "solved" : "missed";
@@ -150,10 +148,10 @@ export function addDays(date: string, days: number) {
 }
 
 /**
- * Whose a missed day's puzzle is, out on a later day: "Monday", or "Sep 28"
- * a week or more back, since "Friday" would read as the last Friday.
+ * Whose a puzzle is, by its own date, from the day it came out: "Monday", or
+ * "Sep 28" a week or more back, since "Friday" would read as the last Friday.
  */
-export const missedDay = (date: string, out: string) =>
+export const dayName = (date: string, out: string) =>
   new Date(`${date}T12:00:00Z`).toLocaleDateString("en-US", {
     ...(addDays(date, WEEK) > out
       ? { weekday: "long" }

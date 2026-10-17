@@ -27,7 +27,6 @@ const DAYS: Day[] = DATES.map((date, i) => ({
   date,
   out: date,
   today: i + 1 === TODAY,
-  counts: i + 1 === TODAY,
 }));
 
 const game = (
@@ -220,8 +219,8 @@ describe("a game in progress", () => {
 });
 
 describe("yesterday's puzzle, while it still counts", () => {
-  // Pushed late last night, so #7 counts for a day after it, beside today's.
-  const days = DAYS.map((day) => ({ ...day, counts: day.id >= 7 }));
+  // Pushed late last night, so #7 counts for a day after it, one of today's.
+  const days = DAYS.map((day) => ({ ...day, today: day.id >= 7 }));
   const sal = (...games: Game[]) =>
     leaderboardOf(days, games).players.find((p) => p.name === "Sal");
   const before = [solved("Sal", 6, 40), solved("Sal", TODAY, 30)];
@@ -273,7 +272,7 @@ describe("a player's week, for home", () => {
   });
 
   test("stripes a late game, and dashes yesterday's while it counts", () => {
-    const days = DAYS.map((day) => ({ ...day, counts: day.id >= 7 }));
+    const days = DAYS.map((day) => ({ ...day, today: day.id >= 7 }));
     const mine = [
       late(solved("Zoe", 4, 40)),
       late(missed("Zoe", 5, 20)),
@@ -424,7 +423,6 @@ describe("catching up on a missed day", () => {
     ...day,
     out: day.id >= 7 ? DATES[7] : day.date,
     today: day.id >= 7,
-    counts: day.id >= 7,
   }));
 
   test("gives each of today's its own fastest stache and square", () => {
@@ -494,7 +492,7 @@ describe("catching up on a missed day", () => {
     expect(streakOf(caughtUp, solves)).toBe(7);
     expect(streakOf(caughtUp, [...solves, solved("Ada", 7, 30)])).toBe(8);
     const over = caughtUp.map((day) =>
-      day.id === 7 ? { ...day, today: false, counts: false } : day,
+      day.id === 7 ? { ...day, today: false } : day,
     );
     expect(streakOf(over, solves)).toBe(1);
     expect(streakOf(over, [...solves, late(solved("Ada", 7, 30))])).toBe(1);
@@ -508,7 +506,6 @@ describe("catching up on a missed day", () => {
       date: "2026-09-18",
       out: DATES[7],
       today: true,
-      counts: true,
     };
     const { days, today, fastestToday } = leaderboardOf(
       [longAgo, ...DAYS],
@@ -528,7 +525,7 @@ describe("catching up on a missed day", () => {
     // Today, October 2, has no puzzle of its own yet; October 1's is caught
     // up.
     const days = DAYS.slice(0, 7).map((day) =>
-      day.id === 7 ? { ...day, out: DATES[7], today: true, counts: true } : day,
+      day.id === 7 ? { ...day, out: DATES[7], today: true } : day,
     );
     expect(weekOf(days, [], []).slice(-2)).toEqual([
       { date: DATES[6], today: true, mark: "open" },

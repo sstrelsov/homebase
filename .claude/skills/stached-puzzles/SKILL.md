@@ -41,11 +41,12 @@ puzzle file along. With no command it prints its help.
 
 | Command | What it does |
 |---|---|
-| `list` | Every puzzle, in number order: number, date, status (out, today, upcoming, staged; "caught up" for a missed day's), games played, and its push (sent, none, or when) |
+| `list` | Every puzzle, in number order: number, date, status (today while it counts, out, upcoming, staged; "caught up" and its day out for a missed day's), games played, and its push (when it went out, none, or when it goes), then what's staged would do, push and all |
 | `stage <file>` | Checks the puzzles in the file (one, or a list), stages them, replacing what was staged, and makes the first one's day today's on the tester, with every puzzle that comes out with it. `-` reads stdin |
 | `preview [date]` | Makes a staged puzzle's day (the first's, or that date's) today's on the tester |
 | `confirm` | Publishes everything staged, and sends a push that's due right away. The API picks it up without a restart |
 | `remove <date>` | Takes a published puzzle down. Every puzzle after it moves down a number |
+| `out <date> <day>` | Says a published missed day's puzzle came out on another day, to pair it with that day's. A dry run until you add `--apply`. It keeps every number that's out, every push and every game |
 | `vapid-keys` | Prints a new pair of push keys for `api.env` |
 | `push-again` | The tester only: sends today's push again, right away |
 
@@ -87,10 +88,23 @@ that day's push has gone out:
   line).
 - **After it** (Monday's, confirmed Tuesday evening, once "Puzzle #13 is up"
   went out): `confirm` pushes it right away, on its own, as an extra: "Extra
-  puzzle: #14 is up", with "Monday's missed puzzle. That makes 2 today: #13
-  and #14." (or its own `push` line). Tuesday's stays #13; Monday's is #14 and
-  counts for 24 hours from its own push. It stays on home as one of today's
-  for all of them, even once Wednesday's is out.
+  puzzle: #14 is up", with "Monday's missed puzzle. Tuesday's is still up
+  too." (or its own `push` line). Tuesday's stays #13; Monday's is #14 and
+  counts for 24 hours from its own push, on home all that time.
+- **Just after midnight** (Wednesday's, confirmed at 12:21am Friday, while
+  Thursday's, pushed at 11:31pm, still counts, and before Friday's is out): it
+  comes out with Thursday's, a double header, and `confirm` pushes it right
+  away: "Extra puzzle: #16 is up", "Wednesday's missed puzzle. Thursday's is
+  still up too." Friday's own is then Friday's alone: "Puzzle #17 is up".
+
+Only a missed day's push is an "Extra puzzle". A day's own is always "Puzzle
+#17 is up", even after a missed day's push went out that day, and without its
+own line it says "Friday's puzzle. Wednesday's is still up too." Every push
+names puzzles by their own days, never "today's".
+
+To file a missed day's published before the just-after-midnight rule with
+the day it was meant for, `scripts/stached out <date> <day>` shows what
+changes (a dry run), and `--apply` writes it. Only with Spencer's OK.
 
 Stage it like any puzzle (with today's too, if that isn't published yet):
 
@@ -142,20 +156,21 @@ time**, together with the others out that day:
   That includes just before midnight.
 - A missed day's, caught up (above): with that day's 9:12 push if it's
   confirmed before it, or right away, on its own, as an "Extra puzzle", if
-  it's confirmed after.
+  it's confirmed after, or just after midnight with yesterday's.
 
 A puzzle counts on the leaderboard for 24 hours after its own push, even once
-the next day's is out. So a puzzle pushed at 11pm still gives everyone a full
-day, and publishing the next one on time doesn't cut it short.
+the next day's is out, and stays on home all that time. So a puzzle pushed at
+11pm still gives everyone a full day, and publishing the next one on time
+doesn't cut it short.
 
 The API checks every minute, `confirm` sends a due push itself, and both
 record each puzzle in `announcements` before sending, so a puzzle never pushes
 twice, even across restarts or if it's edited or published again.
 The notification says "Puzzle #12 is up" ("Puzzles #17 and #18 are up" for
-two out together, "Extra puzzle: #14 is up" for one after that day's push),
-then the first puzzle's `push` line if it has one, or else a random one of the
-quotes on home (an extra one says what it is instead: "Monday's missed puzzle.
-That makes 2 today: #13 and #14."). When Spencer wants custom copy, put it in
+two out together, "Extra puzzle: #14 is up" for a missed day's after that
+day's push), then the first puzzle's `push` line if it has one, or else a
+random one of the quotes on home (any push but a day's own alone names the
+days instead: "Monday's missed puzzle. Tuesday's is still up too."). When Spencer wants custom copy, put it in
 `push` and stage again: a change to the line alone keeps everyone's games. It
 only counts before the push goes out. iOS adds "from Stached" (the home-screen
 app's name), which can't be turned off. Tapping it opens home, not the game,
